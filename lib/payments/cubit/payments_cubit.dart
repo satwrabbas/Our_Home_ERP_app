@@ -65,4 +65,15 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
+
+  /// تحديث حالة الفاتورة لتسجيل أنه تم إرسالها عبر الواتساب
+  Future<void> markAsSent(int paymentId, int contractId) async {
+    try {
+      await _erpRepository.markWhatsAppAsSent(paymentId);
+      // تحديث الشاشة لتنعكس التغييرات
+      await selectContract(contractId);
+    } catch (e) {
+      print('Failed to mark WhatsApp as sent: $e');
+    }
+  }
 }

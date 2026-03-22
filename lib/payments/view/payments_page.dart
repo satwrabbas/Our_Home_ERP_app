@@ -4,6 +4,8 @@ import 'package:erp_repository/erp_repository.dart';
 import '../cubit/payments_cubit.dart';
 import '../../core/utils/pdf_generator.dart';
 import '../../core/utils/pdf_preview_page.dart';
+import '../../core/utils/whatsapp_helper.dart';
+
 
 class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
@@ -154,11 +156,34 @@ class PaymentsView extends StatelessWidget {
                                         ),
                                         // زر إرسال واتساب
                                         IconButton(
-                                          icon: const Icon(Icons.chat, color: Colors.green),
-                                          tooltip: 'إرسال عبر الواتساب',
-                                          onPressed: () {
-                                            // TODO: برمجة إرسال الواتساب
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ميزة الواتساب...')));
+                                          // تغيير لون الأيقونة إذا تم الإرسال مسبقاً لتمييزها
+                                          icon: Icon(Icons.chat, color: payment.isWhatsAppSent ? Colors.grey : Colors.green),
+                                          tooltip: payment.isWhatsAppSent ? 'تم الإرسال مسبقاً (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
+                                          onPressed: () async {
+                                            // 1. جلب البيانات
+                                            final contract = state.contracts.firstWhere((c) => c.id == payment.contractId);
+                                            final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                            
+                                            // 2. محاولة فتح الواتساب وإرسال الرسالة
+                                            final success = await WhatsAppHelper.sendReceiptMessage(
+                                              payment: payment,
+                                              contract: contract,
+                                              client: client,
+                                            );
+
+                                  a          if (context.mounted) {
+                                              if (success) {
+                                                // 3. إذا نجح، نخبر قاعدة البيانات بتغيير الحالة
+                                                context.read<PaymentsCubit>().markAsSent(payment.id, contract.id);
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('تم فتح الواتساب بنجاح!'), backgroundColor: Colors.green),
+                                                );
+                                              } else {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(content: Text('فشل فتح الواتساب. تأكد من اتصالك بالإنترنت.'), backgroundColor: Colors.red),
+                                                );
+                                              }
+                                            }
                                           },
                                         ),
                                       ],
