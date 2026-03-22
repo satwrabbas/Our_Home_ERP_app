@@ -120,9 +120,15 @@ class AppDatabase extends _$AppDatabase {
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
-    // التخزين المحلي الآمن لويندوز
     final dbFolder = await getApplicationSupportDirectory(); 
     final file = File(p.join(dbFolder.path, 'our_home_erp.sqlite'));
+    
+    // 💡 السطر السحري لمعرفة مكان قاعدة البيانات
+    print('==============================================');
+    print('📦 مسار قاعدة البيانات المحلية هو:');
+    print(file.path);
+    print('==============================================');
+    
     return NativeDatabase.createInBackground(file);
   });
 }
