@@ -8,10 +8,7 @@ class ContractsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ContractsCubit(context.read<ErpRepository>())..fetchData(),
-      child: const ContractsView(),
-    );
+    return const ContractsView();
   }
 }
 

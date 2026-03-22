@@ -1,20 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:erp_repository/erp_repository.dart';
 
-// استدعاء الشاشات التي بنيناها
+// استدعاء جميع الشاشات
 import '../../clients/view/clients_page.dart';
 import '../../contracts/view/contracts_page.dart';
-import '../cubit/dashboard_cubit.dart';
 import '../../payments/view/payments_page.dart';
 import '../../settings/view/settings_page.dart';
+
+// استدعاء جميع المتحكمات (Cubits)
+import '../../clients/cubit/clients_cubit.dart';
+import '../../contracts/cubit/contracts_cubit.dart';
+import '../../payments/cubit/payments_cubit.dart';
+import '../../settings/cubit/settings_cubit.dart';
+import '../cubit/dashboard_cubit.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => DashboardCubit(),
+    final repo = context.read<ErpRepository>();
+    
+    // 🌟 السحر هنا: توفير جميع المتحكمات على مستوى لوحة التحكم لتظل حية وتتحدث مع بعضها
+    return MultiBlocProvider(
+      providers:[
+        BlocProvider(create: (_) => DashboardCubit()),
+        BlocProvider(create: (_) => ClientsCubit(repo)..fetchClients()),
+        BlocProvider(create: (_) => ContractsCubit(repo)..fetchData()),
+        BlocProvider(create: (_) => PaymentsCubit(repo)..fetchInitialData()),
+        BlocProvider(create: (_) => SettingsCubit(repo)..fetchPrices()),
+      ],
       child: const DashboardView(),
     );
   }
@@ -25,17 +41,22 @@ class DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // نستمع لرقم الشاشة المحددة من الـ Cubit
     final selectedIndex = context.watch<DashboardCubit>().state;
 
     return Scaffold(
       body: Row(
         children:[
-          // 1. القائمة الجانبية (Sidebar)
           NavigationRail(
             selectedIndex: selectedIndex,
             onDestinationSelected: (index) {
+              // 1. تغيير الشاشة
               context.read<DashboardCubit>().changeTab(index);
+              
+              // 2. 🔄 التحديث التلقائي للبيانات بناءً على الشاشة التي ضغطت عليها!
+              if (index == 0) context.read<ClientsCubit>().fetchClients();
+              if (index == 1) context.read<ContractsCubit>().fetchData();
+              if (index == 2) context.read<PaymentsCubit>().fetchInitialData();
+              if (index == 3) context.read<SettingsCubit>().fetchPrices();
             },
             labelType: NavigationRailLabelType.all,
             backgroundColor: Colors.blue.shade900,
@@ -44,44 +65,21 @@ class DashboardView extends StatelessWidget {
             selectedIconTheme: const IconThemeData(color: Colors.white, size: 30),
             selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             destinations: const[
-              NavigationRailDestination(
-                icon: Icon(Icons.people_alt_outlined),
-                selectedIcon: Icon(Icons.people_alt),
-                label: Text('العملاء'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.description_outlined),
-                selectedIcon: Icon(Icons.description),
-                label: Text('العقود'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.receipt_long_outlined),
-                selectedIcon: Icon(Icons.receipt_long),
-                label: Text('الأقساط'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('الإعدادات'),
-              ),
+              NavigationRailDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: Text('العملاء')),
+              NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('العقود')),
+              NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('الأقساط')),
+              NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('الإعدادات')),
             ],
           ),
-          
-          // خط فاصل جمالي
           const VerticalDivider(thickness: 1, width: 1),
-          
-          // 2. محتوى الشاشة (المساحة المتبقية من الشاشة)
           Expanded(
             child: IndexedStack(
               index: selectedIndex,
-              children:[
-                const ClientsPage(),   // Index 0
-                const ContractsPage(), // Index 1
-                
-                const PaymentsPage(),
-                
-                // Index 3 (مؤقت حتى نبني شاشة الإعدادات وحساب الأسعار)
-                const SettingsPage(),
+              children: const[
+                ClientsPage(),
+                ContractsPage(),
+                PaymentsPage(),
+                SettingsPage(),
               ],
             ),
           ),

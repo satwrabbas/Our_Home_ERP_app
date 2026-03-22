@@ -8,10 +8,7 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => SettingsCubit(context.read<ErpRepository>())..fetchPrices(),
-      child: const SettingsView(),
-    );
+    return const SettingsView();
   }
 }
 

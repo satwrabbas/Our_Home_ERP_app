@@ -8,11 +8,7 @@ class ClientsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // توفير الـ Cubit للشاشة وجلب البيانات فور فتحها
-    return BlocProvider(
-      create: (context) => ClientsCubit(context.read<ErpRepository>())..fetchClients(),
-      child: const ClientsView(),
-    );
+    return const ClientsView(); // حذفنا الـ BlocProvider من هنا
   }
 }
 

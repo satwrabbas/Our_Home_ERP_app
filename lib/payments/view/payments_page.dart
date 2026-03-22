@@ -12,10 +12,7 @@ class PaymentsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => PaymentsCubit(context.read<ErpRepository>())..fetchInitialData(),
-      child: const PaymentsView(),
-    );
+    return const PaymentsView();
   }
 }
 
