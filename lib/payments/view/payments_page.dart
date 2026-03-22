@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/payments_cubit.dart';
 import '../../core/utils/pdf_generator.dart';
-
+import '../../core/utils/pdf_preview_page.dart';
 
 class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
@@ -117,13 +117,39 @@ class PaymentsView extends StatelessWidget {
                                     DataCell(Text('${payment.paymentDate.year}/${payment.paymentDate.month}/${payment.paymentDate.day}')),
                                     DataCell(Row(
                                       children:[
-                                        // زر الطباعة PDF
+                                        // زر الطباعة ومعاينة PDF
                                         IconButton(
                                           icon: const Icon(Icons.print, color: Colors.blue),
-                                          tooltip: 'طباعة الفاتورة (PDF)',
-                                          onPressed: () {
-                                            // TODO: برمجة توليد الـ PDF في الخطوة القادمة
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ميزة الطباعة...')));
+                                          tooltip: 'معاينة وطباعة الفاتورة',
+                                          onPressed: () async {
+                                            // 1. إظهار مؤشر تحميل بسيط أسفل الشاشة
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('جاري تجهيز الفاتورة...'), duration: Duration(seconds: 1)),
+                                            );
+
+                                            // 2. جلب البيانات
+                                            final contract = state.contracts.firstWhere((c) => c.id == payment.contractId);
+                                            final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                            
+                                            // 3. توليد الـ PDF كبيانات (Bytes)
+                                            final pdfBytes = await PdfGenerator.generateReceiptPdf(
+                                              payment: payment,
+                                              contract: contract,
+                                              client: client,
+                                            );
+
+                                            // 4. الانتقال إلى شاشة المعاينة
+                                            if (context.mounted) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => PdfPreviewPage(
+                                                    pdfBytes: pdfBytes,
+                                                    title: 'فاتورة_${payment.id}_${client.name}',
+                                                  ),
+                                                ),
+                                              );
+                                            }
                                           },
                                         ),
                                         // زر إرسال واتساب
