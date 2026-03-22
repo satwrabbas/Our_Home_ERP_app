@@ -171,7 +171,7 @@ class PaymentsView extends StatelessWidget {
                                               client: client,
                                             );
 
-                                  a          if (context.mounted) {
+                                            if (context.mounted) {
                                               if (success) {
                                                 // 3. إذا نجح، نخبر قاعدة البيانات بتغيير الحالة
                                                 context.read<PaymentsCubit>().markAsSent(payment.id, contract.id);
