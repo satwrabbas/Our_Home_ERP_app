@@ -1633,28 +1633,61 @@ class $MaterialPricesTable extends MaterialPrices
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _blockPriceMeta = const VerificationMeta(
-    'blockPrice',
+  static const VerificationMeta _block15PriceMeta = const VerificationMeta(
+    'block15Price',
   );
   @override
-  late final GeneratedColumn<double> blockPrice = GeneratedColumn<double>(
-    'block_price',
+  late final GeneratedColumn<double> block15Price = GeneratedColumn<double>(
+    'block15_price',
     aliasedName,
     false,
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _workerDailyRateMeta = const VerificationMeta(
-    'workerDailyRate',
-  );
+  static const VerificationMeta _formworkAndPouringWagesMeta =
+      const VerificationMeta('formworkAndPouringWages');
   @override
-  late final GeneratedColumn<double> workerDailyRate = GeneratedColumn<double>(
-    'worker_daily_rate',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
+  late final GeneratedColumn<double> formworkAndPouringWages =
+      GeneratedColumn<double>(
+        'formwork_and_pouring_wages',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _reinforcedConcretePriceMeta =
+      const VerificationMeta('reinforcedConcretePrice');
+  @override
+  late final GeneratedColumn<double> reinforcedConcretePrice =
+      GeneratedColumn<double>(
+        'reinforced_concrete_price',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _aggregateMaterialsPriceMeta =
+      const VerificationMeta('aggregateMaterialsPrice');
+  @override
+  late final GeneratedColumn<double> aggregateMaterialsPrice =
+      GeneratedColumn<double>(
+        'aggregate_materials_price',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _ordinaryWorkerWageMeta =
+      const VerificationMeta('ordinaryWorkerWage');
+  @override
+  late final GeneratedColumn<double> ordinaryWorkerWage =
+      GeneratedColumn<double>(
+        'ordinary_worker_wage',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
   static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
     'lastUpdated',
   );
@@ -1672,8 +1705,11 @@ class $MaterialPricesTable extends MaterialPrices
     id,
     ironPrice,
     cementPrice,
-    blockPrice,
-    workerDailyRate,
+    block15Price,
+    formworkAndPouringWages,
+    reinforcedConcretePrice,
+    aggregateMaterialsPrice,
+    ordinaryWorkerWage,
     lastUpdated,
   ];
   @override
@@ -1710,24 +1746,60 @@ class $MaterialPricesTable extends MaterialPrices
     } else if (isInserting) {
       context.missing(_cementPriceMeta);
     }
-    if (data.containsKey('block_price')) {
+    if (data.containsKey('block15_price')) {
       context.handle(
-        _blockPriceMeta,
-        blockPrice.isAcceptableOrUnknown(data['block_price']!, _blockPriceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_blockPriceMeta);
-    }
-    if (data.containsKey('worker_daily_rate')) {
-      context.handle(
-        _workerDailyRateMeta,
-        workerDailyRate.isAcceptableOrUnknown(
-          data['worker_daily_rate']!,
-          _workerDailyRateMeta,
+        _block15PriceMeta,
+        block15Price.isAcceptableOrUnknown(
+          data['block15_price']!,
+          _block15PriceMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_workerDailyRateMeta);
+      context.missing(_block15PriceMeta);
+    }
+    if (data.containsKey('formwork_and_pouring_wages')) {
+      context.handle(
+        _formworkAndPouringWagesMeta,
+        formworkAndPouringWages.isAcceptableOrUnknown(
+          data['formwork_and_pouring_wages']!,
+          _formworkAndPouringWagesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_formworkAndPouringWagesMeta);
+    }
+    if (data.containsKey('reinforced_concrete_price')) {
+      context.handle(
+        _reinforcedConcretePriceMeta,
+        reinforcedConcretePrice.isAcceptableOrUnknown(
+          data['reinforced_concrete_price']!,
+          _reinforcedConcretePriceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_reinforcedConcretePriceMeta);
+    }
+    if (data.containsKey('aggregate_materials_price')) {
+      context.handle(
+        _aggregateMaterialsPriceMeta,
+        aggregateMaterialsPrice.isAcceptableOrUnknown(
+          data['aggregate_materials_price']!,
+          _aggregateMaterialsPriceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_aggregateMaterialsPriceMeta);
+    }
+    if (data.containsKey('ordinary_worker_wage')) {
+      context.handle(
+        _ordinaryWorkerWageMeta,
+        ordinaryWorkerWage.isAcceptableOrUnknown(
+          data['ordinary_worker_wage']!,
+          _ordinaryWorkerWageMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_ordinaryWorkerWageMeta);
     }
     if (data.containsKey('last_updated')) {
       context.handle(
@@ -1759,13 +1831,25 @@ class $MaterialPricesTable extends MaterialPrices
         DriftSqlType.double,
         data['${effectivePrefix}cement_price'],
       )!,
-      blockPrice: attachedDatabase.typeMapping.read(
+      block15Price: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}block_price'],
+        data['${effectivePrefix}block15_price'],
       )!,
-      workerDailyRate: attachedDatabase.typeMapping.read(
+      formworkAndPouringWages: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}worker_daily_rate'],
+        data['${effectivePrefix}formwork_and_pouring_wages'],
+      )!,
+      reinforcedConcretePrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}reinforced_concrete_price'],
+      )!,
+      aggregateMaterialsPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}aggregate_materials_price'],
+      )!,
+      ordinaryWorkerWage: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ordinary_worker_wage'],
       )!,
       lastUpdated: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -1784,15 +1868,21 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
   final int id;
   final double ironPrice;
   final double cementPrice;
-  final double blockPrice;
-  final double workerDailyRate;
+  final double block15Price;
+  final double formworkAndPouringWages;
+  final double reinforcedConcretePrice;
+  final double aggregateMaterialsPrice;
+  final double ordinaryWorkerWage;
   final DateTime lastUpdated;
   const MaterialPrice({
     required this.id,
     required this.ironPrice,
     required this.cementPrice,
-    required this.blockPrice,
-    required this.workerDailyRate,
+    required this.block15Price,
+    required this.formworkAndPouringWages,
+    required this.reinforcedConcretePrice,
+    required this.aggregateMaterialsPrice,
+    required this.ordinaryWorkerWage,
     required this.lastUpdated,
   });
   @override
@@ -1801,8 +1891,17 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     map['id'] = Variable<int>(id);
     map['iron_price'] = Variable<double>(ironPrice);
     map['cement_price'] = Variable<double>(cementPrice);
-    map['block_price'] = Variable<double>(blockPrice);
-    map['worker_daily_rate'] = Variable<double>(workerDailyRate);
+    map['block15_price'] = Variable<double>(block15Price);
+    map['formwork_and_pouring_wages'] = Variable<double>(
+      formworkAndPouringWages,
+    );
+    map['reinforced_concrete_price'] = Variable<double>(
+      reinforcedConcretePrice,
+    );
+    map['aggregate_materials_price'] = Variable<double>(
+      aggregateMaterialsPrice,
+    );
+    map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage);
     map['last_updated'] = Variable<DateTime>(lastUpdated);
     return map;
   }
@@ -1812,8 +1911,11 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       id: Value(id),
       ironPrice: Value(ironPrice),
       cementPrice: Value(cementPrice),
-      blockPrice: Value(blockPrice),
-      workerDailyRate: Value(workerDailyRate),
+      block15Price: Value(block15Price),
+      formworkAndPouringWages: Value(formworkAndPouringWages),
+      reinforcedConcretePrice: Value(reinforcedConcretePrice),
+      aggregateMaterialsPrice: Value(aggregateMaterialsPrice),
+      ordinaryWorkerWage: Value(ordinaryWorkerWage),
       lastUpdated: Value(lastUpdated),
     );
   }
@@ -1827,8 +1929,19 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       id: serializer.fromJson<int>(json['id']),
       ironPrice: serializer.fromJson<double>(json['ironPrice']),
       cementPrice: serializer.fromJson<double>(json['cementPrice']),
-      blockPrice: serializer.fromJson<double>(json['blockPrice']),
-      workerDailyRate: serializer.fromJson<double>(json['workerDailyRate']),
+      block15Price: serializer.fromJson<double>(json['block15Price']),
+      formworkAndPouringWages: serializer.fromJson<double>(
+        json['formworkAndPouringWages'],
+      ),
+      reinforcedConcretePrice: serializer.fromJson<double>(
+        json['reinforcedConcretePrice'],
+      ),
+      aggregateMaterialsPrice: serializer.fromJson<double>(
+        json['aggregateMaterialsPrice'],
+      ),
+      ordinaryWorkerWage: serializer.fromJson<double>(
+        json['ordinaryWorkerWage'],
+      ),
       lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
     );
   }
@@ -1839,8 +1952,17 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       'id': serializer.toJson<int>(id),
       'ironPrice': serializer.toJson<double>(ironPrice),
       'cementPrice': serializer.toJson<double>(cementPrice),
-      'blockPrice': serializer.toJson<double>(blockPrice),
-      'workerDailyRate': serializer.toJson<double>(workerDailyRate),
+      'block15Price': serializer.toJson<double>(block15Price),
+      'formworkAndPouringWages': serializer.toJson<double>(
+        formworkAndPouringWages,
+      ),
+      'reinforcedConcretePrice': serializer.toJson<double>(
+        reinforcedConcretePrice,
+      ),
+      'aggregateMaterialsPrice': serializer.toJson<double>(
+        aggregateMaterialsPrice,
+      ),
+      'ordinaryWorkerWage': serializer.toJson<double>(ordinaryWorkerWage),
       'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
     };
   }
@@ -1849,15 +1971,24 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     int? id,
     double? ironPrice,
     double? cementPrice,
-    double? blockPrice,
-    double? workerDailyRate,
+    double? block15Price,
+    double? formworkAndPouringWages,
+    double? reinforcedConcretePrice,
+    double? aggregateMaterialsPrice,
+    double? ordinaryWorkerWage,
     DateTime? lastUpdated,
   }) => MaterialPrice(
     id: id ?? this.id,
     ironPrice: ironPrice ?? this.ironPrice,
     cementPrice: cementPrice ?? this.cementPrice,
-    blockPrice: blockPrice ?? this.blockPrice,
-    workerDailyRate: workerDailyRate ?? this.workerDailyRate,
+    block15Price: block15Price ?? this.block15Price,
+    formworkAndPouringWages:
+        formworkAndPouringWages ?? this.formworkAndPouringWages,
+    reinforcedConcretePrice:
+        reinforcedConcretePrice ?? this.reinforcedConcretePrice,
+    aggregateMaterialsPrice:
+        aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
+    ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
     lastUpdated: lastUpdated ?? this.lastUpdated,
   );
   MaterialPrice copyWithCompanion(MaterialPricesCompanion data) {
@@ -1867,12 +1998,21 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       cementPrice: data.cementPrice.present
           ? data.cementPrice.value
           : this.cementPrice,
-      blockPrice: data.blockPrice.present
-          ? data.blockPrice.value
-          : this.blockPrice,
-      workerDailyRate: data.workerDailyRate.present
-          ? data.workerDailyRate.value
-          : this.workerDailyRate,
+      block15Price: data.block15Price.present
+          ? data.block15Price.value
+          : this.block15Price,
+      formworkAndPouringWages: data.formworkAndPouringWages.present
+          ? data.formworkAndPouringWages.value
+          : this.formworkAndPouringWages,
+      reinforcedConcretePrice: data.reinforcedConcretePrice.present
+          ? data.reinforcedConcretePrice.value
+          : this.reinforcedConcretePrice,
+      aggregateMaterialsPrice: data.aggregateMaterialsPrice.present
+          ? data.aggregateMaterialsPrice.value
+          : this.aggregateMaterialsPrice,
+      ordinaryWorkerWage: data.ordinaryWorkerWage.present
+          ? data.ordinaryWorkerWage.value
+          : this.ordinaryWorkerWage,
       lastUpdated: data.lastUpdated.present
           ? data.lastUpdated.value
           : this.lastUpdated,
@@ -1885,8 +2025,11 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
           ..write('id: $id, ')
           ..write('ironPrice: $ironPrice, ')
           ..write('cementPrice: $cementPrice, ')
-          ..write('blockPrice: $blockPrice, ')
-          ..write('workerDailyRate: $workerDailyRate, ')
+          ..write('block15Price: $block15Price, ')
+          ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
+          ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
+          ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
+          ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
           ..write('lastUpdated: $lastUpdated')
           ..write(')'))
         .toString();
@@ -1897,8 +2040,11 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     id,
     ironPrice,
     cementPrice,
-    blockPrice,
-    workerDailyRate,
+    block15Price,
+    formworkAndPouringWages,
+    reinforcedConcretePrice,
+    aggregateMaterialsPrice,
+    ordinaryWorkerWage,
     lastUpdated,
   );
   @override
@@ -1908,8 +2054,11 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
           other.id == this.id &&
           other.ironPrice == this.ironPrice &&
           other.cementPrice == this.cementPrice &&
-          other.blockPrice == this.blockPrice &&
-          other.workerDailyRate == this.workerDailyRate &&
+          other.block15Price == this.block15Price &&
+          other.formworkAndPouringWages == this.formworkAndPouringWages &&
+          other.reinforcedConcretePrice == this.reinforcedConcretePrice &&
+          other.aggregateMaterialsPrice == this.aggregateMaterialsPrice &&
+          other.ordinaryWorkerWage == this.ordinaryWorkerWage &&
           other.lastUpdated == this.lastUpdated);
 }
 
@@ -1917,42 +2066,64 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
   final Value<int> id;
   final Value<double> ironPrice;
   final Value<double> cementPrice;
-  final Value<double> blockPrice;
-  final Value<double> workerDailyRate;
+  final Value<double> block15Price;
+  final Value<double> formworkAndPouringWages;
+  final Value<double> reinforcedConcretePrice;
+  final Value<double> aggregateMaterialsPrice;
+  final Value<double> ordinaryWorkerWage;
   final Value<DateTime> lastUpdated;
   const MaterialPricesCompanion({
     this.id = const Value.absent(),
     this.ironPrice = const Value.absent(),
     this.cementPrice = const Value.absent(),
-    this.blockPrice = const Value.absent(),
-    this.workerDailyRate = const Value.absent(),
+    this.block15Price = const Value.absent(),
+    this.formworkAndPouringWages = const Value.absent(),
+    this.reinforcedConcretePrice = const Value.absent(),
+    this.aggregateMaterialsPrice = const Value.absent(),
+    this.ordinaryWorkerWage = const Value.absent(),
     this.lastUpdated = const Value.absent(),
   });
   MaterialPricesCompanion.insert({
     this.id = const Value.absent(),
     required double ironPrice,
     required double cementPrice,
-    required double blockPrice,
-    required double workerDailyRate,
+    required double block15Price,
+    required double formworkAndPouringWages,
+    required double reinforcedConcretePrice,
+    required double aggregateMaterialsPrice,
+    required double ordinaryWorkerWage,
     this.lastUpdated = const Value.absent(),
   }) : ironPrice = Value(ironPrice),
        cementPrice = Value(cementPrice),
-       blockPrice = Value(blockPrice),
-       workerDailyRate = Value(workerDailyRate);
+       block15Price = Value(block15Price),
+       formworkAndPouringWages = Value(formworkAndPouringWages),
+       reinforcedConcretePrice = Value(reinforcedConcretePrice),
+       aggregateMaterialsPrice = Value(aggregateMaterialsPrice),
+       ordinaryWorkerWage = Value(ordinaryWorkerWage);
   static Insertable<MaterialPrice> custom({
     Expression<int>? id,
     Expression<double>? ironPrice,
     Expression<double>? cementPrice,
-    Expression<double>? blockPrice,
-    Expression<double>? workerDailyRate,
+    Expression<double>? block15Price,
+    Expression<double>? formworkAndPouringWages,
+    Expression<double>? reinforcedConcretePrice,
+    Expression<double>? aggregateMaterialsPrice,
+    Expression<double>? ordinaryWorkerWage,
     Expression<DateTime>? lastUpdated,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (ironPrice != null) 'iron_price': ironPrice,
       if (cementPrice != null) 'cement_price': cementPrice,
-      if (blockPrice != null) 'block_price': blockPrice,
-      if (workerDailyRate != null) 'worker_daily_rate': workerDailyRate,
+      if (block15Price != null) 'block15_price': block15Price,
+      if (formworkAndPouringWages != null)
+        'formwork_and_pouring_wages': formworkAndPouringWages,
+      if (reinforcedConcretePrice != null)
+        'reinforced_concrete_price': reinforcedConcretePrice,
+      if (aggregateMaterialsPrice != null)
+        'aggregate_materials_price': aggregateMaterialsPrice,
+      if (ordinaryWorkerWage != null)
+        'ordinary_worker_wage': ordinaryWorkerWage,
       if (lastUpdated != null) 'last_updated': lastUpdated,
     });
   }
@@ -1961,16 +2132,25 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     Value<int>? id,
     Value<double>? ironPrice,
     Value<double>? cementPrice,
-    Value<double>? blockPrice,
-    Value<double>? workerDailyRate,
+    Value<double>? block15Price,
+    Value<double>? formworkAndPouringWages,
+    Value<double>? reinforcedConcretePrice,
+    Value<double>? aggregateMaterialsPrice,
+    Value<double>? ordinaryWorkerWage,
     Value<DateTime>? lastUpdated,
   }) {
     return MaterialPricesCompanion(
       id: id ?? this.id,
       ironPrice: ironPrice ?? this.ironPrice,
       cementPrice: cementPrice ?? this.cementPrice,
-      blockPrice: blockPrice ?? this.blockPrice,
-      workerDailyRate: workerDailyRate ?? this.workerDailyRate,
+      block15Price: block15Price ?? this.block15Price,
+      formworkAndPouringWages:
+          formworkAndPouringWages ?? this.formworkAndPouringWages,
+      reinforcedConcretePrice:
+          reinforcedConcretePrice ?? this.reinforcedConcretePrice,
+      aggregateMaterialsPrice:
+          aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
+      ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
       lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
@@ -1987,11 +2167,26 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     if (cementPrice.present) {
       map['cement_price'] = Variable<double>(cementPrice.value);
     }
-    if (blockPrice.present) {
-      map['block_price'] = Variable<double>(blockPrice.value);
+    if (block15Price.present) {
+      map['block15_price'] = Variable<double>(block15Price.value);
     }
-    if (workerDailyRate.present) {
-      map['worker_daily_rate'] = Variable<double>(workerDailyRate.value);
+    if (formworkAndPouringWages.present) {
+      map['formwork_and_pouring_wages'] = Variable<double>(
+        formworkAndPouringWages.value,
+      );
+    }
+    if (reinforcedConcretePrice.present) {
+      map['reinforced_concrete_price'] = Variable<double>(
+        reinforcedConcretePrice.value,
+      );
+    }
+    if (aggregateMaterialsPrice.present) {
+      map['aggregate_materials_price'] = Variable<double>(
+        aggregateMaterialsPrice.value,
+      );
+    }
+    if (ordinaryWorkerWage.present) {
+      map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage.value);
     }
     if (lastUpdated.present) {
       map['last_updated'] = Variable<DateTime>(lastUpdated.value);
@@ -2005,8 +2200,11 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
           ..write('id: $id, ')
           ..write('ironPrice: $ironPrice, ')
           ..write('cementPrice: $cementPrice, ')
-          ..write('blockPrice: $blockPrice, ')
-          ..write('workerDailyRate: $workerDailyRate, ')
+          ..write('block15Price: $block15Price, ')
+          ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
+          ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
+          ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
+          ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
           ..write('lastUpdated: $lastUpdated')
           ..write(')'))
         .toString();
@@ -3236,8 +3434,11 @@ typedef $$MaterialPricesTableCreateCompanionBuilder =
       Value<int> id,
       required double ironPrice,
       required double cementPrice,
-      required double blockPrice,
-      required double workerDailyRate,
+      required double block15Price,
+      required double formworkAndPouringWages,
+      required double reinforcedConcretePrice,
+      required double aggregateMaterialsPrice,
+      required double ordinaryWorkerWage,
       Value<DateTime> lastUpdated,
     });
 typedef $$MaterialPricesTableUpdateCompanionBuilder =
@@ -3245,8 +3446,11 @@ typedef $$MaterialPricesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<double> ironPrice,
       Value<double> cementPrice,
-      Value<double> blockPrice,
-      Value<double> workerDailyRate,
+      Value<double> block15Price,
+      Value<double> formworkAndPouringWages,
+      Value<double> reinforcedConcretePrice,
+      Value<double> aggregateMaterialsPrice,
+      Value<double> ordinaryWorkerWage,
       Value<DateTime> lastUpdated,
     });
 
@@ -3274,13 +3478,28 @@ class $$MaterialPricesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get blockPrice => $composableBuilder(
-    column: $table.blockPrice,
+  ColumnFilters<double> get block15Price => $composableBuilder(
+    column: $table.block15Price,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get workerDailyRate => $composableBuilder(
-    column: $table.workerDailyRate,
+  ColumnFilters<double> get formworkAndPouringWages => $composableBuilder(
+    column: $table.formworkAndPouringWages,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get reinforcedConcretePrice => $composableBuilder(
+    column: $table.reinforcedConcretePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get aggregateMaterialsPrice => $composableBuilder(
+    column: $table.aggregateMaterialsPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get ordinaryWorkerWage => $composableBuilder(
+    column: $table.ordinaryWorkerWage,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3314,13 +3533,28 @@ class $$MaterialPricesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get blockPrice => $composableBuilder(
-    column: $table.blockPrice,
+  ColumnOrderings<double> get block15Price => $composableBuilder(
+    column: $table.block15Price,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get workerDailyRate => $composableBuilder(
-    column: $table.workerDailyRate,
+  ColumnOrderings<double> get formworkAndPouringWages => $composableBuilder(
+    column: $table.formworkAndPouringWages,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get reinforcedConcretePrice => $composableBuilder(
+    column: $table.reinforcedConcretePrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get aggregateMaterialsPrice => $composableBuilder(
+    column: $table.aggregateMaterialsPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get ordinaryWorkerWage => $composableBuilder(
+    column: $table.ordinaryWorkerWage,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3350,13 +3584,28 @@ class $$MaterialPricesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<double> get blockPrice => $composableBuilder(
-    column: $table.blockPrice,
+  GeneratedColumn<double> get block15Price => $composableBuilder(
+    column: $table.block15Price,
     builder: (column) => column,
   );
 
-  GeneratedColumn<double> get workerDailyRate => $composableBuilder(
-    column: $table.workerDailyRate,
+  GeneratedColumn<double> get formworkAndPouringWages => $composableBuilder(
+    column: $table.formworkAndPouringWages,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get reinforcedConcretePrice => $composableBuilder(
+    column: $table.reinforcedConcretePrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get aggregateMaterialsPrice => $composableBuilder(
+    column: $table.aggregateMaterialsPrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get ordinaryWorkerWage => $composableBuilder(
+    column: $table.ordinaryWorkerWage,
     builder: (column) => column,
   );
 
@@ -3402,15 +3651,21 @@ class $$MaterialPricesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<double> ironPrice = const Value.absent(),
                 Value<double> cementPrice = const Value.absent(),
-                Value<double> blockPrice = const Value.absent(),
-                Value<double> workerDailyRate = const Value.absent(),
+                Value<double> block15Price = const Value.absent(),
+                Value<double> formworkAndPouringWages = const Value.absent(),
+                Value<double> reinforcedConcretePrice = const Value.absent(),
+                Value<double> aggregateMaterialsPrice = const Value.absent(),
+                Value<double> ordinaryWorkerWage = const Value.absent(),
                 Value<DateTime> lastUpdated = const Value.absent(),
               }) => MaterialPricesCompanion(
                 id: id,
                 ironPrice: ironPrice,
                 cementPrice: cementPrice,
-                blockPrice: blockPrice,
-                workerDailyRate: workerDailyRate,
+                block15Price: block15Price,
+                formworkAndPouringWages: formworkAndPouringWages,
+                reinforcedConcretePrice: reinforcedConcretePrice,
+                aggregateMaterialsPrice: aggregateMaterialsPrice,
+                ordinaryWorkerWage: ordinaryWorkerWage,
                 lastUpdated: lastUpdated,
               ),
           createCompanionCallback:
@@ -3418,15 +3673,21 @@ class $$MaterialPricesTableTableManager
                 Value<int> id = const Value.absent(),
                 required double ironPrice,
                 required double cementPrice,
-                required double blockPrice,
-                required double workerDailyRate,
+                required double block15Price,
+                required double formworkAndPouringWages,
+                required double reinforcedConcretePrice,
+                required double aggregateMaterialsPrice,
+                required double ordinaryWorkerWage,
                 Value<DateTime> lastUpdated = const Value.absent(),
               }) => MaterialPricesCompanion.insert(
                 id: id,
                 ironPrice: ironPrice,
                 cementPrice: cementPrice,
-                blockPrice: blockPrice,
-                workerDailyRate: workerDailyRate,
+                block15Price: block15Price,
+                formworkAndPouringWages: formworkAndPouringWages,
+                reinforcedConcretePrice: reinforcedConcretePrice,
+                aggregateMaterialsPrice: aggregateMaterialsPrice,
+                ordinaryWorkerWage: ordinaryWorkerWage,
                 lastUpdated: lastUpdated,
               ),
           withReferenceMapper: (p0) => p0

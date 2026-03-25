@@ -55,14 +55,26 @@ class Payments extends Table {
 }
 
 // ==========================================
-// 4. جدول أسعار المواد (المحرك الحسابي المتغير)
+// 4. جدول أسعار المواد (المحرك الحسابي المتغير - حسب الإكسل)
 // ==========================================
 class MaterialPrices extends Table {
   IntColumn get id => integer().autoIncrement()();
-  RealColumn get ironPrice => real()(); // حديد
-  RealColumn get cementPrice => real()(); // أسمنت
-  RealColumn get blockPrice => real()(); // بلوك
-  RealColumn get workerDailyRate => real()(); // أجرة عامل
+  
+  // 1. ثمن حديد مبروم واصل الى موقع العمل
+  RealColumn get ironPrice => real()(); 
+  // 2. ثمن اسمنت واصل الى موقع العمل
+  RealColumn get cementPrice => real()(); 
+  // 3. ثمن بلوك اسمنتي سماكة 15 سم واصل
+  RealColumn get block15Price => real()(); 
+  // 4. اجور كوفارج و صب حديد وتحديد بيتون
+  RealColumn get formworkAndPouringWages => real()(); 
+  // 5. مسلح لزوم قواعد و اعمدة و بلاطة هوردي
+  RealColumn get reinforcedConcretePrice => real()(); 
+  // 6. ثمن مواد حصوية جرجرة \بحص + نحاته \ واصل الى الموقع
+  RealColumn get aggregateMaterialsPrice => real()(); 
+  // 7. اجور عمل لعامـل عادي 7 ساعات
+  RealColumn get ordinaryWorkerWage => real()(); 
+
   DateTimeColumn get lastUpdated => dateTime().withDefault(currentDateAndTime)();
 }
 

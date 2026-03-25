@@ -22,20 +22,26 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// حفظ تحديثات الأسعار الجديدة
+  /// حفظ تحديثات الأسعار الجديدة (الـ 7 بنود)
   Future<void> updatePrices({
     required double iron,
     required double cement,
-    required double block,
+    required double block15,
+    required double formwork,
+    required double concrete,
+    required double aggregates,
     required double worker,
   }) async {
     try {
       final newPrices = MaterialPricesCompanion.insert(
         ironPrice: iron,
         cementPrice: cement,
-        blockPrice: block,
-        workerDailyRate: worker,
-        lastUpdated: Value(DateTime.now()), // استخدام Value لأن لها قيمة افتراضية
+        block15Price: block15,
+        formworkAndPouringWages: formwork,
+        reinforcedConcretePrice: concrete,
+        aggregateMaterialsPrice: aggregates,
+        ordinaryWorkerWage: worker,
+        lastUpdated: Value(DateTime.now()),
       );
       
       await _erpRepository.savePrices(newPrices);
