@@ -179,6 +179,43 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertMaterialPriceRecord(MaterialPricesHistoryCompanion prices) => 
       into(materialPricesHistory).insert(prices);
 
+
+  // ==========================================
+  // --- استعلامات الأقساط (جدول الاستحقاقات) ---
+  // ==========================================
+  
+  // جلب جميع الأقساط المجدولة لعقد معين مرتبة تصاعدياً حسب تاريخ الاستحقاق
+  Future<List<InstallmentsScheduleData>> getScheduleForContract(int contractId) => 
+      (select(installmentsSchedule)
+        ..where((t) => t.contractId.equals(contractId) & t.isDeleted.equals(false))
+        ..orderBy([(t) => OrderingTerm.asc(t.dueDate)])
+      ).get();
+
+  // إضافة قسط جديد للجدول
+  Future<int> insertScheduleEntry(InstallmentsScheduleCompanion entry) => 
+      into(installmentsSchedule).insert(entry);
+
+  // تحديث حالة القسط (مثلاً من pending إلى paid)
+  Future<int> updateScheduleStatus(int id, String status) {
+    return (update(installmentsSchedule)..where((t) => t.id.equals(id))).write(
+      InstallmentsScheduleCompanion(
+        status: Value(status), 
+        updatedAt: Value(DateTime.now()), 
+        isSynced: const Value(false)
+      )
+    );
+  }
+
+  // حذف قسط مجدول (Soft Delete)
+  Future<int> softDeleteScheduleEntry(int id) {
+    return (update(installmentsSchedule)..where((t) => t.id.equals(id))).write(
+      InstallmentsScheduleCompanion(
+        isDeleted: const Value(true), 
+        updatedAt: Value(DateTime.now()), 
+        isSynced: const Value(false)
+      )
+    );
+  }
   // ==========================================
   // --- تفريغ القاعدة ---
   // ==========================================
