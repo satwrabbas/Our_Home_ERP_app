@@ -1,25 +1,26 @@
 import 'package:erp_repository/erp_repository.dart';
 
 class CalculatorHelper {
+  /// محرك حساب تكلفة المتر الأساسي بناءً على أسعار السوق الحالية
   static Map<String, double> calculateContractValues({
     required double area,
-    required MaterialPrice currentPrices,
+    required MaterialPricesHistoryData currentPrices, // ✅ تم تحديث النوع هنا
     int months = 48,
   }) {
-    // 1. حساب تكلفة المتر المربع التقديرية (الكميات تقريبية ويمكنك تعديلها)
+    // حساب تكلفة المتر المربع التقديرية بناءً على الكميات
     double baseCostPerSqm = 
-        (currentPrices.ironPrice * 0.045) +                // كمية الحديد للمتر
-        (currentPrices.cementPrice * 0.350) +              // كمية الأسمنت
-        (currentPrices.block15Price * 22.0) +              // عدد البلوك للمتر
-        (currentPrices.formworkAndPouringWages * 1.0) +    // أجور الصب
-        (currentPrices.reinforcedConcretePrice * 0.25) +   // البيتون المسلح للمتر مكعب / مساحة
-        (currentPrices.aggregateMaterialsPrice * 0.5) +    // البحص والنحاتة
-        (currentPrices.ordinaryWorkerWage * 1.5);          // يوميات العمال
+        (currentPrices.ironPrice * 0.045) +                
+        (currentPrices.cementPrice * 0.350) +              
+        (currentPrices.block15Price * 22.0) +              
+        (currentPrices.formworkAndPouringWages * 1.0) +    
+        (currentPrices.reinforcedConcretePrice * 0.25) +   
+        (currentPrices.aggregateMaterialsPrice * 0.5) +    
+        (currentPrices.ordinaryWorkerWage * 1.5);          
 
-    // 2. نسبة الربح 25% مثلاً
+    // إضافة نسبة الربح والمصاريف 25%
     double finalPricePerSqm = baseCostPerSqm * 1.25;
 
-    // 3. الإجمالي
+    // الإجمالي والقسط (أرقام استرشادية لا تُحفظ في جدول العقود بل في جدول الاستحقاقات لاحقاً)
     double totalValue = finalPricePerSqm * area;
     double monthlyInstallment = totalValue / months;
 

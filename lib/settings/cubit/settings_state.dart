@@ -5,17 +5,17 @@ enum SettingsStatus { initial, loading, success, failure }
 class SettingsState extends Equatable {
   const SettingsState({
     this.status = SettingsStatus.initial,
-    this.currentPrices,
+    this.currentPrices, // هنا أصبح النوع MaterialPricesHistoryData
     this.errorMessage,
   });
 
   final SettingsStatus status;
-  final MaterialPrice? currentPrices;
+  final MaterialPricesHistoryData? currentPrices;
   final String? errorMessage;
 
   SettingsState copyWith({
     SettingsStatus? status,
-    MaterialPrice? currentPrices,
+    MaterialPricesHistoryData? currentPrices,
     String? errorMessage,
   }) {
     return SettingsState(

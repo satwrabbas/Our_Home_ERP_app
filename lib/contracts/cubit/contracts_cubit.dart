@@ -1,3 +1,4 @@
+import 'dart:convert'; // ✅ ضروري للـ JSON
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
@@ -11,47 +12,43 @@ class ContractsCubit extends Cubit<ContractsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب جميع العملاء والعقود (لتهيئة الشاشة)
+  /// جلب جميع العملاء والعقود (غير المحذوفة)
   Future<void> fetchData() async {
     emit(state.copyWith(status: ContractsStatus.loading));
     try {
       final clients = await _erpRepository.getClients();
-      final allContracts = await _erpRepository.getAllContracts(); // جلب العقود
+      final allContracts = await _erpRepository.getAllContracts();
       
       emit(state.copyWith(
         status: ContractsStatus.success, 
         clients: clients, 
-        contracts: allContracts // تمرير العقود للشاشة
+        contracts: allContracts
       ));
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  /// إضافة عقد جديد بناءً على معادلات الإكسل
+  /// إضافة عقد جديد بالتصميم الهندسي المرن
   Future<void> addContract({
     required int clientId,
-    required String description,
+    required String details,
     required double area,
-    required double pricePerSqm,
-    required double monthlyInstallment,
+    required double basePrice,
+    Map<String, dynamic> coefficients = const {}, // المعاملات كـ Map
   }) async {
     try {
-      // العملية الحسابية من الإكسل: إجمالي العقد = مساحة الشقة * سعر المتر
-      final totalValue = area * pricePerSqm;
-
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
-        apartmentDescription: description,
-        apartmentArea: area,
-        pricePerSqmAtSigning: pricePerSqm,
-        totalContractValue: totalValue,
-        monthlyInstallment: monthlyInstallment,
-        signatureDate: DateTime.now(), // تاريخ اليوم
+        apartmentDetails: details,
+        totalArea: area,
+        baseMeterPriceAtSigning: basePrice,
+        coefficients: Value(jsonEncode(coefficients)), // تحويل الـ Map إلى نص JSON للحفظ
+        contractDate: DateTime.now(),
       );
       
       await _erpRepository.addContract(newContract);
-      await fetchData(); // تحديث الشاشة بعد الإضافة
+      await fetchData(); // تحديث الشاشة
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }

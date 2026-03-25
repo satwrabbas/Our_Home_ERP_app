@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart' show MaterialPricesCompanion;
+import 'package:local_storage_api/local_storage_api.dart' show MaterialPricesHistoryCompanion;
 import 'package:drift/drift.dart' show Value;
 
 part 'settings_state.dart';
@@ -11,7 +11,7 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب أحدث الأسعار لعرضها للمهندس
+  /// جلب أحدث تسعيرة معتمدة من السجل التاريخي
   Future<void> fetchPrices() async {
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
@@ -22,7 +22,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// حفظ تحديثات الأسعار الجديدة (الـ 7 بنود)
+  /// إضافة تسعيرة جديدة إلى السجل (دون مسح القديمة)
   Future<void> updatePrices({
     required double iron,
     required double cement,
@@ -33,7 +33,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     required double worker,
   }) async {
     try {
-      final newPrices = MaterialPricesCompanion.insert(
+      final newPrices = MaterialPricesHistoryCompanion.insert(
         ironPrice: iron,
         cementPrice: cement,
         block15Price: block15,
@@ -41,11 +41,11 @@ class SettingsCubit extends Cubit<SettingsState> {
         reinforcedConcretePrice: concrete,
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
-        lastUpdated: Value(DateTime.now()),
+        effectiveDate: Value(DateTime.now()), // تاريخ اعتماد هذه الأسعار
       );
       
       await _erpRepository.savePrices(newPrices);
-      await fetchPrices(); // تحديث الشاشة بعد الحفظ
+      await fetchPrices(); // تحديث الشاشة لتُظهر أحدث سعر
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
