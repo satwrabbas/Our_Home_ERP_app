@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/payments_cubit.dart';
+
+// (هذه الاستيرادات ستحتوي على خطأ أحمر مؤقت حتى نحدثها في الخطوة القادمة)
 import '../../core/utils/pdf_generator.dart';
 import '../../core/utils/pdf_preview_page.dart';
 import '../../core/utils/whatsapp_helper.dart';
-
 
 class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
@@ -23,7 +24,7 @@ class PaymentsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('استلام الأقساط (الفواتير)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('دفتر الأستاذ (الأمتار المحولة)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.deepOrange,
       ),
@@ -52,49 +53,37 @@ class PaymentsView extends StatelessWidget {
                     Expanded(
                       child: DropdownButtonFormField<int>(
                         value: state.selectedContractId,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                        decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          // نبحث عن اسم العميل لكي نعرضه في القائمة
                           final clientName = state.clients.firstWhere((c) => c.id == contract.clientId).name;
                           return DropdownMenuItem(
                             value: contract.id,
-                            child: Text('عقد رقم ${contract.id} - العميل: $clientName (${contract.apartmentDescription})'),
+                            child: Text('عقد رقم ${contract.id} - العميل: $clientName (${contract.apartmentDetails})'),
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) {
-                            context.read<PaymentsCubit>().selectContract(val);
-                          }
+                          if (val != null) context.read<PaymentsCubit>().selectContract(val);
                         },
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // زر إضافة دفعة يظهر فقط إذا تم اختيار عقد
                     if (state.selectedContractId != null)
                       ElevatedButton.icon(
                         onPressed: () => _showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
-                        label: const Text('وصل استلام جديد', style: TextStyle(fontSize: 16)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepOrange,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                        ),
+                        label: const Text('إدخال دفعة جديدة', style: TextStyle(fontSize: 16)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18)),
                       ),
                   ],
                 ),
               ),
 
-              // --- القسم السفلي: جدول الفواتير للعقد المحدد ---
+              // --- القسم السفلي: جدول الحركات للعقد المحدد ---
               Expanded(
                 child: state.selectedContractId == null
-                    ? const Center(child: Text('يرجى اختيار عقد من القائمة بالأعلى لعرض الأقساط.', style: TextStyle(fontSize: 18, color: Colors.grey)))
-                    : state.payments.isEmpty
-                        ? const Center(child: Text('لم يتم تسديد أي قسط لهذا العقد حتى الآن.', style: TextStyle(fontSize: 18)))
+                    ? const Center(child: Text('يرجى اختيار عقد من القائمة بالأعلى لعرض الدفعات.', style: TextStyle(fontSize: 18, color: Colors.grey)))
+                    : state.ledgerEntries.isEmpty
+                        ? const Center(child: Text('لم يتم إدخال أي دفعة لهذا العقد حتى الآن.', style: TextStyle(fontSize: 18)))
                         : SingleChildScrollView(
                             padding: const EdgeInsets.all(24.0),
                             child: SizedBox(
@@ -102,84 +91,59 @@ class PaymentsView extends StatelessWidget {
                               child: DataTable(
                                 headingRowColor: WidgetStateProperty.all(Colors.orange.shade100),
                                 columns: const[
-                                  DataColumn(label: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('رقم الإيصال', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('المبلغ المدفوع', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('سعر المتر (وقت الدفع)', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('الأمتار المحولة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
                                   DataColumn(label: Text('تاريخ الدفع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('إجراءات (طباعة / واتساب)', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                                 ],
-                                rows: state.payments.map((payment) {
+                                rows: state.ledgerEntries.map((entry) {
                                   return DataRow(cells:[
-                                    DataCell(Text(payment.id.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
-                                    DataCell(Text(payment.installmentNumber.toString())),
-                                    DataCell(Text(payment.amountPaid.toStringAsFixed(0), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
-                                    DataCell(Text('${payment.paymentDate.year}/${payment.paymentDate.month}/${payment.paymentDate.day}')),
+                                    DataCell(Text(entry.id.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    DataCell(Text('${entry.amountPaid.toStringAsFixed(0)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                                    DataCell(Text('${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س')),
+                                    DataCell(Text('${entry.convertedMeters.toStringAsFixed(3)} م2', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
+                                    DataCell(Text('${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}')),
                                     DataCell(Row(
                                       children:[
-                                        // زر الطباعة ومعاينة PDF
                                         IconButton(
                                           icon: const Icon(Icons.print, color: Colors.blue),
                                           tooltip: 'معاينة وطباعة الفاتورة',
                                           onPressed: () async {
-                                            // 1. إظهار مؤشر تحميل بسيط أسفل الشاشة
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('جاري تجهيز الفاتورة...'), duration: Duration(seconds: 1)),
-                                            );
-
-                                            // 2. جلب البيانات
-                                            final contract = state.contracts.firstWhere((c) => c.id == payment.contractId);
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...'), duration: Duration(seconds: 1)));
+                                            final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
                                             final client = state.clients.firstWhere((c) => c.id == contract.clientId);
                                             
-                                            // 3. توليد الـ PDF كبيانات (Bytes)
+                                            // سيتم إصلاح هذا السطر في الخطوة القادمة
                                             final pdfBytes = await PdfGenerator.generateReceiptPdf(
-                                              payment: payment,
+                                              entry: entry,
                                               contract: contract,
                                               client: client,
                                             );
 
-                                            // 4. الانتقال إلى شاشة المعاينة
                                             if (context.mounted) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) => PdfPreviewPage(
-                                                    pdfBytes: pdfBytes,
-                                                    title: 'فاتورة_${payment.id}_${client.name}',
-                                                  ),
-                                                ),
-                                              );
+                                              Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id}_${client.name}')));
                                             }
                                           },
                                         ),
-                                        // زر إرسال واتساب
                                         IconButton(
-                                          // تغيير لون الأيقونة إذا تم الإرسال مسبقاً لتمييزها
-                                          icon: Icon(Icons.chat, color: payment.isWhatsAppSent ? Colors.grey : Colors.green),
-                                          tooltip: payment.isWhatsAppSent ? 'تم الإرسال مسبقاً (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
+                                          icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
+                                          tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
                                           onPressed: () async {
-                                            // 1. جلب البيانات
-                                            final contract = state.contracts.firstWhere((c) => c.id == payment.contractId);
+                                            final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
                                             final client = state.clients.firstWhere((c) => c.id == contract.clientId);
                                             
-                                            // 2. محاولة فتح الواتساب وإرسال الرسالة
+                                            // سيتم إصلاح هذا السطر في الخطوة القادمة
                                             final success = await WhatsAppHelper.sendReceiptMessage(
-                                              payment: payment,
+                                              entry: entry,
                                               contract: contract,
                                               client: client,
                                             );
 
-                                            if (context.mounted) {
-                                              if (success) {
-                                                // 3. إذا نجح، نخبر قاعدة البيانات بتغيير الحالة
-                                                context.read<PaymentsCubit>().markAsSent(payment.id, contract.id);
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('تم فتح الواتساب بنجاح!'), backgroundColor: Colors.green),
-                                                );
-                                              } else {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text('فشل فتح الواتساب. تأكد من اتصالك بالإنترنت.'), backgroundColor: Colors.red),
-                                                );
-                                              }
+                                            if (context.mounted && success) {
+                                              context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب!'), backgroundColor: Colors.green));
                                             }
                                           },
                                         ),
@@ -198,60 +162,50 @@ class PaymentsView extends StatelessWidget {
     );
   }
 
-  // نافذة إدخال تفاصيل الدفعة (وصل استلام قسط)
   void _showAddPaymentDialog(BuildContext parentContext, int contractId) {
-    final instNumberController = TextEditingController();
     final amountController = TextEditingController();
-    final originalAmountController = TextEditingController();
+    final feesController = TextEditingController(text: '0');
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('وصل استلام قسط جديد'),
+          title: const Text('إدخال دفعة جديدة (دفتر الأستاذ)'),
           content: SizedBox(
             width: 400,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children:[
-                TextField(
-                  controller: instNumberController,
-                  decoration: const InputDecoration(labelText: 'رقم القسط (مثال: 1 أو 2)', border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number,
-                ),
+                const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد تم إدخالها في شاشة الإعدادات.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
-                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي', border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder()),
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  controller: originalAmountController,
-                  decoration: const InputDecoration(labelText: 'أصل القسط (حسب العقد)', border: OutlineInputBorder()),
+                  controller: feesController,
+                  decoration: const InputDecoration(labelText: 'الرسوم الإضافية (إن وجدت)', border: OutlineInputBorder()),
                   keyboardType: TextInputType.number,
                 ),
               ],
             ),
           ),
           actions:[
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
             ElevatedButton(
               onPressed: () {
-                if (instNumberController.text.isNotEmpty && amountController.text.isNotEmpty) {
-                  parentContext.read<PaymentsCubit>().addPayment(
+                if (amountController.text.isNotEmpty) {
+                  parentContext.read<PaymentsCubit>().addLedgerEntry(
                     contractId: contractId,
-                    installmentNumber: int.parse(instNumberController.text),
                     amountPaid: double.parse(amountController.text),
-                    originalInstallment: double.parse(originalAmountController.text.isEmpty ? amountController.text : originalAmountController.text),
+                    fees: double.parse(feesController.text.isEmpty ? "0" : feesController.text),
                   );
                   Navigator.pop(dialogContext);
                 }
               },
-              child: const Text('حفظ وإصدار الفاتورة'),
+              child: const Text('حفظ الدفعة آلياً'),
             ),
           ],
         );

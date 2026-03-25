@@ -1,28 +1,23 @@
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart'; // ✅ تم إضافة الاستيراد المفقود هنا للخطوط
+import 'package:printing/printing.dart';
 import 'package:erp_repository/erp_repository.dart';
 
 class PdfGenerator {
-  /// دالة بسيطة لعرض المبلغ كتابة (مؤقتاً)
   static String numberToArabicWords(double number) {
     return "${number.toStringAsFixed(0)} ليرة سورية فقط لا غير"; 
   }
 
   static Future<Uint8List> generateReceiptPdf({
-    required Payment payment,
+    required PaymentsLedgerData entry, // ✅ تم التحديث إلى PaymentsLedgerData
     required Contract contract,
     required Client client,
   }) async {
     final pdf = pw.Document();
 
-    // جلب الخطوط من جوجل (تعمل بفضل مكتبة printing)
     final arabicFont = await PdfGoogleFonts.cairoRegular();
     final arabicBoldFont = await PdfGoogleFonts.cairoBold();
-
-    final double currentMeterPrice = contract.pricePerSqmAtSigning; 
-    final double transferredMeters = payment.amountPaid / currentMeterPrice;
 
     pw.Widget buildReceipt(String copyType) {
       return pw.Container(
@@ -39,7 +34,7 @@ class PdfGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
                 pw.Text('بيتنا  our home', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                pw.Text('وصل استلام قسط', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                pw.Text('وصل استلام مالي', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
                 pw.Text(copyType, style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
               ]
             ),
@@ -50,15 +45,15 @@ class PdfGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
                 pw.Text('اسم الفريق الثاني: ${client.name}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                pw.Text('تاريخ الدفع: ${payment.paymentDate.year}/${payment.paymentDate.month}/${payment.paymentDate.day}', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('تاريخ الدفع: ${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}', style: const pw.TextStyle(fontSize: 14)),
               ]
             ),
             pw.SizedBox(height: 8),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                pw.Text('رقم القسط المدفوع: ${payment.installmentNumber}', style: const pw.TextStyle(fontSize: 14)),
-                pw.Text('مساحة الشقة: ${contract.apartmentArea} م2', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('رقم الإيصال (دفتر الأستاذ): ${entry.id}', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('مساحة الشقة الكلية: ${contract.totalArea} م2', style: const pw.TextStyle(fontSize: 14)),
               ]
             ),
             pw.SizedBox(height: 16),
@@ -70,30 +65,31 @@ class PdfGenerator {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children:[
-                  pw.Text('إجمالي المبلغ المدفوع: ${payment.amountPaid.toStringAsFixed(0)} ل.س', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('إجمالي المبلغ المدفوع: ${entry.amountPaid.toStringAsFixed(0)} ل.س', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                   pw.SizedBox(height: 4),
-                  pw.Text('فقط: ${numberToArabicWords(payment.amountPaid)}', style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic)),
+                  pw.Text('فقط: ${numberToArabicWords(entry.amountPaid)}', style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic)),
                 ]
               )
             ),
             pw.SizedBox(height: 16),
 
             // --- تفاصيل الأمتار المحولة ---
-            pw.Text('تفاصيل القسط المدفوع:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+            pw.Text('تفاصيل الحساب والأمتار:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
             pw.SizedBox(height: 8),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                pw.Text('سعر المتر المربع شهرياً: ${currentMeterPrice.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
-                pw.Text('الأمتار المحولة بهذا القسط: ${transferredMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                // ✅ عرض سعر المتر والأمتار المحولة التي تم تجميدها من قاعدة البيانات
+                pw.Text('سعر المتر المربع وقت الدفع: ${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text('الأمتار المحولة بهذا الوصل: ${entry.convertedMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
               ]
             ),
             pw.SizedBox(height: 4),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                pw.Text('أصل القسط: ${payment.originalInstallment.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
-                pw.Text('الرسوم: ${payment.fees.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text('الرسوم الإضافية: ${entry.fees.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text('عن شقة: ${contract.apartmentDetails}', style: const pw.TextStyle(fontSize: 12)),
               ]
             ),
             
@@ -125,7 +121,7 @@ class PdfGenerator {
             ),
             pw.SizedBox(height: 8),
             pw.Center(
-              child: pw.Text('انشاء المستخدم: م.محمد كامل علي', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+              child: pw.Text('انشاء النظام المالي التلقائي', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
             ),
           ],
         ),
@@ -141,12 +137,10 @@ class PdfGenerator {
           return pw.Column(
             children:[
               pw.Expanded(child: buildReceipt('نسخة الفريق الاول')),
-              
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 16),
                 child: pw.Row(
                   children:[
-                    // ✅ تم إصلاح خطأ الـ style إلى borderStyle هنا
                     pw.Expanded(child: pw.Divider(borderStyle: pw.BorderStyle.dashed)),
                     pw.Padding(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 8),
@@ -156,7 +150,6 @@ class PdfGenerator {
                   ]
                 ),
               ),
-              
               pw.Expanded(child: buildReceipt('نسخة الفريق الثاني')),
             ],
           );

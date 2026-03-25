@@ -1,8 +1,12 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart' show PaymentsCompanion;
+import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerCompanion;
 import 'package:drift/drift.dart' show Value;
+
+// استدعاء الحاسبة الهندسية التي بنيناها
+import '../../core/utils/calculator_helper.dart';
+
 part 'payments_state.dart';
 
 class PaymentsCubit extends Cubit<PaymentsState> {
@@ -10,7 +14,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب البيانات الأساسية (العملاء والعقود) لملء القوائم المنسدلة
+  /// جلب البيانات الأساسية (العملاء والعقود الفعالة غير المحذوفة)
   Future<void> fetchInitialData() async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
@@ -27,50 +31,66 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  /// عند اختيار المستخدم لعقد معين، نجلب جميع الدفعات الخاصة به
+  /// عند اختيار عقد من القائمة المنسدلة، نجلب دفتر الأستاذ الخاص به
   Future<void> selectContract(int contractId) async {
     emit(state.copyWith(status: PaymentsStatus.loading, selectedContractId: contractId));
     try {
-      final payments = await _erpRepository.getContractPayments(contractId);
-      emit(state.copyWith(status: PaymentsStatus.success, payments: payments));
+      final ledgerEntries = await _erpRepository.getContractLedger(contractId);
+      emit(state.copyWith(status: PaymentsStatus.success, ledgerEntries: ledgerEntries));
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
 
- /// إضافة وصل استلام قسط جديد
-  Future<void> addPayment({
+  /// 🌟 إضافة دفعة جديدة وحساب (الأمتار المحولة) آلياً وتجميدها
+  Future<void> addLedgerEntry({
     required int contractId,
-    required int installmentNumber,
     required double amountPaid,
-    required double originalInstallment,
     double fees = 0,
   }) async {
     try {
-      // نحتاج استدعاء Value من مكتبة drift لأن حقل fees له قيمة افتراضية في القاعدة
-      final newPayment = PaymentsCompanion.insert(
+      // 1. جلب العقد لمعرفة المساحة
+      final contract = state.contracts.firstWhere((c) => c.id == contractId);
+
+      // 2. جلب أحدث تسعيرة للمواد من السجل التاريخي (الإعدادات)
+      final currentPrices = await _erpRepository.getLatestPrices();
+      if (currentPrices == null) {
+        throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً لحساب سعر المتر اليوم.');
+      }
+
+      // 3. حساب سعر المتر المربع اليوم (وقت الدفع)
+      final calculations = CalculatorHelper.calculateContractValues(
+        area: contract.totalArea,
+        currentPrices: currentPrices,
+      );
+      final double meterPriceToday = calculations['pricePerSqm']!;
+
+      // 4. الجوهر المالي: حساب عدد الأمتار التي اشتراها هذا المبلغ
+      final double convertedMeters = amountPaid / meterPriceToday;
+
+      // 5. حفظ السجل وتجميد الأسعار
+      final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
-        installmentNumber: installmentNumber,
-        amountPaid: amountPaid,
-        originalInstallment: originalInstallment,
-        fees: Value(fees), // ✅ التعديل هنا: وضعنا Value(fees) بدلاً من fees
         paymentDate: DateTime.now(),
+        amountPaid: amountPaid,
+        meterPriceAtPayment: meterPriceToday, // تم تجميد السعر
+        convertedMeters: convertedMeters,     // تم تجميد الأمتار
+        fees: Value(fees),
       );
       
-      await _erpRepository.addPayment(newPayment);
+      await _erpRepository.addLedgerEntry(newEntry);
       
-      // تحديث قائمة الدفعات لنفس العقد بعد الإضافة
+      // 6. تحديث الجدول أمام المحاسب
       await selectContract(contractId);
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  /// تحديث حالة الفاتورة لتسجيل أنه تم إرسالها عبر الواتساب
-  Future<void> markAsSent(int paymentId, int contractId) async {
+  /// تحديث حالة إرسال الواتساب للدفعة
+  Future<void> markAsSent(int entryId, int contractId) async {
     try {
-      await _erpRepository.markWhatsAppAsSent(paymentId);
-      // تحديث الشاشة لتنعكس التغييرات
+      await _erpRepository.markWhatsAppAsSent(entryId);
       await selectContract(contractId);
     } catch (e) {
       print('Failed to mark WhatsApp as sent: $e');

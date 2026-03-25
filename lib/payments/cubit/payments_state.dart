@@ -7,7 +7,7 @@ class PaymentsState extends Equatable {
     this.status = PaymentsStatus.initial,
     this.clients = const[],
     this.contracts = const [],
-    this.payments = const[],
+    this.ledgerEntries = const[], // ✅ استخدمنا الاسم الجديد لدفتر الأستاذ
     this.selectedContractId,
     this.errorMessage,
   });
@@ -15,7 +15,7 @@ class PaymentsState extends Equatable {
   final PaymentsStatus status;
   final List<Client> clients;
   final List<Contract> contracts;
-  final List<Payment> payments;
+  final List<PaymentsLedgerData> ledgerEntries; // ✅ النوع الجديد الذي يمثل الدفعة
   final int? selectedContractId;
   final String? errorMessage;
 
@@ -23,7 +23,7 @@ class PaymentsState extends Equatable {
     PaymentsStatus? status,
     List<Client>? clients,
     List<Contract>? contracts,
-    List<Payment>? payments,
+    List<PaymentsLedgerData>? ledgerEntries,
     int? selectedContractId,
     String? errorMessage,
   }) {
@@ -31,12 +31,19 @@ class PaymentsState extends Equatable {
       status: status ?? this.status,
       clients: clients ?? this.clients,
       contracts: contracts ?? this.contracts,
-      payments: payments ?? this.payments,
+      ledgerEntries: ledgerEntries ?? this.ledgerEntries,
       selectedContractId: selectedContractId ?? this.selectedContractId,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props =>[status, clients, contracts, payments, selectedContractId, errorMessage];
+  List<Object?> get props =>[
+        status,
+        clients,
+        contracts,
+        ledgerEntries,
+        selectedContractId,
+        errorMessage
+      ];
 }
