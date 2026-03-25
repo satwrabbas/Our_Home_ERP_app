@@ -67,6 +67,48 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -74,6 +116,9 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     phone,
     nationalId,
     createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -118,6 +163,24 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
     return context;
   }
 
@@ -147,6 +210,18 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
     );
   }
 
@@ -162,12 +237,18 @@ class Client extends DataClass implements Insertable<Client> {
   final String phone;
   final String? nationalId;
   final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool isSynced;
   const Client({
     required this.id,
     required this.name,
     required this.phone,
     this.nationalId,
     required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isSynced,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -179,6 +260,9 @@ class Client extends DataClass implements Insertable<Client> {
       map['national_id'] = Variable<String>(nationalId);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
     return map;
   }
 
@@ -191,6 +275,9 @@ class Client extends DataClass implements Insertable<Client> {
           ? const Value.absent()
           : Value(nationalId),
       createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
     );
   }
 
@@ -205,6 +292,9 @@ class Client extends DataClass implements Insertable<Client> {
       phone: serializer.fromJson<String>(json['phone']),
       nationalId: serializer.fromJson<String?>(json['nationalId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
   }
   @override
@@ -216,6 +306,9 @@ class Client extends DataClass implements Insertable<Client> {
       'phone': serializer.toJson<String>(phone),
       'nationalId': serializer.toJson<String?>(nationalId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
     };
   }
 
@@ -225,12 +318,18 @@ class Client extends DataClass implements Insertable<Client> {
     String? phone,
     Value<String?> nationalId = const Value.absent(),
     DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
   }) => Client(
     id: id ?? this.id,
     name: name ?? this.name,
     phone: phone ?? this.phone,
     nationalId: nationalId.present ? nationalId.value : this.nationalId,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
   );
   Client copyWithCompanion(ClientsCompanion data) {
     return Client(
@@ -241,6 +340,9 @@ class Client extends DataClass implements Insertable<Client> {
           ? data.nationalId.value
           : this.nationalId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
   }
 
@@ -251,13 +353,25 @@ class Client extends DataClass implements Insertable<Client> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, phone, nationalId, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    phone,
+    nationalId,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -266,7 +380,10 @@ class Client extends DataClass implements Insertable<Client> {
           other.name == this.name &&
           other.phone == this.phone &&
           other.nationalId == this.nationalId &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
 }
 
 class ClientsCompanion extends UpdateCompanion<Client> {
@@ -275,12 +392,18 @@ class ClientsCompanion extends UpdateCompanion<Client> {
   final Value<String> phone;
   final Value<String?> nationalId;
   final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
   const ClientsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.nationalId = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   });
   ClientsCompanion.insert({
     this.id = const Value.absent(),
@@ -288,6 +411,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     required String phone,
     this.nationalId = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   }) : name = Value(name),
        phone = Value(phone);
   static Insertable<Client> custom({
@@ -296,6 +422,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Expression<String>? phone,
     Expression<String>? nationalId,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -303,6 +432,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       if (phone != null) 'phone': phone,
       if (nationalId != null) 'national_id': nationalId,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
     });
   }
 
@@ -312,6 +444,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Value<String>? phone,
     Value<String?>? nationalId,
     Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
   }) {
     return ClientsCompanion(
       id: id ?? this.id,
@@ -319,6 +454,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       phone: phone ?? this.phone,
       nationalId: nationalId ?? this.nationalId,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -340,6 +478,15 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
     return map;
   }
 
@@ -350,7 +497,10 @@ class ClientsCompanion extends UpdateCompanion<Client> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
@@ -389,73 +539,62 @@ class $ContractsTable extends Contracts
       'REFERENCES clients (id)',
     ),
   );
-  static const VerificationMeta _apartmentDescriptionMeta =
-      const VerificationMeta('apartmentDescription');
-  @override
-  late final GeneratedColumn<String> apartmentDescription =
-      GeneratedColumn<String>(
-        'apartment_description',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _apartmentAreaMeta = const VerificationMeta(
-    'apartmentArea',
+  static const VerificationMeta _apartmentDetailsMeta = const VerificationMeta(
+    'apartmentDetails',
   );
   @override
-  late final GeneratedColumn<double> apartmentArea = GeneratedColumn<double>(
-    'apartment_area',
+  late final GeneratedColumn<String> apartmentDetails = GeneratedColumn<String>(
+    'apartment_details',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalAreaMeta = const VerificationMeta(
+    'totalArea',
+  );
+  @override
+  late final GeneratedColumn<double> totalArea = GeneratedColumn<double>(
+    'total_area',
     aliasedName,
     false,
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _pricePerSqmAtSigningMeta =
-      const VerificationMeta('pricePerSqmAtSigning');
+  static const VerificationMeta _baseMeterPriceAtSigningMeta =
+      const VerificationMeta('baseMeterPriceAtSigning');
   @override
-  late final GeneratedColumn<double> pricePerSqmAtSigning =
+  late final GeneratedColumn<double> baseMeterPriceAtSigning =
       GeneratedColumn<double>(
-        'price_per_sqm_at_signing',
+        'base_meter_price_at_signing',
         aliasedName,
         false,
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
-  static const VerificationMeta _totalContractValueMeta =
-      const VerificationMeta('totalContractValue');
-  @override
-  late final GeneratedColumn<double> totalContractValue =
-      GeneratedColumn<double>(
-        'total_contract_value',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _monthlyInstallmentMeta =
-      const VerificationMeta('monthlyInstallment');
-  @override
-  late final GeneratedColumn<double> monthlyInstallment =
-      GeneratedColumn<double>(
-        'monthly_installment',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
-  static const VerificationMeta _signatureDateMeta = const VerificationMeta(
-    'signatureDate',
+  static const VerificationMeta _coefficientsMeta = const VerificationMeta(
+    'coefficients',
   );
   @override
-  late final GeneratedColumn<DateTime> signatureDate =
-      GeneratedColumn<DateTime>(
-        'signature_date',
-        aliasedName,
-        false,
-        type: DriftSqlType.dateTime,
-        requiredDuringInsert: true,
-      );
+  late final GeneratedColumn<String> coefficients = GeneratedColumn<String>(
+    'coefficients',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _contractDateMeta = const VerificationMeta(
+    'contractDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> contractDate = GeneratedColumn<DateTime>(
+    'contract_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _isCompletedMeta = const VerificationMeta(
     'isCompleted',
   );
@@ -471,17 +610,74 @@ class $ContractsTable extends Contracts
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     clientId,
-    apartmentDescription,
-    apartmentArea,
-    pricePerSqmAtSigning,
-    totalContractValue,
-    monthlyInstallment,
-    signatureDate,
+    apartmentDetails,
+    totalArea,
+    baseMeterPriceAtSigning,
+    coefficients,
+    contractDate,
     isCompleted,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -506,71 +702,55 @@ class $ContractsTable extends Contracts
     } else if (isInserting) {
       context.missing(_clientIdMeta);
     }
-    if (data.containsKey('apartment_description')) {
+    if (data.containsKey('apartment_details')) {
       context.handle(
-        _apartmentDescriptionMeta,
-        apartmentDescription.isAcceptableOrUnknown(
-          data['apartment_description']!,
-          _apartmentDescriptionMeta,
+        _apartmentDetailsMeta,
+        apartmentDetails.isAcceptableOrUnknown(
+          data['apartment_details']!,
+          _apartmentDetailsMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_apartmentDescriptionMeta);
+      context.missing(_apartmentDetailsMeta);
     }
-    if (data.containsKey('apartment_area')) {
+    if (data.containsKey('total_area')) {
       context.handle(
-        _apartmentAreaMeta,
-        apartmentArea.isAcceptableOrUnknown(
-          data['apartment_area']!,
-          _apartmentAreaMeta,
-        ),
+        _totalAreaMeta,
+        totalArea.isAcceptableOrUnknown(data['total_area']!, _totalAreaMeta),
       );
     } else if (isInserting) {
-      context.missing(_apartmentAreaMeta);
+      context.missing(_totalAreaMeta);
     }
-    if (data.containsKey('price_per_sqm_at_signing')) {
+    if (data.containsKey('base_meter_price_at_signing')) {
       context.handle(
-        _pricePerSqmAtSigningMeta,
-        pricePerSqmAtSigning.isAcceptableOrUnknown(
-          data['price_per_sqm_at_signing']!,
-          _pricePerSqmAtSigningMeta,
+        _baseMeterPriceAtSigningMeta,
+        baseMeterPriceAtSigning.isAcceptableOrUnknown(
+          data['base_meter_price_at_signing']!,
+          _baseMeterPriceAtSigningMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_pricePerSqmAtSigningMeta);
+      context.missing(_baseMeterPriceAtSigningMeta);
     }
-    if (data.containsKey('total_contract_value')) {
+    if (data.containsKey('coefficients')) {
       context.handle(
-        _totalContractValueMeta,
-        totalContractValue.isAcceptableOrUnknown(
-          data['total_contract_value']!,
-          _totalContractValueMeta,
+        _coefficientsMeta,
+        coefficients.isAcceptableOrUnknown(
+          data['coefficients']!,
+          _coefficientsMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_totalContractValueMeta);
     }
-    if (data.containsKey('monthly_installment')) {
+    if (data.containsKey('contract_date')) {
       context.handle(
-        _monthlyInstallmentMeta,
-        monthlyInstallment.isAcceptableOrUnknown(
-          data['monthly_installment']!,
-          _monthlyInstallmentMeta,
+        _contractDateMeta,
+        contractDate.isAcceptableOrUnknown(
+          data['contract_date']!,
+          _contractDateMeta,
         ),
       );
     } else if (isInserting) {
-      context.missing(_monthlyInstallmentMeta);
-    }
-    if (data.containsKey('signature_date')) {
-      context.handle(
-        _signatureDateMeta,
-        signatureDate.isAcceptableOrUnknown(
-          data['signature_date']!,
-          _signatureDateMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_signatureDateMeta);
+      context.missing(_contractDateMeta);
     }
     if (data.containsKey('is_completed')) {
       context.handle(
@@ -579,6 +759,30 @@ class $ContractsTable extends Contracts
           data['is_completed']!,
           _isCompletedMeta,
         ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
       );
     }
     return context;
@@ -598,33 +802,45 @@ class $ContractsTable extends Contracts
         DriftSqlType.int,
         data['${effectivePrefix}client_id'],
       )!,
-      apartmentDescription: attachedDatabase.typeMapping.read(
+      apartmentDetails: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}apartment_description'],
+        data['${effectivePrefix}apartment_details'],
       )!,
-      apartmentArea: attachedDatabase.typeMapping.read(
+      totalArea: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}apartment_area'],
+        data['${effectivePrefix}total_area'],
       )!,
-      pricePerSqmAtSigning: attachedDatabase.typeMapping.read(
+      baseMeterPriceAtSigning: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}price_per_sqm_at_signing'],
+        data['${effectivePrefix}base_meter_price_at_signing'],
       )!,
-      totalContractValue: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}total_contract_value'],
+      coefficients: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coefficients'],
       )!,
-      monthlyInstallment: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}monthly_installment'],
-      )!,
-      signatureDate: attachedDatabase.typeMapping.read(
+      contractDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}signature_date'],
+        data['${effectivePrefix}contract_date'],
       )!,
       isCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_completed'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
       )!,
     );
   }
@@ -638,36 +854,47 @@ class $ContractsTable extends Contracts
 class Contract extends DataClass implements Insertable<Contract> {
   final int id;
   final int clientId;
-  final String apartmentDescription;
-  final double apartmentArea;
-  final double pricePerSqmAtSigning;
-  final double totalContractValue;
-  final double monthlyInstallment;
-  final DateTime signatureDate;
+  final String apartmentDetails;
+  final double totalArea;
+  final double baseMeterPriceAtSigning;
+  final String coefficients;
+  final DateTime contractDate;
   final bool isCompleted;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool isSynced;
   const Contract({
     required this.id,
     required this.clientId,
-    required this.apartmentDescription,
-    required this.apartmentArea,
-    required this.pricePerSqmAtSigning,
-    required this.totalContractValue,
-    required this.monthlyInstallment,
-    required this.signatureDate,
+    required this.apartmentDetails,
+    required this.totalArea,
+    required this.baseMeterPriceAtSigning,
+    required this.coefficients,
+    required this.contractDate,
     required this.isCompleted,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isSynced,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['client_id'] = Variable<int>(clientId);
-    map['apartment_description'] = Variable<String>(apartmentDescription);
-    map['apartment_area'] = Variable<double>(apartmentArea);
-    map['price_per_sqm_at_signing'] = Variable<double>(pricePerSqmAtSigning);
-    map['total_contract_value'] = Variable<double>(totalContractValue);
-    map['monthly_installment'] = Variable<double>(monthlyInstallment);
-    map['signature_date'] = Variable<DateTime>(signatureDate);
+    map['apartment_details'] = Variable<String>(apartmentDetails);
+    map['total_area'] = Variable<double>(totalArea);
+    map['base_meter_price_at_signing'] = Variable<double>(
+      baseMeterPriceAtSigning,
+    );
+    map['coefficients'] = Variable<String>(coefficients);
+    map['contract_date'] = Variable<DateTime>(contractDate);
     map['is_completed'] = Variable<bool>(isCompleted);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
     return map;
   }
 
@@ -675,13 +902,16 @@ class Contract extends DataClass implements Insertable<Contract> {
     return ContractsCompanion(
       id: Value(id),
       clientId: Value(clientId),
-      apartmentDescription: Value(apartmentDescription),
-      apartmentArea: Value(apartmentArea),
-      pricePerSqmAtSigning: Value(pricePerSqmAtSigning),
-      totalContractValue: Value(totalContractValue),
-      monthlyInstallment: Value(monthlyInstallment),
-      signatureDate: Value(signatureDate),
+      apartmentDetails: Value(apartmentDetails),
+      totalArea: Value(totalArea),
+      baseMeterPriceAtSigning: Value(baseMeterPriceAtSigning),
+      coefficients: Value(coefficients),
+      contractDate: Value(contractDate),
       isCompleted: Value(isCompleted),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
     );
   }
 
@@ -693,21 +923,18 @@ class Contract extends DataClass implements Insertable<Contract> {
     return Contract(
       id: serializer.fromJson<int>(json['id']),
       clientId: serializer.fromJson<int>(json['clientId']),
-      apartmentDescription: serializer.fromJson<String>(
-        json['apartmentDescription'],
+      apartmentDetails: serializer.fromJson<String>(json['apartmentDetails']),
+      totalArea: serializer.fromJson<double>(json['totalArea']),
+      baseMeterPriceAtSigning: serializer.fromJson<double>(
+        json['baseMeterPriceAtSigning'],
       ),
-      apartmentArea: serializer.fromJson<double>(json['apartmentArea']),
-      pricePerSqmAtSigning: serializer.fromJson<double>(
-        json['pricePerSqmAtSigning'],
-      ),
-      totalContractValue: serializer.fromJson<double>(
-        json['totalContractValue'],
-      ),
-      monthlyInstallment: serializer.fromJson<double>(
-        json['monthlyInstallment'],
-      ),
-      signatureDate: serializer.fromJson<DateTime>(json['signatureDate']),
+      coefficients: serializer.fromJson<String>(json['coefficients']),
+      contractDate: serializer.fromJson<DateTime>(json['contractDate']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
   }
   @override
@@ -716,62 +943,73 @@ class Contract extends DataClass implements Insertable<Contract> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'clientId': serializer.toJson<int>(clientId),
-      'apartmentDescription': serializer.toJson<String>(apartmentDescription),
-      'apartmentArea': serializer.toJson<double>(apartmentArea),
-      'pricePerSqmAtSigning': serializer.toJson<double>(pricePerSqmAtSigning),
-      'totalContractValue': serializer.toJson<double>(totalContractValue),
-      'monthlyInstallment': serializer.toJson<double>(monthlyInstallment),
-      'signatureDate': serializer.toJson<DateTime>(signatureDate),
+      'apartmentDetails': serializer.toJson<String>(apartmentDetails),
+      'totalArea': serializer.toJson<double>(totalArea),
+      'baseMeterPriceAtSigning': serializer.toJson<double>(
+        baseMeterPriceAtSigning,
+      ),
+      'coefficients': serializer.toJson<String>(coefficients),
+      'contractDate': serializer.toJson<DateTime>(contractDate),
       'isCompleted': serializer.toJson<bool>(isCompleted),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
     };
   }
 
   Contract copyWith({
     int? id,
     int? clientId,
-    String? apartmentDescription,
-    double? apartmentArea,
-    double? pricePerSqmAtSigning,
-    double? totalContractValue,
-    double? monthlyInstallment,
-    DateTime? signatureDate,
+    String? apartmentDetails,
+    double? totalArea,
+    double? baseMeterPriceAtSigning,
+    String? coefficients,
+    DateTime? contractDate,
     bool? isCompleted,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
   }) => Contract(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
-    apartmentDescription: apartmentDescription ?? this.apartmentDescription,
-    apartmentArea: apartmentArea ?? this.apartmentArea,
-    pricePerSqmAtSigning: pricePerSqmAtSigning ?? this.pricePerSqmAtSigning,
-    totalContractValue: totalContractValue ?? this.totalContractValue,
-    monthlyInstallment: monthlyInstallment ?? this.monthlyInstallment,
-    signatureDate: signatureDate ?? this.signatureDate,
+    apartmentDetails: apartmentDetails ?? this.apartmentDetails,
+    totalArea: totalArea ?? this.totalArea,
+    baseMeterPriceAtSigning:
+        baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
+    coefficients: coefficients ?? this.coefficients,
+    contractDate: contractDate ?? this.contractDate,
     isCompleted: isCompleted ?? this.isCompleted,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
   );
   Contract copyWithCompanion(ContractsCompanion data) {
     return Contract(
       id: data.id.present ? data.id.value : this.id,
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
-      apartmentDescription: data.apartmentDescription.present
-          ? data.apartmentDescription.value
-          : this.apartmentDescription,
-      apartmentArea: data.apartmentArea.present
-          ? data.apartmentArea.value
-          : this.apartmentArea,
-      pricePerSqmAtSigning: data.pricePerSqmAtSigning.present
-          ? data.pricePerSqmAtSigning.value
-          : this.pricePerSqmAtSigning,
-      totalContractValue: data.totalContractValue.present
-          ? data.totalContractValue.value
-          : this.totalContractValue,
-      monthlyInstallment: data.monthlyInstallment.present
-          ? data.monthlyInstallment.value
-          : this.monthlyInstallment,
-      signatureDate: data.signatureDate.present
-          ? data.signatureDate.value
-          : this.signatureDate,
+      apartmentDetails: data.apartmentDetails.present
+          ? data.apartmentDetails.value
+          : this.apartmentDetails,
+      totalArea: data.totalArea.present ? data.totalArea.value : this.totalArea,
+      baseMeterPriceAtSigning: data.baseMeterPriceAtSigning.present
+          ? data.baseMeterPriceAtSigning.value
+          : this.baseMeterPriceAtSigning,
+      coefficients: data.coefficients.present
+          ? data.coefficients.value
+          : this.coefficients,
+      contractDate: data.contractDate.present
+          ? data.contractDate.value
+          : this.contractDate,
       isCompleted: data.isCompleted.present
           ? data.isCompleted.value
           : this.isCompleted,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
   }
 
@@ -780,13 +1018,16 @@ class Contract extends DataClass implements Insertable<Contract> {
     return (StringBuffer('Contract(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
-          ..write('apartmentDescription: $apartmentDescription, ')
-          ..write('apartmentArea: $apartmentArea, ')
-          ..write('pricePerSqmAtSigning: $pricePerSqmAtSigning, ')
-          ..write('totalContractValue: $totalContractValue, ')
-          ..write('monthlyInstallment: $monthlyInstallment, ')
-          ..write('signatureDate: $signatureDate, ')
-          ..write('isCompleted: $isCompleted')
+          ..write('apartmentDetails: $apartmentDetails, ')
+          ..write('totalArea: $totalArea, ')
+          ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
+          ..write('coefficients: $coefficients, ')
+          ..write('contractDate: $contractDate, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
@@ -795,13 +1036,16 @@ class Contract extends DataClass implements Insertable<Contract> {
   int get hashCode => Object.hash(
     id,
     clientId,
-    apartmentDescription,
-    apartmentArea,
-    pricePerSqmAtSigning,
-    totalContractValue,
-    monthlyInstallment,
-    signatureDate,
+    apartmentDetails,
+    totalArea,
+    baseMeterPriceAtSigning,
+    coefficients,
+    contractDate,
     isCompleted,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
   );
   @override
   bool operator ==(Object other) =>
@@ -809,101 +1053,122 @@ class Contract extends DataClass implements Insertable<Contract> {
       (other is Contract &&
           other.id == this.id &&
           other.clientId == this.clientId &&
-          other.apartmentDescription == this.apartmentDescription &&
-          other.apartmentArea == this.apartmentArea &&
-          other.pricePerSqmAtSigning == this.pricePerSqmAtSigning &&
-          other.totalContractValue == this.totalContractValue &&
-          other.monthlyInstallment == this.monthlyInstallment &&
-          other.signatureDate == this.signatureDate &&
-          other.isCompleted == this.isCompleted);
+          other.apartmentDetails == this.apartmentDetails &&
+          other.totalArea == this.totalArea &&
+          other.baseMeterPriceAtSigning == this.baseMeterPriceAtSigning &&
+          other.coefficients == this.coefficients &&
+          other.contractDate == this.contractDate &&
+          other.isCompleted == this.isCompleted &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
 }
 
 class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<int> id;
   final Value<int> clientId;
-  final Value<String> apartmentDescription;
-  final Value<double> apartmentArea;
-  final Value<double> pricePerSqmAtSigning;
-  final Value<double> totalContractValue;
-  final Value<double> monthlyInstallment;
-  final Value<DateTime> signatureDate;
+  final Value<String> apartmentDetails;
+  final Value<double> totalArea;
+  final Value<double> baseMeterPriceAtSigning;
+  final Value<String> coefficients;
+  final Value<DateTime> contractDate;
   final Value<bool> isCompleted;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
   const ContractsCompanion({
     this.id = const Value.absent(),
     this.clientId = const Value.absent(),
-    this.apartmentDescription = const Value.absent(),
-    this.apartmentArea = const Value.absent(),
-    this.pricePerSqmAtSigning = const Value.absent(),
-    this.totalContractValue = const Value.absent(),
-    this.monthlyInstallment = const Value.absent(),
-    this.signatureDate = const Value.absent(),
+    this.apartmentDetails = const Value.absent(),
+    this.totalArea = const Value.absent(),
+    this.baseMeterPriceAtSigning = const Value.absent(),
+    this.coefficients = const Value.absent(),
+    this.contractDate = const Value.absent(),
     this.isCompleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   });
   ContractsCompanion.insert({
     this.id = const Value.absent(),
     required int clientId,
-    required String apartmentDescription,
-    required double apartmentArea,
-    required double pricePerSqmAtSigning,
-    required double totalContractValue,
-    required double monthlyInstallment,
-    required DateTime signatureDate,
+    required String apartmentDetails,
+    required double totalArea,
+    required double baseMeterPriceAtSigning,
+    this.coefficients = const Value.absent(),
+    required DateTime contractDate,
     this.isCompleted = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   }) : clientId = Value(clientId),
-       apartmentDescription = Value(apartmentDescription),
-       apartmentArea = Value(apartmentArea),
-       pricePerSqmAtSigning = Value(pricePerSqmAtSigning),
-       totalContractValue = Value(totalContractValue),
-       monthlyInstallment = Value(monthlyInstallment),
-       signatureDate = Value(signatureDate);
+       apartmentDetails = Value(apartmentDetails),
+       totalArea = Value(totalArea),
+       baseMeterPriceAtSigning = Value(baseMeterPriceAtSigning),
+       contractDate = Value(contractDate);
   static Insertable<Contract> custom({
     Expression<int>? id,
     Expression<int>? clientId,
-    Expression<String>? apartmentDescription,
-    Expression<double>? apartmentArea,
-    Expression<double>? pricePerSqmAtSigning,
-    Expression<double>? totalContractValue,
-    Expression<double>? monthlyInstallment,
-    Expression<DateTime>? signatureDate,
+    Expression<String>? apartmentDetails,
+    Expression<double>? totalArea,
+    Expression<double>? baseMeterPriceAtSigning,
+    Expression<String>? coefficients,
+    Expression<DateTime>? contractDate,
     Expression<bool>? isCompleted,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (clientId != null) 'client_id': clientId,
-      if (apartmentDescription != null)
-        'apartment_description': apartmentDescription,
-      if (apartmentArea != null) 'apartment_area': apartmentArea,
-      if (pricePerSqmAtSigning != null)
-        'price_per_sqm_at_signing': pricePerSqmAtSigning,
-      if (totalContractValue != null)
-        'total_contract_value': totalContractValue,
-      if (monthlyInstallment != null) 'monthly_installment': monthlyInstallment,
-      if (signatureDate != null) 'signature_date': signatureDate,
+      if (apartmentDetails != null) 'apartment_details': apartmentDetails,
+      if (totalArea != null) 'total_area': totalArea,
+      if (baseMeterPriceAtSigning != null)
+        'base_meter_price_at_signing': baseMeterPriceAtSigning,
+      if (coefficients != null) 'coefficients': coefficients,
+      if (contractDate != null) 'contract_date': contractDate,
       if (isCompleted != null) 'is_completed': isCompleted,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
     });
   }
 
   ContractsCompanion copyWith({
     Value<int>? id,
     Value<int>? clientId,
-    Value<String>? apartmentDescription,
-    Value<double>? apartmentArea,
-    Value<double>? pricePerSqmAtSigning,
-    Value<double>? totalContractValue,
-    Value<double>? monthlyInstallment,
-    Value<DateTime>? signatureDate,
+    Value<String>? apartmentDetails,
+    Value<double>? totalArea,
+    Value<double>? baseMeterPriceAtSigning,
+    Value<String>? coefficients,
+    Value<DateTime>? contractDate,
     Value<bool>? isCompleted,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
   }) {
     return ContractsCompanion(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
-      apartmentDescription: apartmentDescription ?? this.apartmentDescription,
-      apartmentArea: apartmentArea ?? this.apartmentArea,
-      pricePerSqmAtSigning: pricePerSqmAtSigning ?? this.pricePerSqmAtSigning,
-      totalContractValue: totalContractValue ?? this.totalContractValue,
-      monthlyInstallment: monthlyInstallment ?? this.monthlyInstallment,
-      signatureDate: signatureDate ?? this.signatureDate,
+      apartmentDetails: apartmentDetails ?? this.apartmentDetails,
+      totalArea: totalArea ?? this.totalArea,
+      baseMeterPriceAtSigning:
+          baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
+      coefficients: coefficients ?? this.coefficients,
+      contractDate: contractDate ?? this.contractDate,
       isCompleted: isCompleted ?? this.isCompleted,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -916,30 +1181,37 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     if (clientId.present) {
       map['client_id'] = Variable<int>(clientId.value);
     }
-    if (apartmentDescription.present) {
-      map['apartment_description'] = Variable<String>(
-        apartmentDescription.value,
+    if (apartmentDetails.present) {
+      map['apartment_details'] = Variable<String>(apartmentDetails.value);
+    }
+    if (totalArea.present) {
+      map['total_area'] = Variable<double>(totalArea.value);
+    }
+    if (baseMeterPriceAtSigning.present) {
+      map['base_meter_price_at_signing'] = Variable<double>(
+        baseMeterPriceAtSigning.value,
       );
     }
-    if (apartmentArea.present) {
-      map['apartment_area'] = Variable<double>(apartmentArea.value);
+    if (coefficients.present) {
+      map['coefficients'] = Variable<String>(coefficients.value);
     }
-    if (pricePerSqmAtSigning.present) {
-      map['price_per_sqm_at_signing'] = Variable<double>(
-        pricePerSqmAtSigning.value,
-      );
-    }
-    if (totalContractValue.present) {
-      map['total_contract_value'] = Variable<double>(totalContractValue.value);
-    }
-    if (monthlyInstallment.present) {
-      map['monthly_installment'] = Variable<double>(monthlyInstallment.value);
-    }
-    if (signatureDate.present) {
-      map['signature_date'] = Variable<DateTime>(signatureDate.value);
+    if (contractDate.present) {
+      map['contract_date'] = Variable<DateTime>(contractDate.value);
     }
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
     }
     return map;
   }
@@ -949,23 +1221,27 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     return (StringBuffer('ContractsCompanion(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
-          ..write('apartmentDescription: $apartmentDescription, ')
-          ..write('apartmentArea: $apartmentArea, ')
-          ..write('pricePerSqmAtSigning: $pricePerSqmAtSigning, ')
-          ..write('totalContractValue: $totalContractValue, ')
-          ..write('monthlyInstallment: $monthlyInstallment, ')
-          ..write('signatureDate: $signatureDate, ')
-          ..write('isCompleted: $isCompleted')
+          ..write('apartmentDetails: $apartmentDetails, ')
+          ..write('totalArea: $totalArea, ')
+          ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
+          ..write('coefficients: $coefficients, ')
+          ..write('contractDate: $contractDate, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
 }
 
-class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
+class $MaterialPricesHistoryTable extends MaterialPricesHistory
+    with TableInfo<$MaterialPricesHistoryTable, MaterialPricesHistoryData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $PaymentsTable(this.attachedDatabase, [this._alias]);
+  $MaterialPricesHistoryTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -979,638 +1255,19 @@ class $PaymentsTable extends Payments with TableInfo<$PaymentsTable, Payment> {
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _contractIdMeta = const VerificationMeta(
-    'contractId',
+  static const VerificationMeta _effectiveDateMeta = const VerificationMeta(
+    'effectiveDate',
   );
   @override
-  late final GeneratedColumn<int> contractId = GeneratedColumn<int>(
-    'contract_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES contracts (id)',
-    ),
-  );
-  static const VerificationMeta _installmentNumberMeta = const VerificationMeta(
-    'installmentNumber',
-  );
-  @override
-  late final GeneratedColumn<int> installmentNumber = GeneratedColumn<int>(
-    'installment_number',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _amountPaidMeta = const VerificationMeta(
-    'amountPaid',
-  );
-  @override
-  late final GeneratedColumn<double> amountPaid = GeneratedColumn<double>(
-    'amount_paid',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _originalInstallmentMeta =
-      const VerificationMeta('originalInstallment');
-  @override
-  late final GeneratedColumn<double> originalInstallment =
-      GeneratedColumn<double>(
-        'original_installment',
+  late final GeneratedColumn<DateTime> effectiveDate =
+      GeneratedColumn<DateTime>(
+        'effective_date',
         aliasedName,
         false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+        defaultValue: currentDateAndTime,
       );
-  static const VerificationMeta _feesMeta = const VerificationMeta('fees');
-  @override
-  late final GeneratedColumn<double> fees = GeneratedColumn<double>(
-    'fees',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _paymentDateMeta = const VerificationMeta(
-    'paymentDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> paymentDate = GeneratedColumn<DateTime>(
-    'payment_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
-    'due_date',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _isWhatsAppSentMeta = const VerificationMeta(
-    'isWhatsAppSent',
-  );
-  @override
-  late final GeneratedColumn<bool> isWhatsAppSent = GeneratedColumn<bool>(
-    'is_whats_app_sent',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_whats_app_sent" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isSyncedToCloudMeta = const VerificationMeta(
-    'isSyncedToCloud',
-  );
-  @override
-  late final GeneratedColumn<bool> isSyncedToCloud = GeneratedColumn<bool>(
-    'is_synced_to_cloud',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_synced_to_cloud" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    contractId,
-    installmentNumber,
-    amountPaid,
-    originalInstallment,
-    fees,
-    paymentDate,
-    dueDate,
-    isWhatsAppSent,
-    isSyncedToCloud,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'payments';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Payment> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('contract_id')) {
-      context.handle(
-        _contractIdMeta,
-        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_contractIdMeta);
-    }
-    if (data.containsKey('installment_number')) {
-      context.handle(
-        _installmentNumberMeta,
-        installmentNumber.isAcceptableOrUnknown(
-          data['installment_number']!,
-          _installmentNumberMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_installmentNumberMeta);
-    }
-    if (data.containsKey('amount_paid')) {
-      context.handle(
-        _amountPaidMeta,
-        amountPaid.isAcceptableOrUnknown(data['amount_paid']!, _amountPaidMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_amountPaidMeta);
-    }
-    if (data.containsKey('original_installment')) {
-      context.handle(
-        _originalInstallmentMeta,
-        originalInstallment.isAcceptableOrUnknown(
-          data['original_installment']!,
-          _originalInstallmentMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_originalInstallmentMeta);
-    }
-    if (data.containsKey('fees')) {
-      context.handle(
-        _feesMeta,
-        fees.isAcceptableOrUnknown(data['fees']!, _feesMeta),
-      );
-    }
-    if (data.containsKey('payment_date')) {
-      context.handle(
-        _paymentDateMeta,
-        paymentDate.isAcceptableOrUnknown(
-          data['payment_date']!,
-          _paymentDateMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_paymentDateMeta);
-    }
-    if (data.containsKey('due_date')) {
-      context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
-      );
-    }
-    if (data.containsKey('is_whats_app_sent')) {
-      context.handle(
-        _isWhatsAppSentMeta,
-        isWhatsAppSent.isAcceptableOrUnknown(
-          data['is_whats_app_sent']!,
-          _isWhatsAppSentMeta,
-        ),
-      );
-    }
-    if (data.containsKey('is_synced_to_cloud')) {
-      context.handle(
-        _isSyncedToCloudMeta,
-        isSyncedToCloud.isAcceptableOrUnknown(
-          data['is_synced_to_cloud']!,
-          _isSyncedToCloudMeta,
-        ),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Payment map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Payment(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      contractId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}contract_id'],
-      )!,
-      installmentNumber: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}installment_number'],
-      )!,
-      amountPaid: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}amount_paid'],
-      )!,
-      originalInstallment: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}original_installment'],
-      )!,
-      fees: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}fees'],
-      )!,
-      paymentDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}payment_date'],
-      )!,
-      dueDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}due_date'],
-      ),
-      isWhatsAppSent: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_whats_app_sent'],
-      )!,
-      isSyncedToCloud: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_synced_to_cloud'],
-      )!,
-    );
-  }
-
-  @override
-  $PaymentsTable createAlias(String alias) {
-    return $PaymentsTable(attachedDatabase, alias);
-  }
-}
-
-class Payment extends DataClass implements Insertable<Payment> {
-  final int id;
-  final int contractId;
-  final int installmentNumber;
-  final double amountPaid;
-  final double originalInstallment;
-  final double fees;
-  final DateTime paymentDate;
-  final DateTime? dueDate;
-  final bool isWhatsAppSent;
-  final bool isSyncedToCloud;
-  const Payment({
-    required this.id,
-    required this.contractId,
-    required this.installmentNumber,
-    required this.amountPaid,
-    required this.originalInstallment,
-    required this.fees,
-    required this.paymentDate,
-    this.dueDate,
-    required this.isWhatsAppSent,
-    required this.isSyncedToCloud,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['contract_id'] = Variable<int>(contractId);
-    map['installment_number'] = Variable<int>(installmentNumber);
-    map['amount_paid'] = Variable<double>(amountPaid);
-    map['original_installment'] = Variable<double>(originalInstallment);
-    map['fees'] = Variable<double>(fees);
-    map['payment_date'] = Variable<DateTime>(paymentDate);
-    if (!nullToAbsent || dueDate != null) {
-      map['due_date'] = Variable<DateTime>(dueDate);
-    }
-    map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent);
-    map['is_synced_to_cloud'] = Variable<bool>(isSyncedToCloud);
-    return map;
-  }
-
-  PaymentsCompanion toCompanion(bool nullToAbsent) {
-    return PaymentsCompanion(
-      id: Value(id),
-      contractId: Value(contractId),
-      installmentNumber: Value(installmentNumber),
-      amountPaid: Value(amountPaid),
-      originalInstallment: Value(originalInstallment),
-      fees: Value(fees),
-      paymentDate: Value(paymentDate),
-      dueDate: dueDate == null && nullToAbsent
-          ? const Value.absent()
-          : Value(dueDate),
-      isWhatsAppSent: Value(isWhatsAppSent),
-      isSyncedToCloud: Value(isSyncedToCloud),
-    );
-  }
-
-  factory Payment.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Payment(
-      id: serializer.fromJson<int>(json['id']),
-      contractId: serializer.fromJson<int>(json['contractId']),
-      installmentNumber: serializer.fromJson<int>(json['installmentNumber']),
-      amountPaid: serializer.fromJson<double>(json['amountPaid']),
-      originalInstallment: serializer.fromJson<double>(
-        json['originalInstallment'],
-      ),
-      fees: serializer.fromJson<double>(json['fees']),
-      paymentDate: serializer.fromJson<DateTime>(json['paymentDate']),
-      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
-      isWhatsAppSent: serializer.fromJson<bool>(json['isWhatsAppSent']),
-      isSyncedToCloud: serializer.fromJson<bool>(json['isSyncedToCloud']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'contractId': serializer.toJson<int>(contractId),
-      'installmentNumber': serializer.toJson<int>(installmentNumber),
-      'amountPaid': serializer.toJson<double>(amountPaid),
-      'originalInstallment': serializer.toJson<double>(originalInstallment),
-      'fees': serializer.toJson<double>(fees),
-      'paymentDate': serializer.toJson<DateTime>(paymentDate),
-      'dueDate': serializer.toJson<DateTime?>(dueDate),
-      'isWhatsAppSent': serializer.toJson<bool>(isWhatsAppSent),
-      'isSyncedToCloud': serializer.toJson<bool>(isSyncedToCloud),
-    };
-  }
-
-  Payment copyWith({
-    int? id,
-    int? contractId,
-    int? installmentNumber,
-    double? amountPaid,
-    double? originalInstallment,
-    double? fees,
-    DateTime? paymentDate,
-    Value<DateTime?> dueDate = const Value.absent(),
-    bool? isWhatsAppSent,
-    bool? isSyncedToCloud,
-  }) => Payment(
-    id: id ?? this.id,
-    contractId: contractId ?? this.contractId,
-    installmentNumber: installmentNumber ?? this.installmentNumber,
-    amountPaid: amountPaid ?? this.amountPaid,
-    originalInstallment: originalInstallment ?? this.originalInstallment,
-    fees: fees ?? this.fees,
-    paymentDate: paymentDate ?? this.paymentDate,
-    dueDate: dueDate.present ? dueDate.value : this.dueDate,
-    isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
-    isSyncedToCloud: isSyncedToCloud ?? this.isSyncedToCloud,
-  );
-  Payment copyWithCompanion(PaymentsCompanion data) {
-    return Payment(
-      id: data.id.present ? data.id.value : this.id,
-      contractId: data.contractId.present
-          ? data.contractId.value
-          : this.contractId,
-      installmentNumber: data.installmentNumber.present
-          ? data.installmentNumber.value
-          : this.installmentNumber,
-      amountPaid: data.amountPaid.present
-          ? data.amountPaid.value
-          : this.amountPaid,
-      originalInstallment: data.originalInstallment.present
-          ? data.originalInstallment.value
-          : this.originalInstallment,
-      fees: data.fees.present ? data.fees.value : this.fees,
-      paymentDate: data.paymentDate.present
-          ? data.paymentDate.value
-          : this.paymentDate,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
-      isWhatsAppSent: data.isWhatsAppSent.present
-          ? data.isWhatsAppSent.value
-          : this.isWhatsAppSent,
-      isSyncedToCloud: data.isSyncedToCloud.present
-          ? data.isSyncedToCloud.value
-          : this.isSyncedToCloud,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Payment(')
-          ..write('id: $id, ')
-          ..write('contractId: $contractId, ')
-          ..write('installmentNumber: $installmentNumber, ')
-          ..write('amountPaid: $amountPaid, ')
-          ..write('originalInstallment: $originalInstallment, ')
-          ..write('fees: $fees, ')
-          ..write('paymentDate: $paymentDate, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('isWhatsAppSent: $isWhatsAppSent, ')
-          ..write('isSyncedToCloud: $isSyncedToCloud')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    contractId,
-    installmentNumber,
-    amountPaid,
-    originalInstallment,
-    fees,
-    paymentDate,
-    dueDate,
-    isWhatsAppSent,
-    isSyncedToCloud,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Payment &&
-          other.id == this.id &&
-          other.contractId == this.contractId &&
-          other.installmentNumber == this.installmentNumber &&
-          other.amountPaid == this.amountPaid &&
-          other.originalInstallment == this.originalInstallment &&
-          other.fees == this.fees &&
-          other.paymentDate == this.paymentDate &&
-          other.dueDate == this.dueDate &&
-          other.isWhatsAppSent == this.isWhatsAppSent &&
-          other.isSyncedToCloud == this.isSyncedToCloud);
-}
-
-class PaymentsCompanion extends UpdateCompanion<Payment> {
-  final Value<int> id;
-  final Value<int> contractId;
-  final Value<int> installmentNumber;
-  final Value<double> amountPaid;
-  final Value<double> originalInstallment;
-  final Value<double> fees;
-  final Value<DateTime> paymentDate;
-  final Value<DateTime?> dueDate;
-  final Value<bool> isWhatsAppSent;
-  final Value<bool> isSyncedToCloud;
-  const PaymentsCompanion({
-    this.id = const Value.absent(),
-    this.contractId = const Value.absent(),
-    this.installmentNumber = const Value.absent(),
-    this.amountPaid = const Value.absent(),
-    this.originalInstallment = const Value.absent(),
-    this.fees = const Value.absent(),
-    this.paymentDate = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.isWhatsAppSent = const Value.absent(),
-    this.isSyncedToCloud = const Value.absent(),
-  });
-  PaymentsCompanion.insert({
-    this.id = const Value.absent(),
-    required int contractId,
-    required int installmentNumber,
-    required double amountPaid,
-    required double originalInstallment,
-    this.fees = const Value.absent(),
-    required DateTime paymentDate,
-    this.dueDate = const Value.absent(),
-    this.isWhatsAppSent = const Value.absent(),
-    this.isSyncedToCloud = const Value.absent(),
-  }) : contractId = Value(contractId),
-       installmentNumber = Value(installmentNumber),
-       amountPaid = Value(amountPaid),
-       originalInstallment = Value(originalInstallment),
-       paymentDate = Value(paymentDate);
-  static Insertable<Payment> custom({
-    Expression<int>? id,
-    Expression<int>? contractId,
-    Expression<int>? installmentNumber,
-    Expression<double>? amountPaid,
-    Expression<double>? originalInstallment,
-    Expression<double>? fees,
-    Expression<DateTime>? paymentDate,
-    Expression<DateTime>? dueDate,
-    Expression<bool>? isWhatsAppSent,
-    Expression<bool>? isSyncedToCloud,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (contractId != null) 'contract_id': contractId,
-      if (installmentNumber != null) 'installment_number': installmentNumber,
-      if (amountPaid != null) 'amount_paid': amountPaid,
-      if (originalInstallment != null)
-        'original_installment': originalInstallment,
-      if (fees != null) 'fees': fees,
-      if (paymentDate != null) 'payment_date': paymentDate,
-      if (dueDate != null) 'due_date': dueDate,
-      if (isWhatsAppSent != null) 'is_whats_app_sent': isWhatsAppSent,
-      if (isSyncedToCloud != null) 'is_synced_to_cloud': isSyncedToCloud,
-    });
-  }
-
-  PaymentsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? contractId,
-    Value<int>? installmentNumber,
-    Value<double>? amountPaid,
-    Value<double>? originalInstallment,
-    Value<double>? fees,
-    Value<DateTime>? paymentDate,
-    Value<DateTime?>? dueDate,
-    Value<bool>? isWhatsAppSent,
-    Value<bool>? isSyncedToCloud,
-  }) {
-    return PaymentsCompanion(
-      id: id ?? this.id,
-      contractId: contractId ?? this.contractId,
-      installmentNumber: installmentNumber ?? this.installmentNumber,
-      amountPaid: amountPaid ?? this.amountPaid,
-      originalInstallment: originalInstallment ?? this.originalInstallment,
-      fees: fees ?? this.fees,
-      paymentDate: paymentDate ?? this.paymentDate,
-      dueDate: dueDate ?? this.dueDate,
-      isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
-      isSyncedToCloud: isSyncedToCloud ?? this.isSyncedToCloud,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (contractId.present) {
-      map['contract_id'] = Variable<int>(contractId.value);
-    }
-    if (installmentNumber.present) {
-      map['installment_number'] = Variable<int>(installmentNumber.value);
-    }
-    if (amountPaid.present) {
-      map['amount_paid'] = Variable<double>(amountPaid.value);
-    }
-    if (originalInstallment.present) {
-      map['original_installment'] = Variable<double>(originalInstallment.value);
-    }
-    if (fees.present) {
-      map['fees'] = Variable<double>(fees.value);
-    }
-    if (paymentDate.present) {
-      map['payment_date'] = Variable<DateTime>(paymentDate.value);
-    }
-    if (dueDate.present) {
-      map['due_date'] = Variable<DateTime>(dueDate.value);
-    }
-    if (isWhatsAppSent.present) {
-      map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent.value);
-    }
-    if (isSyncedToCloud.present) {
-      map['is_synced_to_cloud'] = Variable<bool>(isSyncedToCloud.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('PaymentsCompanion(')
-          ..write('id: $id, ')
-          ..write('contractId: $contractId, ')
-          ..write('installmentNumber: $installmentNumber, ')
-          ..write('amountPaid: $amountPaid, ')
-          ..write('originalInstallment: $originalInstallment, ')
-          ..write('fees: $fees, ')
-          ..write('paymentDate: $paymentDate, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('isWhatsAppSent: $isWhatsAppSent, ')
-          ..write('isSyncedToCloud: $isSyncedToCloud')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $MaterialPricesTable extends MaterialPrices
-    with TableInfo<$MaterialPricesTable, MaterialPrice> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $MaterialPricesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
   static const VerificationMeta _ironPriceMeta = const VerificationMeta(
     'ironPrice',
   );
@@ -1688,21 +1345,52 @@ class $MaterialPricesTable extends MaterialPrices
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
-  static const VerificationMeta _lastUpdatedMeta = const VerificationMeta(
-    'lastUpdated',
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
   );
   @override
-  late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
-    'last_updated',
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
     aliasedName,
     false,
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    effectiveDate,
     ironPrice,
     cementPrice,
     block15Price,
@@ -1710,22 +1398,33 @@ class $MaterialPricesTable extends MaterialPrices
     reinforcedConcretePrice,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
-    lastUpdated,
+    createdAt,
+    isDeleted,
+    isSynced,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'material_prices';
+  static const String $name = 'material_prices_history';
   @override
   VerificationContext validateIntegrity(
-    Insertable<MaterialPrice> instance, {
+    Insertable<MaterialPricesHistoryData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('effective_date')) {
+      context.handle(
+        _effectiveDateMeta,
+        effectiveDate.isAcceptableOrUnknown(
+          data['effective_date']!,
+          _effectiveDateMeta,
+        ),
+      );
     }
     if (data.containsKey('iron_price')) {
       context.handle(
@@ -1801,13 +1500,22 @@ class $MaterialPricesTable extends MaterialPrices
     } else if (isInserting) {
       context.missing(_ordinaryWorkerWageMeta);
     }
-    if (data.containsKey('last_updated')) {
+    if (data.containsKey('created_at')) {
       context.handle(
-        _lastUpdatedMeta,
-        lastUpdated.isAcceptableOrUnknown(
-          data['last_updated']!,
-          _lastUpdatedMeta,
-        ),
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
       );
     }
     return context;
@@ -1816,12 +1524,19 @@ class $MaterialPricesTable extends MaterialPrices
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  MaterialPrice map(Map<String, dynamic> data, {String? tablePrefix}) {
+  MaterialPricesHistoryData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MaterialPrice(
+    return MaterialPricesHistoryData(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
+      )!,
+      effectiveDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}effective_date'],
       )!,
       ironPrice: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
@@ -1851,21 +1566,31 @@ class $MaterialPricesTable extends MaterialPrices
         DriftSqlType.double,
         data['${effectivePrefix}ordinary_worker_wage'],
       )!,
-      lastUpdated: attachedDatabase.typeMapping.read(
+      createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
-        data['${effectivePrefix}last_updated'],
+        data['${effectivePrefix}created_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
       )!,
     );
   }
 
   @override
-  $MaterialPricesTable createAlias(String alias) {
-    return $MaterialPricesTable(attachedDatabase, alias);
+  $MaterialPricesHistoryTable createAlias(String alias) {
+    return $MaterialPricesHistoryTable(attachedDatabase, alias);
   }
 }
 
-class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
+class MaterialPricesHistoryData extends DataClass
+    implements Insertable<MaterialPricesHistoryData> {
   final int id;
+  final DateTime effectiveDate;
   final double ironPrice;
   final double cementPrice;
   final double block15Price;
@@ -1873,9 +1598,12 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
   final double reinforcedConcretePrice;
   final double aggregateMaterialsPrice;
   final double ordinaryWorkerWage;
-  final DateTime lastUpdated;
-  const MaterialPrice({
+  final DateTime createdAt;
+  final bool isDeleted;
+  final bool isSynced;
+  const MaterialPricesHistoryData({
     required this.id,
+    required this.effectiveDate,
     required this.ironPrice,
     required this.cementPrice,
     required this.block15Price,
@@ -1883,12 +1611,15 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     required this.reinforcedConcretePrice,
     required this.aggregateMaterialsPrice,
     required this.ordinaryWorkerWage,
-    required this.lastUpdated,
+    required this.createdAt,
+    required this.isDeleted,
+    required this.isSynced,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['effective_date'] = Variable<DateTime>(effectiveDate);
     map['iron_price'] = Variable<double>(ironPrice);
     map['cement_price'] = Variable<double>(cementPrice);
     map['block15_price'] = Variable<double>(block15Price);
@@ -1902,13 +1633,16 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       aggregateMaterialsPrice,
     );
     map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage);
-    map['last_updated'] = Variable<DateTime>(lastUpdated);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
     return map;
   }
 
-  MaterialPricesCompanion toCompanion(bool nullToAbsent) {
-    return MaterialPricesCompanion(
+  MaterialPricesHistoryCompanion toCompanion(bool nullToAbsent) {
+    return MaterialPricesHistoryCompanion(
       id: Value(id),
+      effectiveDate: Value(effectiveDate),
       ironPrice: Value(ironPrice),
       cementPrice: Value(cementPrice),
       block15Price: Value(block15Price),
@@ -1916,17 +1650,20 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       reinforcedConcretePrice: Value(reinforcedConcretePrice),
       aggregateMaterialsPrice: Value(aggregateMaterialsPrice),
       ordinaryWorkerWage: Value(ordinaryWorkerWage),
-      lastUpdated: Value(lastUpdated),
+      createdAt: Value(createdAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
     );
   }
 
-  factory MaterialPrice.fromJson(
+  factory MaterialPricesHistoryData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MaterialPrice(
+    return MaterialPricesHistoryData(
       id: serializer.fromJson<int>(json['id']),
+      effectiveDate: serializer.fromJson<DateTime>(json['effectiveDate']),
       ironPrice: serializer.fromJson<double>(json['ironPrice']),
       cementPrice: serializer.fromJson<double>(json['cementPrice']),
       block15Price: serializer.fromJson<double>(json['block15Price']),
@@ -1942,7 +1679,9 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       ordinaryWorkerWage: serializer.fromJson<double>(
         json['ordinaryWorkerWage'],
       ),
-      lastUpdated: serializer.fromJson<DateTime>(json['lastUpdated']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
   }
   @override
@@ -1950,6 +1689,7 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'effectiveDate': serializer.toJson<DateTime>(effectiveDate),
       'ironPrice': serializer.toJson<double>(ironPrice),
       'cementPrice': serializer.toJson<double>(cementPrice),
       'block15Price': serializer.toJson<double>(block15Price),
@@ -1963,12 +1703,15 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
         aggregateMaterialsPrice,
       ),
       'ordinaryWorkerWage': serializer.toJson<double>(ordinaryWorkerWage),
-      'lastUpdated': serializer.toJson<DateTime>(lastUpdated),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
     };
   }
 
-  MaterialPrice copyWith({
+  MaterialPricesHistoryData copyWith({
     int? id,
+    DateTime? effectiveDate,
     double? ironPrice,
     double? cementPrice,
     double? block15Price,
@@ -1976,9 +1719,12 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     double? reinforcedConcretePrice,
     double? aggregateMaterialsPrice,
     double? ordinaryWorkerWage,
-    DateTime? lastUpdated,
-  }) => MaterialPrice(
+    DateTime? createdAt,
+    bool? isDeleted,
+    bool? isSynced,
+  }) => MaterialPricesHistoryData(
     id: id ?? this.id,
+    effectiveDate: effectiveDate ?? this.effectiveDate,
     ironPrice: ironPrice ?? this.ironPrice,
     cementPrice: cementPrice ?? this.cementPrice,
     block15Price: block15Price ?? this.block15Price,
@@ -1989,11 +1735,18 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     aggregateMaterialsPrice:
         aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
     ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
-    lastUpdated: lastUpdated ?? this.lastUpdated,
+    createdAt: createdAt ?? this.createdAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
   );
-  MaterialPrice copyWithCompanion(MaterialPricesCompanion data) {
-    return MaterialPrice(
+  MaterialPricesHistoryData copyWithCompanion(
+    MaterialPricesHistoryCompanion data,
+  ) {
+    return MaterialPricesHistoryData(
       id: data.id.present ? data.id.value : this.id,
+      effectiveDate: data.effectiveDate.present
+          ? data.effectiveDate.value
+          : this.effectiveDate,
       ironPrice: data.ironPrice.present ? data.ironPrice.value : this.ironPrice,
       cementPrice: data.cementPrice.present
           ? data.cementPrice.value
@@ -2013,16 +1766,17 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
       ordinaryWorkerWage: data.ordinaryWorkerWage.present
           ? data.ordinaryWorkerWage.value
           : this.ordinaryWorkerWage,
-      lastUpdated: data.lastUpdated.present
-          ? data.lastUpdated.value
-          : this.lastUpdated,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('MaterialPrice(')
+    return (StringBuffer('MaterialPricesHistoryData(')
           ..write('id: $id, ')
+          ..write('effectiveDate: $effectiveDate, ')
           ..write('ironPrice: $ironPrice, ')
           ..write('cementPrice: $cementPrice, ')
           ..write('block15Price: $block15Price, ')
@@ -2030,7 +1784,9 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
           ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
-          ..write('lastUpdated: $lastUpdated')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
@@ -2038,6 +1794,7 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
   @override
   int get hashCode => Object.hash(
     id,
+    effectiveDate,
     ironPrice,
     cementPrice,
     block15Price,
@@ -2045,13 +1802,16 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
     reinforcedConcretePrice,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
-    lastUpdated,
+    createdAt,
+    isDeleted,
+    isSynced,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is MaterialPrice &&
+      (other is MaterialPricesHistoryData &&
           other.id == this.id &&
+          other.effectiveDate == this.effectiveDate &&
           other.ironPrice == this.ironPrice &&
           other.cementPrice == this.cementPrice &&
           other.block15Price == this.block15Price &&
@@ -2059,11 +1819,15 @@ class MaterialPrice extends DataClass implements Insertable<MaterialPrice> {
           other.reinforcedConcretePrice == this.reinforcedConcretePrice &&
           other.aggregateMaterialsPrice == this.aggregateMaterialsPrice &&
           other.ordinaryWorkerWage == this.ordinaryWorkerWage &&
-          other.lastUpdated == this.lastUpdated);
+          other.createdAt == this.createdAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
 }
 
-class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
+class MaterialPricesHistoryCompanion
+    extends UpdateCompanion<MaterialPricesHistoryData> {
   final Value<int> id;
+  final Value<DateTime> effectiveDate;
   final Value<double> ironPrice;
   final Value<double> cementPrice;
   final Value<double> block15Price;
@@ -2071,9 +1835,12 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
   final Value<double> reinforcedConcretePrice;
   final Value<double> aggregateMaterialsPrice;
   final Value<double> ordinaryWorkerWage;
-  final Value<DateTime> lastUpdated;
-  const MaterialPricesCompanion({
+  final Value<DateTime> createdAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
+  const MaterialPricesHistoryCompanion({
     this.id = const Value.absent(),
+    this.effectiveDate = const Value.absent(),
     this.ironPrice = const Value.absent(),
     this.cementPrice = const Value.absent(),
     this.block15Price = const Value.absent(),
@@ -2081,10 +1848,13 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     this.reinforcedConcretePrice = const Value.absent(),
     this.aggregateMaterialsPrice = const Value.absent(),
     this.ordinaryWorkerWage = const Value.absent(),
-    this.lastUpdated = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   });
-  MaterialPricesCompanion.insert({
+  MaterialPricesHistoryCompanion.insert({
     this.id = const Value.absent(),
+    this.effectiveDate = const Value.absent(),
     required double ironPrice,
     required double cementPrice,
     required double block15Price,
@@ -2092,7 +1862,9 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     required double reinforcedConcretePrice,
     required double aggregateMaterialsPrice,
     required double ordinaryWorkerWage,
-    this.lastUpdated = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
   }) : ironPrice = Value(ironPrice),
        cementPrice = Value(cementPrice),
        block15Price = Value(block15Price),
@@ -2100,8 +1872,9 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
        reinforcedConcretePrice = Value(reinforcedConcretePrice),
        aggregateMaterialsPrice = Value(aggregateMaterialsPrice),
        ordinaryWorkerWage = Value(ordinaryWorkerWage);
-  static Insertable<MaterialPrice> custom({
+  static Insertable<MaterialPricesHistoryData> custom({
     Expression<int>? id,
+    Expression<DateTime>? effectiveDate,
     Expression<double>? ironPrice,
     Expression<double>? cementPrice,
     Expression<double>? block15Price,
@@ -2109,10 +1882,13 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     Expression<double>? reinforcedConcretePrice,
     Expression<double>? aggregateMaterialsPrice,
     Expression<double>? ordinaryWorkerWage,
-    Expression<DateTime>? lastUpdated,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (effectiveDate != null) 'effective_date': effectiveDate,
       if (ironPrice != null) 'iron_price': ironPrice,
       if (cementPrice != null) 'cement_price': cementPrice,
       if (block15Price != null) 'block15_price': block15Price,
@@ -2124,12 +1900,15 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
         'aggregate_materials_price': aggregateMaterialsPrice,
       if (ordinaryWorkerWage != null)
         'ordinary_worker_wage': ordinaryWorkerWage,
-      if (lastUpdated != null) 'last_updated': lastUpdated,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
     });
   }
 
-  MaterialPricesCompanion copyWith({
+  MaterialPricesHistoryCompanion copyWith({
     Value<int>? id,
+    Value<DateTime>? effectiveDate,
     Value<double>? ironPrice,
     Value<double>? cementPrice,
     Value<double>? block15Price,
@@ -2137,10 +1916,13 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     Value<double>? reinforcedConcretePrice,
     Value<double>? aggregateMaterialsPrice,
     Value<double>? ordinaryWorkerWage,
-    Value<DateTime>? lastUpdated,
+    Value<DateTime>? createdAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
   }) {
-    return MaterialPricesCompanion(
+    return MaterialPricesHistoryCompanion(
       id: id ?? this.id,
+      effectiveDate: effectiveDate ?? this.effectiveDate,
       ironPrice: ironPrice ?? this.ironPrice,
       cementPrice: cementPrice ?? this.cementPrice,
       block15Price: block15Price ?? this.block15Price,
@@ -2151,7 +1933,9 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
       aggregateMaterialsPrice:
           aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
       ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
-      lastUpdated: lastUpdated ?? this.lastUpdated,
+      createdAt: createdAt ?? this.createdAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
     );
   }
 
@@ -2160,6 +1944,9 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (effectiveDate.present) {
+      map['effective_date'] = Variable<DateTime>(effectiveDate.value);
     }
     if (ironPrice.present) {
       map['iron_price'] = Variable<double>(ironPrice.value);
@@ -2188,16 +1975,23 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
     if (ordinaryWorkerWage.present) {
       map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage.value);
     }
-    if (lastUpdated.present) {
-      map['last_updated'] = Variable<DateTime>(lastUpdated.value);
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('MaterialPricesCompanion(')
+    return (StringBuffer('MaterialPricesHistoryCompanion(')
           ..write('id: $id, ')
+          ..write('effectiveDate: $effectiveDate, ')
           ..write('ironPrice: $ironPrice, ')
           ..write('cementPrice: $cementPrice, ')
           ..write('block15Price: $block15Price, ')
@@ -2205,7 +1999,1346 @@ class MaterialPricesCompanion extends UpdateCompanion<MaterialPrice> {
           ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
-          ..write('lastUpdated: $lastUpdated')
+          ..write('createdAt: $createdAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InstallmentsScheduleTable extends InstallmentsSchedule
+    with TableInfo<$InstallmentsScheduleTable, InstallmentsScheduleData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InstallmentsScheduleTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<int> contractId = GeneratedColumn<int>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES contracts (id)',
+    ),
+  );
+  static const VerificationMeta _installmentNumberMeta = const VerificationMeta(
+    'installmentNumber',
+  );
+  @override
+  late final GeneratedColumn<int> installmentNumber = GeneratedColumn<int>(
+    'installment_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    installmentNumber,
+    dueDate,
+    status,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'installments_schedule';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InstallmentsScheduleData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('installment_number')) {
+      context.handle(
+        _installmentNumberMeta,
+        installmentNumber.isAcceptableOrUnknown(
+          data['installment_number']!,
+          _installmentNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_installmentNumberMeta);
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueDateMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  InstallmentsScheduleData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InstallmentsScheduleData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      installmentNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}installment_number'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_date'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+    );
+  }
+
+  @override
+  $InstallmentsScheduleTable createAlias(String alias) {
+    return $InstallmentsScheduleTable(attachedDatabase, alias);
+  }
+}
+
+class InstallmentsScheduleData extends DataClass
+    implements Insertable<InstallmentsScheduleData> {
+  final int id;
+  final int contractId;
+  final int installmentNumber;
+  final DateTime dueDate;
+  final String status;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool isSynced;
+  const InstallmentsScheduleData({
+    required this.id,
+    required this.contractId,
+    required this.installmentNumber,
+    required this.dueDate,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isSynced,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['contract_id'] = Variable<int>(contractId);
+    map['installment_number'] = Variable<int>(installmentNumber);
+    map['due_date'] = Variable<DateTime>(dueDate);
+    map['status'] = Variable<String>(status);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
+    return map;
+  }
+
+  InstallmentsScheduleCompanion toCompanion(bool nullToAbsent) {
+    return InstallmentsScheduleCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      installmentNumber: Value(installmentNumber),
+      dueDate: Value(dueDate),
+      status: Value(status),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
+    );
+  }
+
+  factory InstallmentsScheduleData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InstallmentsScheduleData(
+      id: serializer.fromJson<int>(json['id']),
+      contractId: serializer.fromJson<int>(json['contractId']),
+      installmentNumber: serializer.fromJson<int>(json['installmentNumber']),
+      dueDate: serializer.fromJson<DateTime>(json['dueDate']),
+      status: serializer.fromJson<String>(json['status']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'contractId': serializer.toJson<int>(contractId),
+      'installmentNumber': serializer.toJson<int>(installmentNumber),
+      'dueDate': serializer.toJson<DateTime>(dueDate),
+      'status': serializer.toJson<String>(status),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
+    };
+  }
+
+  InstallmentsScheduleData copyWith({
+    int? id,
+    int? contractId,
+    int? installmentNumber,
+    DateTime? dueDate,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
+  }) => InstallmentsScheduleData(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    installmentNumber: installmentNumber ?? this.installmentNumber,
+    dueDate: dueDate ?? this.dueDate,
+    status: status ?? this.status,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
+  );
+  InstallmentsScheduleData copyWithCompanion(
+    InstallmentsScheduleCompanion data,
+  ) {
+    return InstallmentsScheduleData(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      installmentNumber: data.installmentNumber.present
+          ? data.installmentNumber.value
+          : this.installmentNumber,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      status: data.status.present ? data.status.value : this.status,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InstallmentsScheduleData(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('installmentNumber: $installmentNumber, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    installmentNumber,
+    dueDate,
+    status,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InstallmentsScheduleData &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.installmentNumber == this.installmentNumber &&
+          other.dueDate == this.dueDate &&
+          other.status == this.status &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
+}
+
+class InstallmentsScheduleCompanion
+    extends UpdateCompanion<InstallmentsScheduleData> {
+  final Value<int> id;
+  final Value<int> contractId;
+  final Value<int> installmentNumber;
+  final Value<DateTime> dueDate;
+  final Value<String> status;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
+  const InstallmentsScheduleCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.installmentNumber = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  });
+  InstallmentsScheduleCompanion.insert({
+    this.id = const Value.absent(),
+    required int contractId,
+    required int installmentNumber,
+    required DateTime dueDate,
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  }) : contractId = Value(contractId),
+       installmentNumber = Value(installmentNumber),
+       dueDate = Value(dueDate);
+  static Insertable<InstallmentsScheduleData> custom({
+    Expression<int>? id,
+    Expression<int>? contractId,
+    Expression<int>? installmentNumber,
+    Expression<DateTime>? dueDate,
+    Expression<String>? status,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (installmentNumber != null) 'installment_number': installmentNumber,
+      if (dueDate != null) 'due_date': dueDate,
+      if (status != null) 'status': status,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
+    });
+  }
+
+  InstallmentsScheduleCompanion copyWith({
+    Value<int>? id,
+    Value<int>? contractId,
+    Value<int>? installmentNumber,
+    Value<DateTime>? dueDate,
+    Value<String>? status,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
+  }) {
+    return InstallmentsScheduleCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      installmentNumber: installmentNumber ?? this.installmentNumber,
+      dueDate: dueDate ?? this.dueDate,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<int>(contractId.value);
+    }
+    if (installmentNumber.present) {
+      map['installment_number'] = Variable<int>(installmentNumber.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InstallmentsScheduleCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('installmentNumber: $installmentNumber, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PaymentsLedgerTable extends PaymentsLedger
+    with TableInfo<$PaymentsLedgerTable, PaymentsLedgerData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentsLedgerTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _contractIdMeta = const VerificationMeta(
+    'contractId',
+  );
+  @override
+  late final GeneratedColumn<int> contractId = GeneratedColumn<int>(
+    'contract_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES contracts (id)',
+    ),
+  );
+  static const VerificationMeta _scheduleIdMeta = const VerificationMeta(
+    'scheduleId',
+  );
+  @override
+  late final GeneratedColumn<int> scheduleId = GeneratedColumn<int>(
+    'schedule_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES installments_schedule (id)',
+    ),
+  );
+  static const VerificationMeta _paymentDateMeta = const VerificationMeta(
+    'paymentDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> paymentDate = GeneratedColumn<DateTime>(
+    'payment_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountPaidMeta = const VerificationMeta(
+    'amountPaid',
+  );
+  @override
+  late final GeneratedColumn<double> amountPaid = GeneratedColumn<double>(
+    'amount_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _meterPriceAtPaymentMeta =
+      const VerificationMeta('meterPriceAtPayment');
+  @override
+  late final GeneratedColumn<double> meterPriceAtPayment =
+      GeneratedColumn<double>(
+        'meter_price_at_payment',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _convertedMetersMeta = const VerificationMeta(
+    'convertedMeters',
+  );
+  @override
+  late final GeneratedColumn<double> convertedMeters = GeneratedColumn<double>(
+    'converted_meters',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _feesMeta = const VerificationMeta('fees');
+  @override
+  late final GeneratedColumn<double> fees = GeneratedColumn<double>(
+    'fees',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isWhatsAppSentMeta = const VerificationMeta(
+    'isWhatsAppSent',
+  );
+  @override
+  late final GeneratedColumn<bool> isWhatsAppSent = GeneratedColumn<bool>(
+    'is_whats_app_sent',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_whats_app_sent" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isSyncedMeta = const VerificationMeta(
+    'isSynced',
+  );
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+    'is_synced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_synced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    contractId,
+    scheduleId,
+    paymentDate,
+    amountPaid,
+    meterPriceAtPayment,
+    convertedMeters,
+    fees,
+    isWhatsAppSent,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payments_ledger';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentsLedgerData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('contract_id')) {
+      context.handle(
+        _contractIdMeta,
+        contractId.isAcceptableOrUnknown(data['contract_id']!, _contractIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contractIdMeta);
+    }
+    if (data.containsKey('schedule_id')) {
+      context.handle(
+        _scheduleIdMeta,
+        scheduleId.isAcceptableOrUnknown(data['schedule_id']!, _scheduleIdMeta),
+      );
+    }
+    if (data.containsKey('payment_date')) {
+      context.handle(
+        _paymentDateMeta,
+        paymentDate.isAcceptableOrUnknown(
+          data['payment_date']!,
+          _paymentDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paymentDateMeta);
+    }
+    if (data.containsKey('amount_paid')) {
+      context.handle(
+        _amountPaidMeta,
+        amountPaid.isAcceptableOrUnknown(data['amount_paid']!, _amountPaidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountPaidMeta);
+    }
+    if (data.containsKey('meter_price_at_payment')) {
+      context.handle(
+        _meterPriceAtPaymentMeta,
+        meterPriceAtPayment.isAcceptableOrUnknown(
+          data['meter_price_at_payment']!,
+          _meterPriceAtPaymentMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_meterPriceAtPaymentMeta);
+    }
+    if (data.containsKey('converted_meters')) {
+      context.handle(
+        _convertedMetersMeta,
+        convertedMeters.isAcceptableOrUnknown(
+          data['converted_meters']!,
+          _convertedMetersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_convertedMetersMeta);
+    }
+    if (data.containsKey('fees')) {
+      context.handle(
+        _feesMeta,
+        fees.isAcceptableOrUnknown(data['fees']!, _feesMeta),
+      );
+    }
+    if (data.containsKey('is_whats_app_sent')) {
+      context.handle(
+        _isWhatsAppSentMeta,
+        isWhatsAppSent.isAcceptableOrUnknown(
+          data['is_whats_app_sent']!,
+          _isWhatsAppSentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(
+        _isSyncedMeta,
+        isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentsLedgerData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentsLedgerData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      contractId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}contract_id'],
+      )!,
+      scheduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}schedule_id'],
+      ),
+      paymentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}payment_date'],
+      )!,
+      amountPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount_paid'],
+      )!,
+      meterPriceAtPayment: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}meter_price_at_payment'],
+      )!,
+      convertedMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}converted_meters'],
+      )!,
+      fees: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}fees'],
+      )!,
+      isWhatsAppSent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_whats_app_sent'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      isSynced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_synced'],
+      )!,
+    );
+  }
+
+  @override
+  $PaymentsLedgerTable createAlias(String alias) {
+    return $PaymentsLedgerTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentsLedgerData extends DataClass
+    implements Insertable<PaymentsLedgerData> {
+  final int id;
+  final int contractId;
+  final int? scheduleId;
+  final DateTime paymentDate;
+  final double amountPaid;
+  final double meterPriceAtPayment;
+  final double convertedMeters;
+  final double fees;
+  final bool isWhatsAppSent;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool isSynced;
+  const PaymentsLedgerData({
+    required this.id,
+    required this.contractId,
+    this.scheduleId,
+    required this.paymentDate,
+    required this.amountPaid,
+    required this.meterPriceAtPayment,
+    required this.convertedMeters,
+    required this.fees,
+    required this.isWhatsAppSent,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isSynced,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['contract_id'] = Variable<int>(contractId);
+    if (!nullToAbsent || scheduleId != null) {
+      map['schedule_id'] = Variable<int>(scheduleId);
+    }
+    map['payment_date'] = Variable<DateTime>(paymentDate);
+    map['amount_paid'] = Variable<double>(amountPaid);
+    map['meter_price_at_payment'] = Variable<double>(meterPriceAtPayment);
+    map['converted_meters'] = Variable<double>(convertedMeters);
+    map['fees'] = Variable<double>(fees);
+    map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['is_synced'] = Variable<bool>(isSynced);
+    return map;
+  }
+
+  PaymentsLedgerCompanion toCompanion(bool nullToAbsent) {
+    return PaymentsLedgerCompanion(
+      id: Value(id),
+      contractId: Value(contractId),
+      scheduleId: scheduleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduleId),
+      paymentDate: Value(paymentDate),
+      amountPaid: Value(amountPaid),
+      meterPriceAtPayment: Value(meterPriceAtPayment),
+      convertedMeters: Value(convertedMeters),
+      fees: Value(fees),
+      isWhatsAppSent: Value(isWhatsAppSent),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      isDeleted: Value(isDeleted),
+      isSynced: Value(isSynced),
+    );
+  }
+
+  factory PaymentsLedgerData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentsLedgerData(
+      id: serializer.fromJson<int>(json['id']),
+      contractId: serializer.fromJson<int>(json['contractId']),
+      scheduleId: serializer.fromJson<int?>(json['scheduleId']),
+      paymentDate: serializer.fromJson<DateTime>(json['paymentDate']),
+      amountPaid: serializer.fromJson<double>(json['amountPaid']),
+      meterPriceAtPayment: serializer.fromJson<double>(
+        json['meterPriceAtPayment'],
+      ),
+      convertedMeters: serializer.fromJson<double>(json['convertedMeters']),
+      fees: serializer.fromJson<double>(json['fees']),
+      isWhatsAppSent: serializer.fromJson<bool>(json['isWhatsAppSent']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'contractId': serializer.toJson<int>(contractId),
+      'scheduleId': serializer.toJson<int?>(scheduleId),
+      'paymentDate': serializer.toJson<DateTime>(paymentDate),
+      'amountPaid': serializer.toJson<double>(amountPaid),
+      'meterPriceAtPayment': serializer.toJson<double>(meterPriceAtPayment),
+      'convertedMeters': serializer.toJson<double>(convertedMeters),
+      'fees': serializer.toJson<double>(fees),
+      'isWhatsAppSent': serializer.toJson<bool>(isWhatsAppSent),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'isSynced': serializer.toJson<bool>(isSynced),
+    };
+  }
+
+  PaymentsLedgerData copyWith({
+    int? id,
+    int? contractId,
+    Value<int?> scheduleId = const Value.absent(),
+    DateTime? paymentDate,
+    double? amountPaid,
+    double? meterPriceAtPayment,
+    double? convertedMeters,
+    double? fees,
+    bool? isWhatsAppSent,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isDeleted,
+    bool? isSynced,
+  }) => PaymentsLedgerData(
+    id: id ?? this.id,
+    contractId: contractId ?? this.contractId,
+    scheduleId: scheduleId.present ? scheduleId.value : this.scheduleId,
+    paymentDate: paymentDate ?? this.paymentDate,
+    amountPaid: amountPaid ?? this.amountPaid,
+    meterPriceAtPayment: meterPriceAtPayment ?? this.meterPriceAtPayment,
+    convertedMeters: convertedMeters ?? this.convertedMeters,
+    fees: fees ?? this.fees,
+    isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    isSynced: isSynced ?? this.isSynced,
+  );
+  PaymentsLedgerData copyWithCompanion(PaymentsLedgerCompanion data) {
+    return PaymentsLedgerData(
+      id: data.id.present ? data.id.value : this.id,
+      contractId: data.contractId.present
+          ? data.contractId.value
+          : this.contractId,
+      scheduleId: data.scheduleId.present
+          ? data.scheduleId.value
+          : this.scheduleId,
+      paymentDate: data.paymentDate.present
+          ? data.paymentDate.value
+          : this.paymentDate,
+      amountPaid: data.amountPaid.present
+          ? data.amountPaid.value
+          : this.amountPaid,
+      meterPriceAtPayment: data.meterPriceAtPayment.present
+          ? data.meterPriceAtPayment.value
+          : this.meterPriceAtPayment,
+      convertedMeters: data.convertedMeters.present
+          ? data.convertedMeters.value
+          : this.convertedMeters,
+      fees: data.fees.present ? data.fees.value : this.fees,
+      isWhatsAppSent: data.isWhatsAppSent.present
+          ? data.isWhatsAppSent.value
+          : this.isWhatsAppSent,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentsLedgerData(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('meterPriceAtPayment: $meterPriceAtPayment, ')
+          ..write('convertedMeters: $convertedMeters, ')
+          ..write('fees: $fees, ')
+          ..write('isWhatsAppSent: $isWhatsAppSent, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    contractId,
+    scheduleId,
+    paymentDate,
+    amountPaid,
+    meterPriceAtPayment,
+    convertedMeters,
+    fees,
+    isWhatsAppSent,
+    createdAt,
+    updatedAt,
+    isDeleted,
+    isSynced,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentsLedgerData &&
+          other.id == this.id &&
+          other.contractId == this.contractId &&
+          other.scheduleId == this.scheduleId &&
+          other.paymentDate == this.paymentDate &&
+          other.amountPaid == this.amountPaid &&
+          other.meterPriceAtPayment == this.meterPriceAtPayment &&
+          other.convertedMeters == this.convertedMeters &&
+          other.fees == this.fees &&
+          other.isWhatsAppSent == this.isWhatsAppSent &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.isSynced == this.isSynced);
+}
+
+class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
+  final Value<int> id;
+  final Value<int> contractId;
+  final Value<int?> scheduleId;
+  final Value<DateTime> paymentDate;
+  final Value<double> amountPaid;
+  final Value<double> meterPriceAtPayment;
+  final Value<double> convertedMeters;
+  final Value<double> fees;
+  final Value<bool> isWhatsAppSent;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> isDeleted;
+  final Value<bool> isSynced;
+  const PaymentsLedgerCompanion({
+    this.id = const Value.absent(),
+    this.contractId = const Value.absent(),
+    this.scheduleId = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.amountPaid = const Value.absent(),
+    this.meterPriceAtPayment = const Value.absent(),
+    this.convertedMeters = const Value.absent(),
+    this.fees = const Value.absent(),
+    this.isWhatsAppSent = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  });
+  PaymentsLedgerCompanion.insert({
+    this.id = const Value.absent(),
+    required int contractId,
+    this.scheduleId = const Value.absent(),
+    required DateTime paymentDate,
+    required double amountPaid,
+    required double meterPriceAtPayment,
+    required double convertedMeters,
+    this.fees = const Value.absent(),
+    this.isWhatsAppSent = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.isSynced = const Value.absent(),
+  }) : contractId = Value(contractId),
+       paymentDate = Value(paymentDate),
+       amountPaid = Value(amountPaid),
+       meterPriceAtPayment = Value(meterPriceAtPayment),
+       convertedMeters = Value(convertedMeters);
+  static Insertable<PaymentsLedgerData> custom({
+    Expression<int>? id,
+    Expression<int>? contractId,
+    Expression<int>? scheduleId,
+    Expression<DateTime>? paymentDate,
+    Expression<double>? amountPaid,
+    Expression<double>? meterPriceAtPayment,
+    Expression<double>? convertedMeters,
+    Expression<double>? fees,
+    Expression<bool>? isWhatsAppSent,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? isDeleted,
+    Expression<bool>? isSynced,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contractId != null) 'contract_id': contractId,
+      if (scheduleId != null) 'schedule_id': scheduleId,
+      if (paymentDate != null) 'payment_date': paymentDate,
+      if (amountPaid != null) 'amount_paid': amountPaid,
+      if (meterPriceAtPayment != null)
+        'meter_price_at_payment': meterPriceAtPayment,
+      if (convertedMeters != null) 'converted_meters': convertedMeters,
+      if (fees != null) 'fees': fees,
+      if (isWhatsAppSent != null) 'is_whats_app_sent': isWhatsAppSent,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (isSynced != null) 'is_synced': isSynced,
+    });
+  }
+
+  PaymentsLedgerCompanion copyWith({
+    Value<int>? id,
+    Value<int>? contractId,
+    Value<int?>? scheduleId,
+    Value<DateTime>? paymentDate,
+    Value<double>? amountPaid,
+    Value<double>? meterPriceAtPayment,
+    Value<double>? convertedMeters,
+    Value<double>? fees,
+    Value<bool>? isWhatsAppSent,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? isDeleted,
+    Value<bool>? isSynced,
+  }) {
+    return PaymentsLedgerCompanion(
+      id: id ?? this.id,
+      contractId: contractId ?? this.contractId,
+      scheduleId: scheduleId ?? this.scheduleId,
+      paymentDate: paymentDate ?? this.paymentDate,
+      amountPaid: amountPaid ?? this.amountPaid,
+      meterPriceAtPayment: meterPriceAtPayment ?? this.meterPriceAtPayment,
+      convertedMeters: convertedMeters ?? this.convertedMeters,
+      fees: fees ?? this.fees,
+      isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      isSynced: isSynced ?? this.isSynced,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (contractId.present) {
+      map['contract_id'] = Variable<int>(contractId.value);
+    }
+    if (scheduleId.present) {
+      map['schedule_id'] = Variable<int>(scheduleId.value);
+    }
+    if (paymentDate.present) {
+      map['payment_date'] = Variable<DateTime>(paymentDate.value);
+    }
+    if (amountPaid.present) {
+      map['amount_paid'] = Variable<double>(amountPaid.value);
+    }
+    if (meterPriceAtPayment.present) {
+      map['meter_price_at_payment'] = Variable<double>(
+        meterPriceAtPayment.value,
+      );
+    }
+    if (convertedMeters.present) {
+      map['converted_meters'] = Variable<double>(convertedMeters.value);
+    }
+    if (fees.present) {
+      map['fees'] = Variable<double>(fees.value);
+    }
+    if (isWhatsAppSent.present) {
+      map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentsLedgerCompanion(')
+          ..write('id: $id, ')
+          ..write('contractId: $contractId, ')
+          ..write('scheduleId: $scheduleId, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amountPaid: $amountPaid, ')
+          ..write('meterPriceAtPayment: $meterPriceAtPayment, ')
+          ..write('convertedMeters: $convertedMeters, ')
+          ..write('fees: $fees, ')
+          ..write('isWhatsAppSent: $isWhatsAppSent, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('isSynced: $isSynced')
           ..write(')'))
         .toString();
   }
@@ -2216,8 +3349,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ClientsTable clients = $ClientsTable(this);
   late final $ContractsTable contracts = $ContractsTable(this);
-  late final $PaymentsTable payments = $PaymentsTable(this);
-  late final $MaterialPricesTable materialPrices = $MaterialPricesTable(this);
+  late final $MaterialPricesHistoryTable materialPricesHistory =
+      $MaterialPricesHistoryTable(this);
+  late final $InstallmentsScheduleTable installmentsSchedule =
+      $InstallmentsScheduleTable(this);
+  late final $PaymentsLedgerTable paymentsLedger = $PaymentsLedgerTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2225,8 +3361,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     clients,
     contracts,
-    payments,
-    materialPrices,
+    materialPricesHistory,
+    installmentsSchedule,
+    paymentsLedger,
   ];
 }
 
@@ -2237,6 +3374,9 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String phone,
       Value<String?> nationalId,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
 typedef $$ClientsTableUpdateCompanionBuilder =
     ClientsCompanion Function({
@@ -2245,6 +3385,9 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> phone,
       Value<String?> nationalId,
       Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
 
 final class $$ClientsTableReferences
@@ -2301,6 +3444,21 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2363,6 +3521,21 @@ class $$ClientsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientsTableAnnotationComposer
@@ -2390,6 +3563,15 @@ class $$ClientsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
 
   Expression<T> contractsRefs<T extends Object>(
     Expression<T> Function($$ContractsTableAnnotationComposer a) f,
@@ -2450,12 +3632,18 @@ class $$ClientsTableTableManager
                 Value<String> phone = const Value.absent(),
                 Value<String?> nationalId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
               }) => ClientsCompanion(
                 id: id,
                 name: name,
                 phone: phone,
                 nationalId: nationalId,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           createCompanionCallback:
               ({
@@ -2464,12 +3652,18 @@ class $$ClientsTableTableManager
                 required String phone,
                 Value<String?> nationalId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
               }) => ClientsCompanion.insert(
                 id: id,
                 name: name,
                 phone: phone,
                 nationalId: nationalId,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2523,25 +3717,31 @@ typedef $$ContractsTableCreateCompanionBuilder =
     ContractsCompanion Function({
       Value<int> id,
       required int clientId,
-      required String apartmentDescription,
-      required double apartmentArea,
-      required double pricePerSqmAtSigning,
-      required double totalContractValue,
-      required double monthlyInstallment,
-      required DateTime signatureDate,
+      required String apartmentDetails,
+      required double totalArea,
+      required double baseMeterPriceAtSigning,
+      Value<String> coefficients,
+      required DateTime contractDate,
       Value<bool> isCompleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
 typedef $$ContractsTableUpdateCompanionBuilder =
     ContractsCompanion Function({
       Value<int> id,
       Value<int> clientId,
-      Value<String> apartmentDescription,
-      Value<double> apartmentArea,
-      Value<double> pricePerSqmAtSigning,
-      Value<double> totalContractValue,
-      Value<double> monthlyInstallment,
-      Value<DateTime> signatureDate,
+      Value<String> apartmentDetails,
+      Value<double> totalArea,
+      Value<double> baseMeterPriceAtSigning,
+      Value<String> coefficients,
+      Value<DateTime> contractDate,
       Value<bool> isCompleted,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
 
 final class $$ContractsTableReferences
@@ -2565,20 +3765,50 @@ final class $$ContractsTableReferences
     );
   }
 
-  static MultiTypedResultKey<$PaymentsTable, List<Payment>> _paymentsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.payments,
-    aliasName: $_aliasNameGenerator(db.contracts.id, db.payments.contractId),
-  );
+  static MultiTypedResultKey<
+    $InstallmentsScheduleTable,
+    List<InstallmentsScheduleData>
+  >
+  _installmentsScheduleRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.installmentsSchedule,
+        aliasName: $_aliasNameGenerator(
+          db.contracts.id,
+          db.installmentsSchedule.contractId,
+        ),
+      );
 
-  $$PaymentsTableProcessedTableManager get paymentsRefs {
-    final manager = $$PaymentsTableTableManager(
+  $$InstallmentsScheduleTableProcessedTableManager
+  get installmentsScheduleRefs {
+    final manager = $$InstallmentsScheduleTableTableManager(
       $_db,
-      $_db.payments,
+      $_db.installmentsSchedule,
     ).filter((f) => f.contractId.id.sqlEquals($_itemColumn<int>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_paymentsRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(
+      _installmentsScheduleRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PaymentsLedgerTable, List<PaymentsLedgerData>>
+  _paymentsLedgerRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.paymentsLedger,
+    aliasName: $_aliasNameGenerator(
+      db.contracts.id,
+      db.paymentsLedger.contractId,
+    ),
+  );
+
+  $$PaymentsLedgerTableProcessedTableManager get paymentsLedgerRefs {
+    final manager = $$PaymentsLedgerTableTableManager(
+      $_db,
+      $_db.paymentsLedger,
+    ).filter((f) => f.contractId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paymentsLedgerRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2599,38 +3829,53 @@ class $$ContractsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get apartmentDescription => $composableBuilder(
-    column: $table.apartmentDescription,
+  ColumnFilters<String> get apartmentDetails => $composableBuilder(
+    column: $table.apartmentDetails,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get apartmentArea => $composableBuilder(
-    column: $table.apartmentArea,
+  ColumnFilters<double> get totalArea => $composableBuilder(
+    column: $table.totalArea,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get pricePerSqmAtSigning => $composableBuilder(
-    column: $table.pricePerSqmAtSigning,
+  ColumnFilters<double> get baseMeterPriceAtSigning => $composableBuilder(
+    column: $table.baseMeterPriceAtSigning,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get totalContractValue => $composableBuilder(
-    column: $table.totalContractValue,
+  ColumnFilters<String> get coefficients => $composableBuilder(
+    column: $table.coefficients,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get monthlyInstallment => $composableBuilder(
-    column: $table.monthlyInstallment,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get signatureDate => $composableBuilder(
-    column: $table.signatureDate,
+  ColumnFilters<DateTime> get contractDate => $composableBuilder(
+    column: $table.contractDate,
     builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2657,22 +3902,47 @@ class $$ContractsTableFilterComposer
     return composer;
   }
 
-  Expression<bool> paymentsRefs(
-    Expression<bool> Function($$PaymentsTableFilterComposer f) f,
+  Expression<bool> installmentsScheduleRefs(
+    Expression<bool> Function($$InstallmentsScheduleTableFilterComposer f) f,
   ) {
-    final $$PaymentsTableFilterComposer composer = $composerBuilder(
+    final $$InstallmentsScheduleTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.payments,
+      referencedTable: $db.installmentsSchedule,
       getReferencedColumn: (t) => t.contractId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$PaymentsTableFilterComposer(
+          }) => $$InstallmentsScheduleTableFilterComposer(
             $db: $db,
-            $table: $db.payments,
+            $table: $db.installmentsSchedule,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> paymentsLedgerRefs(
+    Expression<bool> Function($$PaymentsLedgerTableFilterComposer f) f,
+  ) {
+    final $$PaymentsLedgerTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paymentsLedger,
+      getReferencedColumn: (t) => t.contractId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentsLedgerTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentsLedger,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2697,38 +3967,53 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get apartmentDescription => $composableBuilder(
-    column: $table.apartmentDescription,
+  ColumnOrderings<String> get apartmentDetails => $composableBuilder(
+    column: $table.apartmentDetails,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get apartmentArea => $composableBuilder(
-    column: $table.apartmentArea,
+  ColumnOrderings<double> get totalArea => $composableBuilder(
+    column: $table.totalArea,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get pricePerSqmAtSigning => $composableBuilder(
-    column: $table.pricePerSqmAtSigning,
+  ColumnOrderings<double> get baseMeterPriceAtSigning => $composableBuilder(
+    column: $table.baseMeterPriceAtSigning,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get totalContractValue => $composableBuilder(
-    column: $table.totalContractValue,
+  ColumnOrderings<String> get coefficients => $composableBuilder(
+    column: $table.coefficients,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get monthlyInstallment => $composableBuilder(
-    column: $table.monthlyInstallment,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get signatureDate => $composableBuilder(
-    column: $table.signatureDate,
+  ColumnOrderings<DateTime> get contractDate => $composableBuilder(
+    column: $table.contractDate,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2768,33 +4053,26 @@ class $$ContractsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get apartmentDescription => $composableBuilder(
-    column: $table.apartmentDescription,
+  GeneratedColumn<String> get apartmentDetails => $composableBuilder(
+    column: $table.apartmentDetails,
     builder: (column) => column,
   );
 
-  GeneratedColumn<double> get apartmentArea => $composableBuilder(
-    column: $table.apartmentArea,
+  GeneratedColumn<double> get totalArea =>
+      $composableBuilder(column: $table.totalArea, builder: (column) => column);
+
+  GeneratedColumn<double> get baseMeterPriceAtSigning => $composableBuilder(
+    column: $table.baseMeterPriceAtSigning,
     builder: (column) => column,
   );
 
-  GeneratedColumn<double> get pricePerSqmAtSigning => $composableBuilder(
-    column: $table.pricePerSqmAtSigning,
+  GeneratedColumn<String> get coefficients => $composableBuilder(
+    column: $table.coefficients,
     builder: (column) => column,
   );
 
-  GeneratedColumn<double> get totalContractValue => $composableBuilder(
-    column: $table.totalContractValue,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get monthlyInstallment => $composableBuilder(
-    column: $table.monthlyInstallment,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get signatureDate => $composableBuilder(
-    column: $table.signatureDate,
+  GeneratedColumn<DateTime> get contractDate => $composableBuilder(
+    column: $table.contractDate,
     builder: (column) => column,
   );
 
@@ -2802,6 +4080,18 @@ class $$ContractsTableAnnotationComposer
     column: $table.isCompleted,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
 
   $$ClientsTableAnnotationComposer get clientId {
     final $$ClientsTableAnnotationComposer composer = $composerBuilder(
@@ -2826,22 +4116,48 @@ class $$ContractsTableAnnotationComposer
     return composer;
   }
 
-  Expression<T> paymentsRefs<T extends Object>(
-    Expression<T> Function($$PaymentsTableAnnotationComposer a) f,
+  Expression<T> installmentsScheduleRefs<T extends Object>(
+    Expression<T> Function($$InstallmentsScheduleTableAnnotationComposer a) f,
   ) {
-    final $$PaymentsTableAnnotationComposer composer = $composerBuilder(
+    final $$InstallmentsScheduleTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.installmentsSchedule,
+          getReferencedColumn: (t) => t.contractId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InstallmentsScheduleTableAnnotationComposer(
+                $db: $db,
+                $table: $db.installmentsSchedule,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> paymentsLedgerRefs<T extends Object>(
+    Expression<T> Function($$PaymentsLedgerTableAnnotationComposer a) f,
+  ) {
+    final $$PaymentsLedgerTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.payments,
+      referencedTable: $db.paymentsLedger,
       getReferencedColumn: (t) => t.contractId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$PaymentsTableAnnotationComposer(
+          }) => $$PaymentsLedgerTableAnnotationComposer(
             $db: $db,
-            $table: $db.payments,
+            $table: $db.paymentsLedger,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2865,7 +4181,11 @@ class $$ContractsTableTableManager
           $$ContractsTableUpdateCompanionBuilder,
           (Contract, $$ContractsTableReferences),
           Contract,
-          PrefetchHooks Function({bool clientId, bool paymentsRefs})
+          PrefetchHooks Function({
+            bool clientId,
+            bool installmentsScheduleRefs,
+            bool paymentsLedgerRefs,
+          })
         > {
   $$ContractsTableTableManager(_$AppDatabase db, $ContractsTable table)
     : super(
@@ -2882,45 +4202,57 @@ class $$ContractsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> clientId = const Value.absent(),
-                Value<String> apartmentDescription = const Value.absent(),
-                Value<double> apartmentArea = const Value.absent(),
-                Value<double> pricePerSqmAtSigning = const Value.absent(),
-                Value<double> totalContractValue = const Value.absent(),
-                Value<double> monthlyInstallment = const Value.absent(),
-                Value<DateTime> signatureDate = const Value.absent(),
+                Value<String> apartmentDetails = const Value.absent(),
+                Value<double> totalArea = const Value.absent(),
+                Value<double> baseMeterPriceAtSigning = const Value.absent(),
+                Value<String> coefficients = const Value.absent(),
+                Value<DateTime> contractDate = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
               }) => ContractsCompanion(
                 id: id,
                 clientId: clientId,
-                apartmentDescription: apartmentDescription,
-                apartmentArea: apartmentArea,
-                pricePerSqmAtSigning: pricePerSqmAtSigning,
-                totalContractValue: totalContractValue,
-                monthlyInstallment: monthlyInstallment,
-                signatureDate: signatureDate,
+                apartmentDetails: apartmentDetails,
+                totalArea: totalArea,
+                baseMeterPriceAtSigning: baseMeterPriceAtSigning,
+                coefficients: coefficients,
+                contractDate: contractDate,
                 isCompleted: isCompleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required int clientId,
-                required String apartmentDescription,
-                required double apartmentArea,
-                required double pricePerSqmAtSigning,
-                required double totalContractValue,
-                required double monthlyInstallment,
-                required DateTime signatureDate,
+                required String apartmentDetails,
+                required double totalArea,
+                required double baseMeterPriceAtSigning,
+                Value<String> coefficients = const Value.absent(),
+                required DateTime contractDate,
                 Value<bool> isCompleted = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
               }) => ContractsCompanion.insert(
                 id: id,
                 clientId: clientId,
-                apartmentDescription: apartmentDescription,
-                apartmentArea: apartmentArea,
-                pricePerSqmAtSigning: pricePerSqmAtSigning,
-                totalContractValue: totalContractValue,
-                monthlyInstallment: monthlyInstallment,
-                signatureDate: signatureDate,
+                apartmentDetails: apartmentDetails,
+                totalArea: totalArea,
+                baseMeterPriceAtSigning: baseMeterPriceAtSigning,
+                coefficients: coefficients,
+                contractDate: contractDate,
                 isCompleted: isCompleted,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2930,67 +4262,98 @@ class $$ContractsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({clientId = false, paymentsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (paymentsRefs) db.payments],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (clientId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.clientId,
-                                referencedTable: $$ContractsTableReferences
-                                    ._clientIdTable(db),
-                                referencedColumn: $$ContractsTableReferences
-                                    ._clientIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                clientId = false,
+                installmentsScheduleRefs = false,
+                paymentsLedgerRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (installmentsScheduleRefs) db.installmentsSchedule,
+                    if (paymentsLedgerRefs) db.paymentsLedger,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (clientId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.clientId,
+                                    referencedTable: $$ContractsTableReferences
+                                        ._clientIdTable(db),
+                                    referencedColumn: $$ContractsTableReferences
+                                        ._clientIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (installmentsScheduleRefs)
+                        await $_getPrefetchedData<
+                          Contract,
+                          $ContractsTable,
+                          InstallmentsScheduleData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ContractsTableReferences
+                              ._installmentsScheduleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ContractsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).installmentsScheduleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.contractId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (paymentsLedgerRefs)
+                        await $_getPrefetchedData<
+                          Contract,
+                          $ContractsTable,
+                          PaymentsLedgerData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ContractsTableReferences
+                              ._paymentsLedgerRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ContractsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentsLedgerRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.contractId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (paymentsRefs)
-                    await $_getPrefetchedData<
-                      Contract,
-                      $ContractsTable,
-                      Payment
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ContractsTableReferences
-                          ._paymentsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$ContractsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).paymentsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.contractId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3007,431 +4370,16 @@ typedef $$ContractsTableProcessedTableManager =
       $$ContractsTableUpdateCompanionBuilder,
       (Contract, $$ContractsTableReferences),
       Contract,
-      PrefetchHooks Function({bool clientId, bool paymentsRefs})
+      PrefetchHooks Function({
+        bool clientId,
+        bool installmentsScheduleRefs,
+        bool paymentsLedgerRefs,
+      })
     >;
-typedef $$PaymentsTableCreateCompanionBuilder =
-    PaymentsCompanion Function({
+typedef $$MaterialPricesHistoryTableCreateCompanionBuilder =
+    MaterialPricesHistoryCompanion Function({
       Value<int> id,
-      required int contractId,
-      required int installmentNumber,
-      required double amountPaid,
-      required double originalInstallment,
-      Value<double> fees,
-      required DateTime paymentDate,
-      Value<DateTime?> dueDate,
-      Value<bool> isWhatsAppSent,
-      Value<bool> isSyncedToCloud,
-    });
-typedef $$PaymentsTableUpdateCompanionBuilder =
-    PaymentsCompanion Function({
-      Value<int> id,
-      Value<int> contractId,
-      Value<int> installmentNumber,
-      Value<double> amountPaid,
-      Value<double> originalInstallment,
-      Value<double> fees,
-      Value<DateTime> paymentDate,
-      Value<DateTime?> dueDate,
-      Value<bool> isWhatsAppSent,
-      Value<bool> isSyncedToCloud,
-    });
-
-final class $$PaymentsTableReferences
-    extends BaseReferences<_$AppDatabase, $PaymentsTable, Payment> {
-  $$PaymentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $ContractsTable _contractIdTable(_$AppDatabase db) =>
-      db.contracts.createAlias(
-        $_aliasNameGenerator(db.payments.contractId, db.contracts.id),
-      );
-
-  $$ContractsTableProcessedTableManager get contractId {
-    final $_column = $_itemColumn<int>('contract_id')!;
-
-    final manager = $$ContractsTableTableManager(
-      $_db,
-      $_db.contracts,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_contractIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$PaymentsTableFilterComposer
-    extends Composer<_$AppDatabase, $PaymentsTable> {
-  $$PaymentsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get installmentNumber => $composableBuilder(
-    column: $table.installmentNumber,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get amountPaid => $composableBuilder(
-    column: $table.amountPaid,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get originalInstallment => $composableBuilder(
-    column: $table.originalInstallment,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get fees => $composableBuilder(
-    column: $table.fees,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get paymentDate => $composableBuilder(
-    column: $table.paymentDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isWhatsAppSent => $composableBuilder(
-    column: $table.isWhatsAppSent,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isSyncedToCloud => $composableBuilder(
-    column: $table.isSyncedToCloud,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$ContractsTableFilterComposer get contractId {
-    final $$ContractsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.contractId,
-      referencedTable: $db.contracts,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ContractsTableFilterComposer(
-            $db: $db,
-            $table: $db.contracts,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$PaymentsTableOrderingComposer
-    extends Composer<_$AppDatabase, $PaymentsTable> {
-  $$PaymentsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get installmentNumber => $composableBuilder(
-    column: $table.installmentNumber,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get amountPaid => $composableBuilder(
-    column: $table.amountPaid,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get originalInstallment => $composableBuilder(
-    column: $table.originalInstallment,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get fees => $composableBuilder(
-    column: $table.fees,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get paymentDate => $composableBuilder(
-    column: $table.paymentDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isWhatsAppSent => $composableBuilder(
-    column: $table.isWhatsAppSent,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isSyncedToCloud => $composableBuilder(
-    column: $table.isSyncedToCloud,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$ContractsTableOrderingComposer get contractId {
-    final $$ContractsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.contractId,
-      referencedTable: $db.contracts,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ContractsTableOrderingComposer(
-            $db: $db,
-            $table: $db.contracts,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$PaymentsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PaymentsTable> {
-  $$PaymentsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<int> get installmentNumber => $composableBuilder(
-    column: $table.installmentNumber,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get amountPaid => $composableBuilder(
-    column: $table.amountPaid,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get originalInstallment => $composableBuilder(
-    column: $table.originalInstallment,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get fees =>
-      $composableBuilder(column: $table.fees, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get paymentDate => $composableBuilder(
-    column: $table.paymentDate,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
-
-  GeneratedColumn<bool> get isWhatsAppSent => $composableBuilder(
-    column: $table.isWhatsAppSent,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isSyncedToCloud => $composableBuilder(
-    column: $table.isSyncedToCloud,
-    builder: (column) => column,
-  );
-
-  $$ContractsTableAnnotationComposer get contractId {
-    final $$ContractsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.contractId,
-      referencedTable: $db.contracts,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ContractsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.contracts,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$PaymentsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $PaymentsTable,
-          Payment,
-          $$PaymentsTableFilterComposer,
-          $$PaymentsTableOrderingComposer,
-          $$PaymentsTableAnnotationComposer,
-          $$PaymentsTableCreateCompanionBuilder,
-          $$PaymentsTableUpdateCompanionBuilder,
-          (Payment, $$PaymentsTableReferences),
-          Payment,
-          PrefetchHooks Function({bool contractId})
-        > {
-  $$PaymentsTableTableManager(_$AppDatabase db, $PaymentsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$PaymentsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$PaymentsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$PaymentsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> contractId = const Value.absent(),
-                Value<int> installmentNumber = const Value.absent(),
-                Value<double> amountPaid = const Value.absent(),
-                Value<double> originalInstallment = const Value.absent(),
-                Value<double> fees = const Value.absent(),
-                Value<DateTime> paymentDate = const Value.absent(),
-                Value<DateTime?> dueDate = const Value.absent(),
-                Value<bool> isWhatsAppSent = const Value.absent(),
-                Value<bool> isSyncedToCloud = const Value.absent(),
-              }) => PaymentsCompanion(
-                id: id,
-                contractId: contractId,
-                installmentNumber: installmentNumber,
-                amountPaid: amountPaid,
-                originalInstallment: originalInstallment,
-                fees: fees,
-                paymentDate: paymentDate,
-                dueDate: dueDate,
-                isWhatsAppSent: isWhatsAppSent,
-                isSyncedToCloud: isSyncedToCloud,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int contractId,
-                required int installmentNumber,
-                required double amountPaid,
-                required double originalInstallment,
-                Value<double> fees = const Value.absent(),
-                required DateTime paymentDate,
-                Value<DateTime?> dueDate = const Value.absent(),
-                Value<bool> isWhatsAppSent = const Value.absent(),
-                Value<bool> isSyncedToCloud = const Value.absent(),
-              }) => PaymentsCompanion.insert(
-                id: id,
-                contractId: contractId,
-                installmentNumber: installmentNumber,
-                amountPaid: amountPaid,
-                originalInstallment: originalInstallment,
-                fees: fees,
-                paymentDate: paymentDate,
-                dueDate: dueDate,
-                isWhatsAppSent: isWhatsAppSent,
-                isSyncedToCloud: isSyncedToCloud,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$PaymentsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({contractId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (contractId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.contractId,
-                                referencedTable: $$PaymentsTableReferences
-                                    ._contractIdTable(db),
-                                referencedColumn: $$PaymentsTableReferences
-                                    ._contractIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$PaymentsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $PaymentsTable,
-      Payment,
-      $$PaymentsTableFilterComposer,
-      $$PaymentsTableOrderingComposer,
-      $$PaymentsTableAnnotationComposer,
-      $$PaymentsTableCreateCompanionBuilder,
-      $$PaymentsTableUpdateCompanionBuilder,
-      (Payment, $$PaymentsTableReferences),
-      Payment,
-      PrefetchHooks Function({bool contractId})
-    >;
-typedef $$MaterialPricesTableCreateCompanionBuilder =
-    MaterialPricesCompanion Function({
-      Value<int> id,
+      Value<DateTime> effectiveDate,
       required double ironPrice,
       required double cementPrice,
       required double block15Price,
@@ -3439,11 +4387,14 @@ typedef $$MaterialPricesTableCreateCompanionBuilder =
       required double reinforcedConcretePrice,
       required double aggregateMaterialsPrice,
       required double ordinaryWorkerWage,
-      Value<DateTime> lastUpdated,
+      Value<DateTime> createdAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
-typedef $$MaterialPricesTableUpdateCompanionBuilder =
-    MaterialPricesCompanion Function({
+typedef $$MaterialPricesHistoryTableUpdateCompanionBuilder =
+    MaterialPricesHistoryCompanion Function({
       Value<int> id,
+      Value<DateTime> effectiveDate,
       Value<double> ironPrice,
       Value<double> cementPrice,
       Value<double> block15Price,
@@ -3451,12 +4402,14 @@ typedef $$MaterialPricesTableUpdateCompanionBuilder =
       Value<double> reinforcedConcretePrice,
       Value<double> aggregateMaterialsPrice,
       Value<double> ordinaryWorkerWage,
-      Value<DateTime> lastUpdated,
+      Value<DateTime> createdAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
     });
 
-class $$MaterialPricesTableFilterComposer
-    extends Composer<_$AppDatabase, $MaterialPricesTable> {
-  $$MaterialPricesTableFilterComposer({
+class $$MaterialPricesHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $MaterialPricesHistoryTable> {
+  $$MaterialPricesHistoryTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -3465,6 +4418,11 @@ class $$MaterialPricesTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3503,15 +4461,25 @@ class $$MaterialPricesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get lastUpdated => $composableBuilder(
-    column: $table.lastUpdated,
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
     builder: (column) => ColumnFilters(column),
   );
 }
 
-class $$MaterialPricesTableOrderingComposer
-    extends Composer<_$AppDatabase, $MaterialPricesTable> {
-  $$MaterialPricesTableOrderingComposer({
+class $$MaterialPricesHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $MaterialPricesHistoryTable> {
+  $$MaterialPricesHistoryTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -3520,6 +4488,11 @@ class $$MaterialPricesTableOrderingComposer
   });
   ColumnOrderings<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3558,15 +4531,25 @@ class $$MaterialPricesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get lastUpdated => $composableBuilder(
-    column: $table.lastUpdated,
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$MaterialPricesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $MaterialPricesTable> {
-  $$MaterialPricesTableAnnotationComposer({
+class $$MaterialPricesHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MaterialPricesHistoryTable> {
+  $$MaterialPricesHistoryTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -3575,6 +4558,11 @@ class $$MaterialPricesTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<double> get ironPrice =>
       $composableBuilder(column: $table.ironPrice, builder: (column) => column);
@@ -3609,46 +4597,64 @@ class $$MaterialPricesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<DateTime> get lastUpdated => $composableBuilder(
-    column: $table.lastUpdated,
-    builder: (column) => column,
-  );
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
 }
 
-class $$MaterialPricesTableTableManager
+class $$MaterialPricesHistoryTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $MaterialPricesTable,
-          MaterialPrice,
-          $$MaterialPricesTableFilterComposer,
-          $$MaterialPricesTableOrderingComposer,
-          $$MaterialPricesTableAnnotationComposer,
-          $$MaterialPricesTableCreateCompanionBuilder,
-          $$MaterialPricesTableUpdateCompanionBuilder,
+          $MaterialPricesHistoryTable,
+          MaterialPricesHistoryData,
+          $$MaterialPricesHistoryTableFilterComposer,
+          $$MaterialPricesHistoryTableOrderingComposer,
+          $$MaterialPricesHistoryTableAnnotationComposer,
+          $$MaterialPricesHistoryTableCreateCompanionBuilder,
+          $$MaterialPricesHistoryTableUpdateCompanionBuilder,
           (
-            MaterialPrice,
-            BaseReferences<_$AppDatabase, $MaterialPricesTable, MaterialPrice>,
+            MaterialPricesHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $MaterialPricesHistoryTable,
+              MaterialPricesHistoryData
+            >,
           ),
-          MaterialPrice,
+          MaterialPricesHistoryData,
           PrefetchHooks Function()
         > {
-  $$MaterialPricesTableTableManager(
+  $$MaterialPricesHistoryTableTableManager(
     _$AppDatabase db,
-    $MaterialPricesTable table,
+    $MaterialPricesHistoryTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$MaterialPricesTableFilterComposer($db: db, $table: table),
+              $$MaterialPricesHistoryTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
           createOrderingComposer: () =>
-              $$MaterialPricesTableOrderingComposer($db: db, $table: table),
+              $$MaterialPricesHistoryTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
           createComputedFieldComposer: () =>
-              $$MaterialPricesTableAnnotationComposer($db: db, $table: table),
+              $$MaterialPricesHistoryTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<DateTime> effectiveDate = const Value.absent(),
                 Value<double> ironPrice = const Value.absent(),
                 Value<double> cementPrice = const Value.absent(),
                 Value<double> block15Price = const Value.absent(),
@@ -3656,9 +4662,12 @@ class $$MaterialPricesTableTableManager
                 Value<double> reinforcedConcretePrice = const Value.absent(),
                 Value<double> aggregateMaterialsPrice = const Value.absent(),
                 Value<double> ordinaryWorkerWage = const Value.absent(),
-                Value<DateTime> lastUpdated = const Value.absent(),
-              }) => MaterialPricesCompanion(
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => MaterialPricesHistoryCompanion(
                 id: id,
+                effectiveDate: effectiveDate,
                 ironPrice: ironPrice,
                 cementPrice: cementPrice,
                 block15Price: block15Price,
@@ -3666,11 +4675,14 @@ class $$MaterialPricesTableTableManager
                 reinforcedConcretePrice: reinforcedConcretePrice,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
-                lastUpdated: lastUpdated,
+                createdAt: createdAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<DateTime> effectiveDate = const Value.absent(),
                 required double ironPrice,
                 required double cementPrice,
                 required double block15Price,
@@ -3678,9 +4690,12 @@ class $$MaterialPricesTableTableManager
                 required double reinforcedConcretePrice,
                 required double aggregateMaterialsPrice,
                 required double ordinaryWorkerWage,
-                Value<DateTime> lastUpdated = const Value.absent(),
-              }) => MaterialPricesCompanion.insert(
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => MaterialPricesHistoryCompanion.insert(
                 id: id,
+                effectiveDate: effectiveDate,
                 ironPrice: ironPrice,
                 cementPrice: cementPrice,
                 block15Price: block15Price,
@@ -3688,7 +4703,9 @@ class $$MaterialPricesTableTableManager
                 reinforcedConcretePrice: reinforcedConcretePrice,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
-                lastUpdated: lastUpdated,
+                createdAt: createdAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3698,22 +4715,1116 @@ class $$MaterialPricesTableTableManager
       );
 }
 
-typedef $$MaterialPricesTableProcessedTableManager =
+typedef $$MaterialPricesHistoryTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $MaterialPricesTable,
-      MaterialPrice,
-      $$MaterialPricesTableFilterComposer,
-      $$MaterialPricesTableOrderingComposer,
-      $$MaterialPricesTableAnnotationComposer,
-      $$MaterialPricesTableCreateCompanionBuilder,
-      $$MaterialPricesTableUpdateCompanionBuilder,
+      $MaterialPricesHistoryTable,
+      MaterialPricesHistoryData,
+      $$MaterialPricesHistoryTableFilterComposer,
+      $$MaterialPricesHistoryTableOrderingComposer,
+      $$MaterialPricesHistoryTableAnnotationComposer,
+      $$MaterialPricesHistoryTableCreateCompanionBuilder,
+      $$MaterialPricesHistoryTableUpdateCompanionBuilder,
       (
-        MaterialPrice,
-        BaseReferences<_$AppDatabase, $MaterialPricesTable, MaterialPrice>,
+        MaterialPricesHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $MaterialPricesHistoryTable,
+          MaterialPricesHistoryData
+        >,
       ),
-      MaterialPrice,
+      MaterialPricesHistoryData,
       PrefetchHooks Function()
+    >;
+typedef $$InstallmentsScheduleTableCreateCompanionBuilder =
+    InstallmentsScheduleCompanion Function({
+      Value<int> id,
+      required int contractId,
+      required int installmentNumber,
+      required DateTime dueDate,
+      Value<String> status,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+    });
+typedef $$InstallmentsScheduleTableUpdateCompanionBuilder =
+    InstallmentsScheduleCompanion Function({
+      Value<int> id,
+      Value<int> contractId,
+      Value<int> installmentNumber,
+      Value<DateTime> dueDate,
+      Value<String> status,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+    });
+
+final class $$InstallmentsScheduleTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $InstallmentsScheduleTable,
+          InstallmentsScheduleData
+        > {
+  $$InstallmentsScheduleTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ContractsTable _contractIdTable(_$AppDatabase db) =>
+      db.contracts.createAlias(
+        $_aliasNameGenerator(
+          db.installmentsSchedule.contractId,
+          db.contracts.id,
+        ),
+      );
+
+  $$ContractsTableProcessedTableManager get contractId {
+    final $_column = $_itemColumn<int>('contract_id')!;
+
+    final manager = $$ContractsTableTableManager(
+      $_db,
+      $_db.contracts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_contractIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PaymentsLedgerTable, List<PaymentsLedgerData>>
+  _paymentsLedgerRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.paymentsLedger,
+    aliasName: $_aliasNameGenerator(
+      db.installmentsSchedule.id,
+      db.paymentsLedger.scheduleId,
+    ),
+  );
+
+  $$PaymentsLedgerTableProcessedTableManager get paymentsLedgerRefs {
+    final manager = $$PaymentsLedgerTableTableManager(
+      $_db,
+      $_db.paymentsLedger,
+    ).filter((f) => f.scheduleId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_paymentsLedgerRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$InstallmentsScheduleTableFilterComposer
+    extends Composer<_$AppDatabase, $InstallmentsScheduleTable> {
+  $$InstallmentsScheduleTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get installmentNumber => $composableBuilder(
+    column: $table.installmentNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ContractsTableFilterComposer get contractId {
+    final $$ContractsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableFilterComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> paymentsLedgerRefs(
+    Expression<bool> Function($$PaymentsLedgerTableFilterComposer f) f,
+  ) {
+    final $$PaymentsLedgerTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paymentsLedger,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentsLedgerTableFilterComposer(
+            $db: $db,
+            $table: $db.paymentsLedger,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$InstallmentsScheduleTableOrderingComposer
+    extends Composer<_$AppDatabase, $InstallmentsScheduleTable> {
+  $$InstallmentsScheduleTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get installmentNumber => $composableBuilder(
+    column: $table.installmentNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ContractsTableOrderingComposer get contractId {
+    final $$ContractsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableOrderingComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$InstallmentsScheduleTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InstallmentsScheduleTable> {
+  $$InstallmentsScheduleTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get installmentNumber => $composableBuilder(
+    column: $table.installmentNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  $$ContractsTableAnnotationComposer get contractId {
+    final $$ContractsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> paymentsLedgerRefs<T extends Object>(
+    Expression<T> Function($$PaymentsLedgerTableAnnotationComposer a) f,
+  ) {
+    final $$PaymentsLedgerTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.paymentsLedger,
+      getReferencedColumn: (t) => t.scheduleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PaymentsLedgerTableAnnotationComposer(
+            $db: $db,
+            $table: $db.paymentsLedger,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$InstallmentsScheduleTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InstallmentsScheduleTable,
+          InstallmentsScheduleData,
+          $$InstallmentsScheduleTableFilterComposer,
+          $$InstallmentsScheduleTableOrderingComposer,
+          $$InstallmentsScheduleTableAnnotationComposer,
+          $$InstallmentsScheduleTableCreateCompanionBuilder,
+          $$InstallmentsScheduleTableUpdateCompanionBuilder,
+          (InstallmentsScheduleData, $$InstallmentsScheduleTableReferences),
+          InstallmentsScheduleData,
+          PrefetchHooks Function({bool contractId, bool paymentsLedgerRefs})
+        > {
+  $$InstallmentsScheduleTableTableManager(
+    _$AppDatabase db,
+    $InstallmentsScheduleTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InstallmentsScheduleTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InstallmentsScheduleTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$InstallmentsScheduleTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> contractId = const Value.absent(),
+                Value<int> installmentNumber = const Value.absent(),
+                Value<DateTime> dueDate = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => InstallmentsScheduleCompanion(
+                id: id,
+                contractId: contractId,
+                installmentNumber: installmentNumber,
+                dueDate: dueDate,
+                status: status,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int contractId,
+                required int installmentNumber,
+                required DateTime dueDate,
+                Value<String> status = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => InstallmentsScheduleCompanion.insert(
+                id: id,
+                contractId: contractId,
+                installmentNumber: installmentNumber,
+                dueDate: dueDate,
+                status: status,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$InstallmentsScheduleTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({contractId = false, paymentsLedgerRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (paymentsLedgerRefs) db.paymentsLedger,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (contractId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.contractId,
+                                    referencedTable:
+                                        $$InstallmentsScheduleTableReferences
+                                            ._contractIdTable(db),
+                                    referencedColumn:
+                                        $$InstallmentsScheduleTableReferences
+                                            ._contractIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (paymentsLedgerRefs)
+                        await $_getPrefetchedData<
+                          InstallmentsScheduleData,
+                          $InstallmentsScheduleTable,
+                          PaymentsLedgerData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$InstallmentsScheduleTableReferences
+                              ._paymentsLedgerRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$InstallmentsScheduleTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentsLedgerRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.scheduleId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$InstallmentsScheduleTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InstallmentsScheduleTable,
+      InstallmentsScheduleData,
+      $$InstallmentsScheduleTableFilterComposer,
+      $$InstallmentsScheduleTableOrderingComposer,
+      $$InstallmentsScheduleTableAnnotationComposer,
+      $$InstallmentsScheduleTableCreateCompanionBuilder,
+      $$InstallmentsScheduleTableUpdateCompanionBuilder,
+      (InstallmentsScheduleData, $$InstallmentsScheduleTableReferences),
+      InstallmentsScheduleData,
+      PrefetchHooks Function({bool contractId, bool paymentsLedgerRefs})
+    >;
+typedef $$PaymentsLedgerTableCreateCompanionBuilder =
+    PaymentsLedgerCompanion Function({
+      Value<int> id,
+      required int contractId,
+      Value<int?> scheduleId,
+      required DateTime paymentDate,
+      required double amountPaid,
+      required double meterPriceAtPayment,
+      required double convertedMeters,
+      Value<double> fees,
+      Value<bool> isWhatsAppSent,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+    });
+typedef $$PaymentsLedgerTableUpdateCompanionBuilder =
+    PaymentsLedgerCompanion Function({
+      Value<int> id,
+      Value<int> contractId,
+      Value<int?> scheduleId,
+      Value<DateTime> paymentDate,
+      Value<double> amountPaid,
+      Value<double> meterPriceAtPayment,
+      Value<double> convertedMeters,
+      Value<double> fees,
+      Value<bool> isWhatsAppSent,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> isDeleted,
+      Value<bool> isSynced,
+    });
+
+final class $$PaymentsLedgerTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $PaymentsLedgerTable,
+          PaymentsLedgerData
+        > {
+  $$PaymentsLedgerTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ContractsTable _contractIdTable(_$AppDatabase db) =>
+      db.contracts.createAlias(
+        $_aliasNameGenerator(db.paymentsLedger.contractId, db.contracts.id),
+      );
+
+  $$ContractsTableProcessedTableManager get contractId {
+    final $_column = $_itemColumn<int>('contract_id')!;
+
+    final manager = $$ContractsTableTableManager(
+      $_db,
+      $_db.contracts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_contractIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $InstallmentsScheduleTable _scheduleIdTable(_$AppDatabase db) =>
+      db.installmentsSchedule.createAlias(
+        $_aliasNameGenerator(
+          db.paymentsLedger.scheduleId,
+          db.installmentsSchedule.id,
+        ),
+      );
+
+  $$InstallmentsScheduleTableProcessedTableManager? get scheduleId {
+    final $_column = $_itemColumn<int>('schedule_id');
+    if ($_column == null) return null;
+    final manager = $$InstallmentsScheduleTableTableManager(
+      $_db,
+      $_db.installmentsSchedule,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_scheduleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PaymentsLedgerTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentsLedgerTable> {
+  $$PaymentsLedgerTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get meterPriceAtPayment => $composableBuilder(
+    column: $table.meterPriceAtPayment,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get convertedMeters => $composableBuilder(
+    column: $table.convertedMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get fees => $composableBuilder(
+    column: $table.fees,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isWhatsAppSent => $composableBuilder(
+    column: $table.isWhatsAppSent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ContractsTableFilterComposer get contractId {
+    final $$ContractsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableFilterComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$InstallmentsScheduleTableFilterComposer get scheduleId {
+    final $$InstallmentsScheduleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.scheduleId,
+      referencedTable: $db.installmentsSchedule,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$InstallmentsScheduleTableFilterComposer(
+            $db: $db,
+            $table: $db.installmentsSchedule,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PaymentsLedgerTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentsLedgerTable> {
+  $$PaymentsLedgerTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get meterPriceAtPayment => $composableBuilder(
+    column: $table.meterPriceAtPayment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get convertedMeters => $composableBuilder(
+    column: $table.convertedMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get fees => $composableBuilder(
+    column: $table.fees,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isWhatsAppSent => $composableBuilder(
+    column: $table.isWhatsAppSent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+    column: $table.isSynced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ContractsTableOrderingComposer get contractId {
+    final $$ContractsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableOrderingComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$InstallmentsScheduleTableOrderingComposer get scheduleId {
+    final $$InstallmentsScheduleTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.scheduleId,
+          referencedTable: $db.installmentsSchedule,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InstallmentsScheduleTableOrderingComposer(
+                $db: $db,
+                $table: $db.installmentsSchedule,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PaymentsLedgerTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentsLedgerTable> {
+  $$PaymentsLedgerTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get amountPaid => $composableBuilder(
+    column: $table.amountPaid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get meterPriceAtPayment => $composableBuilder(
+    column: $table.meterPriceAtPayment,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get convertedMeters => $composableBuilder(
+    column: $table.convertedMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get fees =>
+      $composableBuilder(column: $table.fees, builder: (column) => column);
+
+  GeneratedColumn<bool> get isWhatsAppSent => $composableBuilder(
+    column: $table.isWhatsAppSent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  $$ContractsTableAnnotationComposer get contractId {
+    final $$ContractsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.contractId,
+      referencedTable: $db.contracts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContractsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.contracts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$InstallmentsScheduleTableAnnotationComposer get scheduleId {
+    final $$InstallmentsScheduleTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.scheduleId,
+          referencedTable: $db.installmentsSchedule,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InstallmentsScheduleTableAnnotationComposer(
+                $db: $db,
+                $table: $db.installmentsSchedule,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$PaymentsLedgerTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentsLedgerTable,
+          PaymentsLedgerData,
+          $$PaymentsLedgerTableFilterComposer,
+          $$PaymentsLedgerTableOrderingComposer,
+          $$PaymentsLedgerTableAnnotationComposer,
+          $$PaymentsLedgerTableCreateCompanionBuilder,
+          $$PaymentsLedgerTableUpdateCompanionBuilder,
+          (PaymentsLedgerData, $$PaymentsLedgerTableReferences),
+          PaymentsLedgerData,
+          PrefetchHooks Function({bool contractId, bool scheduleId})
+        > {
+  $$PaymentsLedgerTableTableManager(
+    _$AppDatabase db,
+    $PaymentsLedgerTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentsLedgerTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentsLedgerTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentsLedgerTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> contractId = const Value.absent(),
+                Value<int?> scheduleId = const Value.absent(),
+                Value<DateTime> paymentDate = const Value.absent(),
+                Value<double> amountPaid = const Value.absent(),
+                Value<double> meterPriceAtPayment = const Value.absent(),
+                Value<double> convertedMeters = const Value.absent(),
+                Value<double> fees = const Value.absent(),
+                Value<bool> isWhatsAppSent = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => PaymentsLedgerCompanion(
+                id: id,
+                contractId: contractId,
+                scheduleId: scheduleId,
+                paymentDate: paymentDate,
+                amountPaid: amountPaid,
+                meterPriceAtPayment: meterPriceAtPayment,
+                convertedMeters: convertedMeters,
+                fees: fees,
+                isWhatsAppSent: isWhatsAppSent,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int contractId,
+                Value<int?> scheduleId = const Value.absent(),
+                required DateTime paymentDate,
+                required double amountPaid,
+                required double meterPriceAtPayment,
+                required double convertedMeters,
+                Value<double> fees = const Value.absent(),
+                Value<bool> isWhatsAppSent = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<bool> isSynced = const Value.absent(),
+              }) => PaymentsLedgerCompanion.insert(
+                id: id,
+                contractId: contractId,
+                scheduleId: scheduleId,
+                paymentDate: paymentDate,
+                amountPaid: amountPaid,
+                meterPriceAtPayment: meterPriceAtPayment,
+                convertedMeters: convertedMeters,
+                fees: fees,
+                isWhatsAppSent: isWhatsAppSent,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                isDeleted: isDeleted,
+                isSynced: isSynced,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PaymentsLedgerTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({contractId = false, scheduleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (contractId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.contractId,
+                                referencedTable: $$PaymentsLedgerTableReferences
+                                    ._contractIdTable(db),
+                                referencedColumn:
+                                    $$PaymentsLedgerTableReferences
+                                        ._contractIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (scheduleId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.scheduleId,
+                                referencedTable: $$PaymentsLedgerTableReferences
+                                    ._scheduleIdTable(db),
+                                referencedColumn:
+                                    $$PaymentsLedgerTableReferences
+                                        ._scheduleIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PaymentsLedgerTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentsLedgerTable,
+      PaymentsLedgerData,
+      $$PaymentsLedgerTableFilterComposer,
+      $$PaymentsLedgerTableOrderingComposer,
+      $$PaymentsLedgerTableAnnotationComposer,
+      $$PaymentsLedgerTableCreateCompanionBuilder,
+      $$PaymentsLedgerTableUpdateCompanionBuilder,
+      (PaymentsLedgerData, $$PaymentsLedgerTableReferences),
+      PaymentsLedgerData,
+      PrefetchHooks Function({bool contractId, bool scheduleId})
     >;
 
 class $AppDatabaseManager {
@@ -3723,8 +5834,10 @@ class $AppDatabaseManager {
       $$ClientsTableTableManager(_db, _db.clients);
   $$ContractsTableTableManager get contracts =>
       $$ContractsTableTableManager(_db, _db.contracts);
-  $$PaymentsTableTableManager get payments =>
-      $$PaymentsTableTableManager(_db, _db.payments);
-  $$MaterialPricesTableTableManager get materialPrices =>
-      $$MaterialPricesTableTableManager(_db, _db.materialPrices);
+  $$MaterialPricesHistoryTableTableManager get materialPricesHistory =>
+      $$MaterialPricesHistoryTableTableManager(_db, _db.materialPricesHistory);
+  $$InstallmentsScheduleTableTableManager get installmentsSchedule =>
+      $$InstallmentsScheduleTableTableManager(_db, _db.installmentsSchedule);
+  $$PaymentsLedgerTableTableManager get paymentsLedger =>
+      $$PaymentsLedgerTableTableManager(_db, _db.paymentsLedger);
 }

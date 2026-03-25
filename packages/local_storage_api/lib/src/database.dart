@@ -7,140 +7,196 @@ import 'package:path/path.dart' as p;
 part 'database.g.dart';
 
 // ==========================================
-// 1. جدول العملاء (الفريق الثاني - المشترين)
+// 1. جدول العملاء (الفريق الثاني)
 // ==========================================
 class Clients extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 2, max: 100)();
   TextColumn get phone => text().unique()(); 
   TextColumn get nationalId => text().nullable()(); 
+  
+  // حقول النظام الاحترافي (Audit & Sync)
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
 // ==========================================
-// 2. جدول العقود والشقق (مستوحى من الإكسل)
+// 2. جدول العقود (Contracts) - ثابت لحظة التوقيع
 // ==========================================
 class Contracts extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get clientId => integer().references(Clients, #id)();
   
-  TextColumn get apartmentDescription => text()(); // مثل: شقة الطابق الأول
-  RealColumn get apartmentArea => real()(); // مساحة الشقة
-  RealColumn get pricePerSqmAtSigning => real()(); // سعر المتر المربع عند التوقيع
-  RealColumn get totalContractValue => real()(); // القيمة الإجمالية
-  RealColumn get monthlyInstallment => real()(); // القسط الشهري الثابت
+  TextColumn get apartmentDetails => text()(); // وصف الشقة (أرضي، قبو، الخ)
+  RealColumn get totalArea => real()(); // المساحة الكلية للشقة
+  RealColumn get baseMeterPriceAtSigning => real()(); // سعر المتر المربع يوم التوقيع
   
-  DateTimeColumn get signatureDate => dateTime()(); // تاريخ توقيع العقد
+  // حقل JSON لتخزين المعاملات (طابق، وجيبة، اتجاه) لمرونة إضافتها مستقبلاً
+  TextColumn get coefficients => text().withDefault(const Constant('{}'))(); 
+  
+  DateTimeColumn get contractDate => dateTime()(); // تاريخ التوقيع
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))(); 
+
+  // حقول النظام الاحترافي
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
 // ==========================================
-// 3. جدول الدفعات والأقساط (للفواتير والواتساب)
+// 3. جدول سجل أسعار المواد (Material Prices History)
 // ==========================================
-class Payments extends Table {
+// لا نقوم بتحديث سطر واحد، بل نضيف سطراً جديداً كلما تغيرت الأسعار 
+// لكي لا تتأثر حسابات الأشهر السابقة!
+class MaterialPricesHistory extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  
+  DateTimeColumn get effectiveDate => dateTime().withDefault(currentDateAndTime)(); // تاريخ اعتماد هذه التسعيرة
+  
+  RealColumn get ironPrice => real()(); 
+  RealColumn get cementPrice => real()(); 
+  RealColumn get block15Price => real()(); 
+  RealColumn get formworkAndPouringWages => real()(); 
+  RealColumn get reinforcedConcretePrice => real()(); 
+  RealColumn get aggregateMaterialsPrice => real()(); 
+  RealColumn get ordinaryWorkerWage => real()(); 
+
+  // حقول النظام الاحترافي
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+}
+
+// ==========================================
+// 4. جدول الاستحقاقات (Installments Schedule) - ما يجب دفعه
+// ==========================================
+class InstallmentsSchedule extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get contractId => integer().references(Contracts, #id)();
   
-  IntColumn get installmentNumber => integer()(); // رقم القسط
-  RealColumn get amountPaid => real()(); // إجمالي القسط المدفوع
-  RealColumn get originalInstallment => real()(); // أصل القسط
-  RealColumn get fees => real().withDefault(const Constant(0))(); // الرسوم إن وجدت
+  IntColumn get installmentNumber => integer()(); 
+  DateTimeColumn get dueDate => dateTime()(); // تاريخ الاستحقاق
+  TextColumn get status => text().withDefault(const Constant('pending'))(); // pending, partial, paid
   
-  DateTimeColumn get paymentDate => dateTime()(); 
-  DateTimeColumn get dueDate => dateTime().nullable()(); 
-  
-  // حقول المزامنة والواتساب
-  BoolColumn get isWhatsAppSent => boolean().withDefault(const Constant(false))();
-  BoolColumn get isSyncedToCloud => boolean().withDefault(const Constant(false))(); 
+  // حقول النظام الاحترافي
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 }
 
 // ==========================================
-// 4. جدول أسعار المواد (المحرك الحسابي المتغير - حسب الإكسل)
+// 5. دفتر الأستاذ للمدفوعات (Payments Ledger) 🚨 الأهم!
 // ==========================================
-class MaterialPrices extends Table {
+// هذا الجدول يسجل "الأموال الحقيقية" والأمتار التي اشترتها لحظة الدفع
+class PaymentsLedger extends Table {
   IntColumn get id => integer().autoIncrement()();
+  IntColumn get contractId => integer().references(Contracts, #id)();
+  IntColumn get scheduleId => integer().nullable().references(InstallmentsSchedule, #id)(); // الربط بالاستحقاق إن وجد
   
-  // 1. ثمن حديد مبروم واصل الى موقع العمل
-  RealColumn get ironPrice => real()(); 
-  // 2. ثمن اسمنت واصل الى موقع العمل
-  RealColumn get cementPrice => real()(); 
-  // 3. ثمن بلوك اسمنتي سماكة 15 سم واصل
-  RealColumn get block15Price => real()(); 
-  // 4. اجور كوفارج و صب حديد وتحديد بيتون
-  RealColumn get formworkAndPouringWages => real()(); 
-  // 5. مسلح لزوم قواعد و اعمدة و بلاطة هوردي
-  RealColumn get reinforcedConcretePrice => real()(); 
-  // 6. ثمن مواد حصوية جرجرة \بحص + نحاته \ واصل الى الموقع
-  RealColumn get aggregateMaterialsPrice => real()(); 
-  // 7. اجور عمل لعامـل عادي 7 ساعات
-  RealColumn get ordinaryWorkerWage => real()(); 
+  DateTimeColumn get paymentDate => dateTime()(); // تاريخ الدفع الفعلي
+  RealColumn get amountPaid => real()(); // المبلغ المدفوع
+  
+  // 🌟 جوهر النظام: تجميد السعر والأمتار في لحظة الدفع لكي لا تتغير لاحقاً
+  RealColumn get meterPriceAtPayment => real()(); // سعر المتر في ذلك الشهر
+  RealColumn get convertedMeters => real()(); // الأمتار المحولة = المبلغ / سعر المتر
 
-  DateTimeColumn get lastUpdated => dateTime().withDefault(currentDateAndTime)();
+  RealColumn get fees => real().withDefault(const Constant(0))(); 
+  BoolColumn get isWhatsAppSent => boolean().withDefault(const Constant(false))();
+  
+  // حقول النظام الاحترافي
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))(); 
 }
 
-@DriftDatabase(tables: [Clients, Contracts, Payments, MaterialPrices])
+@DriftDatabase(tables:[Clients, Contracts, MaterialPricesHistory, InstallmentsSchedule, PaymentsLedger])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 1; // سنبقيها 1 ونقوم بحذف القاعدة القديمة من الجهاز يدوياً
 
-  // --- دوال العملاء ---
-  Future<List<Client>> getAllClients() => select(clients).get();
+  // ==========================================
+  // --- استعلامات العملاء ---
+  // ==========================================
+  Future<List<Client>> getActiveClients() => 
+      (select(clients)..where((t) => t.isDeleted.equals(false))).get();
   Future<int> insertClient(ClientsCompanion client) => into(clients).insert(client, mode: InsertMode.insertOrIgnore);
   Future<bool> updateClient(Client client) => update(clients).replace(client);
-  Future<int> deleteClient(Client client) => delete(clients).delete(client);
-
-  // --- دوال العقود ---
-  Future<List<Contract>> getContractsForClient(int clientId) => 
-      (select(contracts)..where((t) => t.clientId.equals(clientId))).get();
-  Future<int> insertContract(ContractsCompanion contract) => into(contracts).insert(contract);
-  Future<List<Contract>> getAllContracts() => select(contracts).get();
-  // --- دوال الدفعات (الفواتير) ---
-  Future<List<Payment>> getPaymentsForContract(int contractId) => 
-      (select(payments)
-        ..where((t) => t.contractId.equals(contractId))
-        ..orderBy([(t) => OrderingTerm.desc(t.paymentDate)])
-      ).get();
-  Future<int> insertPayment(PaymentsCompanion payment) => into(payments).insert(payment);
-  
-  Future<int> markWhatsAppAsSent(int paymentId) {
-    return (update(payments)..where((t) => t.id.equals(paymentId))).write(
-      const PaymentsCompanion(isWhatsAppSent: Value(true)),
+  Future<int> softDeleteClient(int id) {
+    return (update(clients)..where((t) => t.id.equals(id))).write(
+      ClientsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
     );
   }
 
-  // --- مسح شامل ---
-  Future<void> clearAllData() {
-    return transaction(() async {
-      await delete(payments).go();
-      await delete(contracts).go();
-      await delete(clients).go();
-      await delete(materialPrices).go();
-    });
+  // ==========================================
+  // --- استعلامات العقود ---
+  // ==========================================
+  Future<List<Contract>> getActiveContracts() => 
+      (select(contracts)..where((t) => t.isDeleted.equals(false))).get();
+  Future<int> insertContract(ContractsCompanion contract) => into(contracts).insert(contract);
+  Future<int> softDeleteContract(int id) {
+    return (update(contracts)..where((t) => t.id.equals(id))).write(
+      ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+    );
   }
 
-  // --- دوال أسعار المواد (الإعدادات) ---
-  Future<MaterialPrice?> getLatestPrices() {
-    return (select(materialPrices)
-          ..orderBy([(t) => OrderingTerm.desc(t.lastUpdated)])
-          ..limit(1))
-        .getSingleOrNull(); // نجلب أحدث سعر تم إدخاله
+  // ==========================================
+  // --- استعلامات دفتر المدفوعات (Ledger) ---
+  // ==========================================
+  Future<List<PaymentsLedgerData>> getLedgerForContract(int contractId) => 
+      (select(paymentsLedger)
+        ..where((t) => t.contractId.equals(contractId) & t.isDeleted.equals(false))
+        ..orderBy([(t) => OrderingTerm.desc(t.paymentDate)])
+      ).get();
+      
+  Future<int> insertLedgerEntry(PaymentsLedgerCompanion entry) => into(paymentsLedger).insert(entry);
+  
+  Future<int> markWhatsAppAsSent(int entryId) {
+    return (update(paymentsLedger)..where((t) => t.id.equals(entryId))).write(
+      PaymentsLedgerCompanion(isWhatsAppSent: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+    );
   }
-  Future<int> insertPrices(MaterialPricesCompanion prices) => into(materialPrices).insert(prices);
+
+  // ==========================================
+  // --- استعلامات سجل أسعار المواد ---
+  // ==========================================
+  // جلب السعر الفعال في تاريخ معين (أو أحدث سعر إذا لم يمرر تاريخ)
+  Future<MaterialPricesHistoryData?> getLatestPrices() {
+    return (select(materialPricesHistory)
+          ..where((t) => t.isDeleted.equals(false))
+          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+  
+  // إضافة تسعيرة شهرية جديدة (بدلاً من تحديث القديمة)
+  Future<int> insertMaterialPriceRecord(MaterialPricesHistoryCompanion prices) => 
+      into(materialPricesHistory).insert(prices);
+
+  // ==========================================
+  // --- تفريغ القاعدة ---
+  // ==========================================
+  Future<void> clearAllData() {
+    return transaction(() async {
+      await delete(paymentsLedger).go();
+      await delete(installmentsSchedule).go();
+      await delete(materialPricesHistory).go();
+      await delete(contracts).go();
+      await delete(clients).go();
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
-    final file = File(p.join(dbFolder.path, 'our_home_erp.sqlite'));
-    
-    // 💡 السطر السحري لمعرفة مكان قاعدة البيانات
-    print('==============================================');
-    print('📦 مسار قاعدة البيانات المحلية هو:');
-    print(file.path);
-    print('==============================================');
-    
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v2.sqlite')); // قمنا بتغيير الاسم لإنشاء ملف جديد تلقائياً!
     return NativeDatabase.createInBackground(file);
   });
 }

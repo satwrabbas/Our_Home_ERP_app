@@ -1,8 +1,7 @@
-import 'package:drift/drift.dart' as drift;
 import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
 
-/// المدير الذكي الذي يربط بين قاعدة البيانات المحلية (Offline) والسحابية (Online)
+/// المدير الذكي الذي يربط بين قاعدة البيانات المحلية (Drift) والسحابية (Supabase)
 class ErpRepository {
   const ErpRepository({
     required LocalStorageApi localStorageApi,
@@ -16,101 +15,104 @@ class ErpRepository {
   // ==========================================
   // 👥 العملاء (Clients)
   // ==========================================
-  
-  /// جلب العملاء دائماً من القاعدة المحلية لضمان السرعة القصوى
   Future<List<Client>> getClients() => _localApi.getClients();
 
-  /// إضافة عميل (Offline First)
   Future<void> addClient(ClientsCompanion clientCompanion) async {
-    // 1. الحفظ المحلي فوراً (الـ UI سيستجيب هنا وتختفي شاشة التحميل)
     final localId = await _localApi.addClient(clientCompanion);
-
-    // 2. المحاولة في الخلفية للرفع على السحابة
     try {
       final cloudData = {
         'id': localId,
         'name': clientCompanion.name.value,
         'phone': clientCompanion.phone.value,
-        'nationalId': clientCompanion.nationalId.value,
+        'nationalId': clientCompanion.nationalId.present ? clientCompanion.nationalId.value : null,
+        'isDeleted': false,
+        'updatedAt': DateTime.now().toIso8601String(),
       };
       await _cloudApi.upsertClient(cloudData);
     } catch (e) {
-      // إذا انقطع الإنترنت، سيتم التجاهل حالياً (البيانات بأمان في المحلي)
       print('Cloud sync failed for Client: $e');
     }
   }
 
+  Future<void> deleteClient(int clientId) async {
+    await _localApi.deleteClient(clientId);
+    try {
+      await _cloudApi.upsertClient({'id': clientId, 'isDeleted': true, 'updatedAt': DateTime.now().toIso8601String()});
+    } catch (e) {
+      print('Cloud sync failed for Delete Client: $e');
+    }
+  }
+
   // ==========================================
-  // 📄 العقود والشقق (Contracts)
+  // 📄 العقود (Contracts) - ثوابت الاتفاق
   // ==========================================
-  
-  Future<List<Contract>> getClientContracts(int clientId) => 
-      _localApi.getClientContracts(clientId);
+  Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     final localId = await _localApi.addContract(contractCompanion);
-
     try {
       final cloudData = {
         'id': localId,
         'clientId': contractCompanion.clientId.value,
-        'apartmentDescription': contractCompanion.apartmentDescription.value,
-        'apartmentArea': contractCompanion.apartmentArea.value,
-        'pricePerSqmAtSigning': contractCompanion.pricePerSqmAtSigning.value,
-        'totalContractValue': contractCompanion.totalContractValue.value,
-        'monthlyInstallment': contractCompanion.monthlyInstallment.value,
-        'signatureDate': contractCompanion.signatureDate.value.toIso8601String(),
-        // ✅ الحل السحري: إذا لم يكن الحقل موجوداً، اعتبره false بدلاً من Null
+        'apartmentDetails': contractCompanion.apartmentDetails.value,
+        'totalArea': contractCompanion.totalArea.value,
+        'baseMeterPriceAtSigning': contractCompanion.baseMeterPriceAtSigning.value,
+        'coefficients': contractCompanion.coefficients.present ? contractCompanion.coefficients.value : '{}',
+        'contractDate': contractCompanion.contractDate.value.toIso8601String(),
         'isCompleted': contractCompanion.isCompleted.present ? contractCompanion.isCompleted.value : false,
+        'isDeleted': false,
+        'updatedAt': DateTime.now().toIso8601String(),
       };
       await _cloudApi.upsertContract(cloudData);
     } catch (e) {
       print('Cloud sync failed for Contract: $e');
     }
   }
-  Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
   // ==========================================
-  // 💰 الدفعات (الفواتير - Payments)
+  // 💰 دفتر الأستاذ (Payments Ledger) - الأمتار المحولة
   // ==========================================
+  Future<List<PaymentsLedgerData>> getContractLedger(int contractId) => _localApi.getContractLedger(contractId);
 
-  Future<List<Payment>> getContractPayments(int contractId) => 
-      _localApi.getContractPayments(contractId);
-
-  Future<void> addPayment(PaymentsCompanion paymentCompanion) async {
-    final localId = await _localApi.addPayment(paymentCompanion);
-
+  Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
+    final localId = await _localApi.addLedgerEntry(entryCompanion);
     try {
       final cloudData = {
         'id': localId,
-        'contractId': paymentCompanion.contractId.value,
-        'installmentNumber': paymentCompanion.installmentNumber.value,
-        'amountPaid': paymentCompanion.amountPaid.value,
-        'originalInstallment': paymentCompanion.originalInstallment.value,
-        'fees': paymentCompanion.fees.value,
-        'paymentDate': paymentCompanion.paymentDate.value.toIso8601String(),
-        'isWhatsAppSent': paymentCompanion.isWhatsAppSent.value,
-        'isSyncedToCloud': true, // تم الرفع بنجاح
+        'contractId': entryCompanion.contractId.value,
+        // scheduleId قد يكون فارغاً إذا كان دفعاً غير مجدول
+        'scheduleId': entryCompanion.scheduleId.present ? entryCompanion.scheduleId.value : null,
+        'paymentDate': entryCompanion.paymentDate.value.toIso8601String(),
+        'amountPaid': entryCompanion.amountPaid.value,
+        'meterPriceAtPayment': entryCompanion.meterPriceAtPayment.value,
+        'convertedMeters': entryCompanion.convertedMeters.value,
+        'fees': entryCompanion.fees.present ? entryCompanion.fees.value : 0.0,
+        'isWhatsAppSent': entryCompanion.isWhatsAppSent.present ? entryCompanion.isWhatsAppSent.value : false,
+        'isDeleted': false,
+        'updatedAt': DateTime.now().toIso8601String(),
       };
       await _cloudApi.upsertPayment(cloudData);
     } catch (e) {
-      print('Cloud sync failed for Payment: $e');
+      print('Cloud sync failed for Ledger Entry: $e');
     }
   }
 
-  /// تحديث حالة إرسال الواتساب للفاتورة
-  Future<void> markWhatsAppAsSent(int paymentId) async {
-    await _localApi.updateWhatsAppStatus(paymentId);
-    // يمكننا إضافة كود هنا لتحديث الحالة في السحابة أيضاً لاحقاً
+  Future<void> markWhatsAppAsSent(int entryId) async {
+    await _localApi.updateWhatsAppStatus(entryId);
+    try {
+      await _cloudApi.upsertPayment({'id': entryId, 'isWhatsAppSent': true, 'updatedAt': DateTime.now().toIso8601String()});
+    } catch (e) {
+      print('Cloud sync failed for WhatsApp Status: $e');
+    }
   }
 
   // ==========================================
-  // ⚙️ الإعدادات (أسعار المواد - Material Prices)
+  // ⚙️ الإعدادات (سجل أسعار المواد)
   // ==========================================
-  Future<MaterialPrice?> getLatestPrices() => _localApi.getLatestPrices();
-  
-  Future<void> savePrices(MaterialPricesCompanion prices) async {
-    await _localApi.savePrices(prices);
-    // (يمكننا إضافة الرفع للسحابة هنا لاحقاً)
+  Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
+
+  Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
+    await _localApi.savePrices(pricesCompanion);
+    // (يمكن إضافة دالة للرفع السحابي في CloudStorageClient لاحقاً إذا أردت مزامنة الأسعار)
   }
 }
