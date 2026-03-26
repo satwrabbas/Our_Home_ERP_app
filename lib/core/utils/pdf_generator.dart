@@ -10,7 +10,7 @@ class PdfGenerator {
   }
 
   static Future<Uint8List> generateReceiptPdf({
-    required PaymentsLedgerData entry, // ✅ تم التحديث إلى PaymentsLedgerData
+    required PaymentsLedgerData entry, // ✅ تم التحديث إلى النوع الجديد
     required Contract contract,
     required Client client,
   }) async {
@@ -34,7 +34,7 @@ class PdfGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
                 pw.Text('بيتنا  our home', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                pw.Text('وصل استلام مالي', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                pw.Text('وصل استلام دفعة', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
                 pw.Text(copyType, style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
               ]
             ),
@@ -52,8 +52,8 @@ class PdfGenerator {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                pw.Text('رقم الإيصال (دفتر الأستاذ): ${entry.id}', style: const pw.TextStyle(fontSize: 14)),
-                pw.Text('مساحة الشقة الكلية: ${contract.totalArea} م2', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('رقم الإيصال: ${entry.id}', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text('مساحة الشقة: ${contract.totalArea} م2', style: const pw.TextStyle(fontSize: 14)),
               ]
             ),
             pw.SizedBox(height: 16),
@@ -74,22 +74,20 @@ class PdfGenerator {
             pw.SizedBox(height: 16),
 
             // --- تفاصيل الأمتار المحولة ---
-            pw.Text('تفاصيل الحساب والأمتار:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+            pw.Text('تفاصيل الدفعة والأمتار المحولة:', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
             pw.SizedBox(height: 8),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                // ✅ عرض سعر المتر والأمتار المحولة التي تم تجميدها من قاعدة البيانات
                 pw.Text('سعر المتر المربع وقت الدفع: ${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
-                pw.Text('الأمتار المحولة بهذا الوصل: ${entry.convertedMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.red800)),
+                pw.Text('الأمتار المحولة بهذه الدفعة: ${entry.convertedMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
               ]
             ),
             pw.SizedBox(height: 4),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children:[
-                pw.Text('الرسوم الإضافية: ${entry.fees.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
-                pw.Text('عن شقة: ${contract.apartmentDetails}', style: const pw.TextStyle(fontSize: 12)),
+                pw.Text('الرسوم: ${entry.fees.toStringAsFixed(0)} ل.س', style: const pw.TextStyle(fontSize: 12)),
               ]
             ),
             
@@ -121,7 +119,7 @@ class PdfGenerator {
             ),
             pw.SizedBox(height: 8),
             pw.Center(
-              child: pw.Text('انشاء النظام المالي التلقائي', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+              child: pw.Text('انشاء المستخدم: م.محمد كامل علي', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
             ),
           ],
         ),

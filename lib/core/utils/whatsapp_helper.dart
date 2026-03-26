@@ -3,31 +3,30 @@ import 'package:erp_repository/erp_repository.dart';
 
 class WhatsAppHelper {
   static Future<bool> sendReceiptMessage({
-    required PaymentsLedgerData entry, // ✅ التحديث هنا
+    required PaymentsLedgerData entry, // ✅ تم التحديث إلى النوع الجديد
     required Contract contract,
     required Client client,
   }) async {
-    String phone = client.phone.replaceAll(RegExp(r'\D'), ''); 
+    String phone = client.phone.replaceAll(RegExp(r'\D'), '');
     if (phone.startsWith('0')) {
-      phone = '963${phone.substring(1)}'; 
+      phone = '963${phone.substring(1)}';
     } else if (!phone.startsWith('963')) {
-      phone = '963$phone'; 
+      phone = '963$phone';
     }
 
-    // 🌟 صياغة الرسالة الهندسية الجديدة
+    // صياغة رسالة احترافية تعتمد على تفاصيل الأمتار المحولة
     final String message = '''
 مرحباً أستاذ/ة ${client.name}،
-تم استلام دفعتكم المالية بنجاح عبر النظام. 🏢
+تم استلام الدفعة الخاصة بكم بنجاح بمبلغ قدره *${entry.amountPaid.toStringAsFixed(0)} ل.س*.
+وذلك عن شقة (${contract.apartmentDetails}).
 
-💰 *المبلغ المدفوع:* ${entry.amountPaid.toStringAsFixed(0)} ل.س
-📈 *سعر المتر المربع اليوم:* ${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س
-📏 *الأمتار المحولة لكم بهذا الوصل:* ${entry.convertedMeters.toStringAsFixed(3)} م2
+*تفاصيل الدفعة:*
+- رقم الإيصال: ${entry.id}
+- تاريخ الدفع: ${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}
+- سعر المتر المعتمد وقت الدفع: ${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س
+- الأمتار المحولة بهذه الدفعة: ${entry.convertedMeters.toStringAsFixed(3)} م2
 
-شقة: ${contract.apartmentDetails}
-رقم الإيصال: ${entry.id}
-تاريخ الدفع: ${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}
-
-شكراً لثقتكم بنا (بيتنا Our Home).
+شكراً لثقتكم بنا في "بيتنا Our Home". 🏢
 ''';
 
     final String encodedMessage = Uri.encodeComponent(message);
@@ -35,9 +34,9 @@ class WhatsAppHelper {
 
     if (await canLaunchUrl(whatsappUrl)) {
       await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
-      return true; 
+      return true;
     } else {
-      return false; 
+      return false;
     }
   }
 }
