@@ -15,6 +15,9 @@ import '../../payments/cubit/payments_cubit.dart';
 import '../../settings/cubit/settings_cubit.dart';
 import '../cubit/dashboard_cubit.dart';
 
+import '../../home/view/home_page.dart'; // 🌟 إضافة
+import '../../home/cubit/home_cubit.dart'; // 🌟 إضافة
+
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
@@ -26,6 +29,7 @@ class DashboardPage extends StatelessWidget {
     return MultiBlocProvider(
       providers:[
         BlocProvider(create: (_) => DashboardCubit()),
+        BlocProvider(create: (_) => HomeCubit(repo)..fetchDashboardData()), // 🌟 إضافة
         BlocProvider(create: (_) => ClientsCubit(repo)..fetchClients()),
         BlocProvider(create: (_) => ContractsCubit(repo)..fetchData()),
         BlocProvider(create: (_) => PaymentsCubit(repo)..fetchInitialData()),
@@ -52,11 +56,12 @@ class DashboardView extends StatelessWidget {
               // 1. تغيير الشاشة
               context.read<DashboardCubit>().changeTab(index);
               
-              // 2. 🔄 التحديث التلقائي للبيانات بناءً على الشاشة التي ضغطت عليها!
-              if (index == 0) context.read<ClientsCubit>().fetchClients();
-              if (index == 1) context.read<ContractsCubit>().fetchData();
-              if (index == 2) context.read<PaymentsCubit>().fetchInitialData();
-              if (index == 3) context.read<SettingsCubit>().fetchPrices();
+// يجب تعديل الأرقام لأننا أضفنا شاشة جديدة في البداية
+              if (index == 0) context.read<HomeCubit>().fetchDashboardData();
+              if (index == 1) context.read<ClientsCubit>().fetchClients();
+              if (index == 2) context.read<ContractsCubit>().fetchData();
+              if (index == 3) context.read<PaymentsCubit>().fetchInitialData();
+              if (index == 4) context.read<SettingsCubit>().fetchPrices();
             },
             labelType: NavigationRailLabelType.all,
             backgroundColor: Colors.blue.shade900,
@@ -65,6 +70,7 @@ class DashboardView extends StatelessWidget {
             selectedIconTheme: const IconThemeData(color: Colors.white, size: 30),
             selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             destinations: const[
+              NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('الرئيسية')), // 🌟 الشاشة الجديدة
               NavigationRailDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: Text('العملاء')),
               NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('العقود')),
               NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('الأقساط')),
@@ -76,10 +82,11 @@ class DashboardView extends StatelessWidget {
             child: IndexedStack(
               index: selectedIndex,
               children: const[
-                ClientsPage(),
-                ContractsPage(),
-                PaymentsPage(),
-                SettingsPage(),
+                HomePage(),     // 🌟 أصبحت هي Index 0
+                ClientsPage(),  // Index 1
+                ContractsPage(),// Index 2
+                PaymentsPage(), // Index 3
+                SettingsPage(), // Index 4
               ],
             ),
           ),
