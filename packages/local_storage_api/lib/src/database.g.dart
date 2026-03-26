@@ -544,6 +544,18 @@ class $ContractsTable extends Contracts
       'REFERENCES clients (id)',
     ),
   );
+  static const VerificationMeta _contractTypeMeta = const VerificationMeta(
+    'contractType',
+  );
+  @override
+  late final GeneratedColumn<String> contractType = GeneratedColumn<String>(
+    'contract_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('لاحق التخصص'),
+  );
   static const VerificationMeta _apartmentDetailsMeta = const VerificationMeta(
     'apartmentDetails',
   );
@@ -673,6 +685,7 @@ class $ContractsTable extends Contracts
   List<GeneratedColumn> get $columns => [
     id,
     clientId,
+    contractType,
     apartmentDetails,
     totalArea,
     baseMeterPriceAtSigning,
@@ -706,6 +719,15 @@ class $ContractsTable extends Contracts
       );
     } else if (isInserting) {
       context.missing(_clientIdMeta);
+    }
+    if (data.containsKey('contract_type')) {
+      context.handle(
+        _contractTypeMeta,
+        contractType.isAcceptableOrUnknown(
+          data['contract_type']!,
+          _contractTypeMeta,
+        ),
+      );
     }
     if (data.containsKey('apartment_details')) {
       context.handle(
@@ -807,6 +829,10 @@ class $ContractsTable extends Contracts
         DriftSqlType.string,
         data['${effectivePrefix}client_id'],
       )!,
+      contractType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_type'],
+      )!,
       apartmentDetails: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}apartment_details'],
@@ -859,6 +885,7 @@ class $ContractsTable extends Contracts
 class Contract extends DataClass implements Insertable<Contract> {
   final String id;
   final String clientId;
+  final String contractType;
   final String apartmentDetails;
   final double totalArea;
   final double baseMeterPriceAtSigning;
@@ -872,6 +899,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   const Contract({
     required this.id,
     required this.clientId,
+    required this.contractType,
     required this.apartmentDetails,
     required this.totalArea,
     required this.baseMeterPriceAtSigning,
@@ -888,6 +916,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['client_id'] = Variable<String>(clientId);
+    map['contract_type'] = Variable<String>(contractType);
     map['apartment_details'] = Variable<String>(apartmentDetails);
     map['total_area'] = Variable<double>(totalArea);
     map['base_meter_price_at_signing'] = Variable<double>(
@@ -907,6 +936,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     return ContractsCompanion(
       id: Value(id),
       clientId: Value(clientId),
+      contractType: Value(contractType),
       apartmentDetails: Value(apartmentDetails),
       totalArea: Value(totalArea),
       baseMeterPriceAtSigning: Value(baseMeterPriceAtSigning),
@@ -928,6 +958,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     return Contract(
       id: serializer.fromJson<String>(json['id']),
       clientId: serializer.fromJson<String>(json['clientId']),
+      contractType: serializer.fromJson<String>(json['contractType']),
       apartmentDetails: serializer.fromJson<String>(json['apartmentDetails']),
       totalArea: serializer.fromJson<double>(json['totalArea']),
       baseMeterPriceAtSigning: serializer.fromJson<double>(
@@ -948,6 +979,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'clientId': serializer.toJson<String>(clientId),
+      'contractType': serializer.toJson<String>(contractType),
       'apartmentDetails': serializer.toJson<String>(apartmentDetails),
       'totalArea': serializer.toJson<double>(totalArea),
       'baseMeterPriceAtSigning': serializer.toJson<double>(
@@ -966,6 +998,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   Contract copyWith({
     String? id,
     String? clientId,
+    String? contractType,
     String? apartmentDetails,
     double? totalArea,
     double? baseMeterPriceAtSigning,
@@ -979,6 +1012,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   }) => Contract(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
+    contractType: contractType ?? this.contractType,
     apartmentDetails: apartmentDetails ?? this.apartmentDetails,
     totalArea: totalArea ?? this.totalArea,
     baseMeterPriceAtSigning:
@@ -995,6 +1029,9 @@ class Contract extends DataClass implements Insertable<Contract> {
     return Contract(
       id: data.id.present ? data.id.value : this.id,
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      contractType: data.contractType.present
+          ? data.contractType.value
+          : this.contractType,
       apartmentDetails: data.apartmentDetails.present
           ? data.apartmentDetails.value
           : this.apartmentDetails,
@@ -1023,6 +1060,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     return (StringBuffer('Contract(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
+          ..write('contractType: $contractType, ')
           ..write('apartmentDetails: $apartmentDetails, ')
           ..write('totalArea: $totalArea, ')
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
@@ -1041,6 +1079,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   int get hashCode => Object.hash(
     id,
     clientId,
+    contractType,
     apartmentDetails,
     totalArea,
     baseMeterPriceAtSigning,
@@ -1058,6 +1097,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       (other is Contract &&
           other.id == this.id &&
           other.clientId == this.clientId &&
+          other.contractType == this.contractType &&
           other.apartmentDetails == this.apartmentDetails &&
           other.totalArea == this.totalArea &&
           other.baseMeterPriceAtSigning == this.baseMeterPriceAtSigning &&
@@ -1073,6 +1113,7 @@ class Contract extends DataClass implements Insertable<Contract> {
 class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<String> id;
   final Value<String> clientId;
+  final Value<String> contractType;
   final Value<String> apartmentDetails;
   final Value<double> totalArea;
   final Value<double> baseMeterPriceAtSigning;
@@ -1087,6 +1128,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   const ContractsCompanion({
     this.id = const Value.absent(),
     this.clientId = const Value.absent(),
+    this.contractType = const Value.absent(),
     this.apartmentDetails = const Value.absent(),
     this.totalArea = const Value.absent(),
     this.baseMeterPriceAtSigning = const Value.absent(),
@@ -1102,6 +1144,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   ContractsCompanion.insert({
     this.id = const Value.absent(),
     required String clientId,
+    this.contractType = const Value.absent(),
     required String apartmentDetails,
     required double totalArea,
     required double baseMeterPriceAtSigning,
@@ -1121,6 +1164,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   static Insertable<Contract> custom({
     Expression<String>? id,
     Expression<String>? clientId,
+    Expression<String>? contractType,
     Expression<String>? apartmentDetails,
     Expression<double>? totalArea,
     Expression<double>? baseMeterPriceAtSigning,
@@ -1136,6 +1180,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (clientId != null) 'client_id': clientId,
+      if (contractType != null) 'contract_type': contractType,
       if (apartmentDetails != null) 'apartment_details': apartmentDetails,
       if (totalArea != null) 'total_area': totalArea,
       if (baseMeterPriceAtSigning != null)
@@ -1154,6 +1199,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   ContractsCompanion copyWith({
     Value<String>? id,
     Value<String>? clientId,
+    Value<String>? contractType,
     Value<String>? apartmentDetails,
     Value<double>? totalArea,
     Value<double>? baseMeterPriceAtSigning,
@@ -1169,6 +1215,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     return ContractsCompanion(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
+      contractType: contractType ?? this.contractType,
       apartmentDetails: apartmentDetails ?? this.apartmentDetails,
       totalArea: totalArea ?? this.totalArea,
       baseMeterPriceAtSigning:
@@ -1192,6 +1239,9 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     }
     if (clientId.present) {
       map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (contractType.present) {
+      map['contract_type'] = Variable<String>(contractType.value);
     }
     if (apartmentDetails.present) {
       map['apartment_details'] = Variable<String>(apartmentDetails.value);
@@ -1236,6 +1286,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     return (StringBuffer('ContractsCompanion(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
+          ..write('contractType: $contractType, ')
           ..write('apartmentDetails: $apartmentDetails, ')
           ..write('totalArea: $totalArea, ')
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
@@ -3699,6 +3750,7 @@ typedef $$ContractsTableCreateCompanionBuilder =
     ContractsCompanion Function({
       Value<String> id,
       required String clientId,
+      Value<String> contractType,
       required String apartmentDetails,
       required double totalArea,
       required double baseMeterPriceAtSigning,
@@ -3715,6 +3767,7 @@ typedef $$ContractsTableUpdateCompanionBuilder =
     ContractsCompanion Function({
       Value<String> id,
       Value<String> clientId,
+      Value<String> contractType,
       Value<String> apartmentDetails,
       Value<double> totalArea,
       Value<double> baseMeterPriceAtSigning,
@@ -3810,6 +3863,11 @@ class $$ContractsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractType => $composableBuilder(
+    column: $table.contractType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3951,6 +4009,11 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get contractType => $composableBuilder(
+    column: $table.contractType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get apartmentDetails => $composableBuilder(
     column: $table.apartmentDetails,
     builder: (column) => ColumnOrderings(column),
@@ -4036,6 +4099,11 @@ class $$ContractsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get contractType => $composableBuilder(
+    column: $table.contractType,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get apartmentDetails => $composableBuilder(
     column: $table.apartmentDetails,
@@ -4186,6 +4254,7 @@ class $$ContractsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> clientId = const Value.absent(),
+                Value<String> contractType = const Value.absent(),
                 Value<String> apartmentDetails = const Value.absent(),
                 Value<double> totalArea = const Value.absent(),
                 Value<double> baseMeterPriceAtSigning = const Value.absent(),
@@ -4200,6 +4269,7 @@ class $$ContractsTableTableManager
               }) => ContractsCompanion(
                 id: id,
                 clientId: clientId,
+                contractType: contractType,
                 apartmentDetails: apartmentDetails,
                 totalArea: totalArea,
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
@@ -4216,6 +4286,7 @@ class $$ContractsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String clientId,
+                Value<String> contractType = const Value.absent(),
                 required String apartmentDetails,
                 required double totalArea,
                 required double baseMeterPriceAtSigning,
@@ -4230,6 +4301,7 @@ class $$ContractsTableTableManager
               }) => ContractsCompanion.insert(
                 id: id,
                 clientId: clientId,
+                contractType: contractType,
                 apartmentDetails: apartmentDetails,
                 totalArea: totalArea,
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,

@@ -4,7 +4,7 @@ import 'package:erp_repository/erp_repository.dart';
 import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerCompanion;
 import 'package:drift/drift.dart' show Value;
 
-// استدعاء الحاسبة الهندسية التي بنيناها
+// استدعاء الحاسبة الهندسية التي تجلب معادلات الإكسل
 import '../../core/utils/calculator_helper.dart';
 
 part 'payments_state.dart';
@@ -14,7 +14,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب البيانات الأساسية (العملاء والعقود الفعالة غير المحذوفة)
+  /// 1. جلب البيانات الأساسية (العملاء والعقود الفعالة غير المحذوفة) لملء القوائم المنسدلة
   Future<void> fetchInitialData() async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
@@ -31,8 +31,9 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  /// عند اختيار عقد من القائمة المنسدلة، نجلب دفتر الأستاذ الخاص به
-  Future<void> selectContract(int contractId) async {
+  /// 2. عند اختيار عقد من القائمة، نجلب "دفتر الأستاذ" (Ledger) الخاص به
+  /// 🌟 نستخدم String لأن الـ ID هو UUID
+  Future<void> selectContract(String contractId) async {
     emit(state.copyWith(status: PaymentsStatus.loading, selectedContractId: contractId));
     try {
       final ledgerEntries = await _erpRepository.getContractLedger(contractId);
@@ -42,55 +43,56 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  /// 🌟 إضافة دفعة جديدة وحساب (الأمتار المحولة) آلياً وتجميدها
+  /// 3. 🌟 جوهر النظام المالي: إضافة دفعة جديدة وحساب (الأمتار المحولة) آلياً وتجميدها
   Future<void> addLedgerEntry({
-    required int contractId,
+    required String contractId, // 🌟 UUID
     required double amountPaid,
     double fees = 0,
   }) async {
     try {
-      // 1. جلب العقد لمعرفة المساحة
+      // أ. جلب العقد لمعرفة مساحة الشقة الإجمالية
       final contract = state.contracts.firstWhere((c) => c.id == contractId);
 
-      // 2. جلب أحدث تسعيرة للمواد من السجل التاريخي (الإعدادات)
+      // ب. جلب أحدث تسعيرة للمواد من السجل التاريخي (الإعدادات)
       final currentPrices = await _erpRepository.getLatestPrices();
       if (currentPrices == null) {
         throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً لحساب سعر المتر اليوم.');
       }
 
-      // 3. حساب سعر المتر المربع اليوم (وقت الدفع)
+      // ج. حساب سعر المتر المربع اليوم (وقت الدفع) بناءً على الكميات الثابتة للإكسل
       final calculations = CalculatorHelper.calculateContractValues(
         area: contract.totalArea,
         currentPrices: currentPrices,
       );
       final double meterPriceToday = calculations['pricePerSqm']!;
 
-      // 4. الجوهر المالي: حساب عدد الأمتار التي اشتراها هذا المبلغ
+      // د. العملية الأهم: حساب عدد الأمتار التي اشتراها هذا المبلغ
       final double convertedMeters = amountPaid / meterPriceToday;
 
-      // 5. حفظ السجل وتجميد الأسعار
+      // هـ. حفظ السجل وتجميد الأسعار (لكي لا تتغير الدفعات القديمة إذا تغير سعر السوق غداً)
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         paymentDate: DateTime.now(),
         amountPaid: amountPaid,
-        meterPriceAtPayment: meterPriceToday, // تم تجميد السعر
-        convertedMeters: convertedMeters,     // تم تجميد الأمتار
+        meterPriceAtPayment: meterPriceToday, // 🌟 تجميد سعر المتر
+        convertedMeters: convertedMeters,     // 🌟 تجميد الأمتار المحولة
         fees: Value(fees),
       );
       
       await _erpRepository.addLedgerEntry(newEntry);
       
-      // 6. تحديث الجدول أمام المحاسب
+      // و. تحديث الجدول أمام المحاسب لرؤية الفاتورة فوراً
       await selectContract(contractId);
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  /// تحديث حالة إرسال الواتساب للدفعة
-  Future<void> markAsSent(int entryId, int contractId) async {
+  /// 4. تحديث حالة الفاتورة لتسجيل أنه تم إرسالها عبر الواتساب
+  Future<void> markAsSent(String entryId, String contractId) async {
     try {
       await _erpRepository.markWhatsAppAsSent(entryId);
+      // تحديث الشاشة لتنعكس التغييرات (تصبح أيقونة الواتساب رمادية)
       await selectContract(contractId);
     } catch (e) {
       print('Failed to mark WhatsApp as sent: $e');

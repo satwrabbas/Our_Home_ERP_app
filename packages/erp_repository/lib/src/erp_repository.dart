@@ -69,6 +69,19 @@ class ErpRepository {
     }
   }
 
+    Future<void> deleteContract(String contractId) async {
+    await _localApi.deleteContract(contractId);
+    try {
+      await _cloudApi.upsertContract({
+        'id': contractId, 
+        'isDeleted': true, 
+        'updatedAt': DateTime.now().toIso8601String()
+      });
+    } catch (e) {
+      print('Cloud sync failed for Delete Contract: $e');
+    }
+  }
+
   // ==========================================
   // 💰 دفتر الأستاذ (Payments Ledger)
   // ==========================================

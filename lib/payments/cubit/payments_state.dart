@@ -7,16 +7,16 @@ class PaymentsState extends Equatable {
     this.status = PaymentsStatus.initial,
     this.clients = const[],
     this.contracts = const [],
-    this.ledgerEntries = const[], // ✅ استخدمنا الاسم الجديد لدفتر الأستاذ
-    this.selectedContractId,
+    this.ledgerEntries = const[], // ✅ استخدمنا الاسم الجديد (دفتر الأستاذ) الذي يمثل المدفوعات الحقيقية
+    this.selectedContractId,      // 🌟 تم التحديث إلى String (UUID)
     this.errorMessage,
   });
 
   final PaymentsStatus status;
   final List<Client> clients;
   final List<Contract> contracts;
-  final List<PaymentsLedgerData> ledgerEntries; // ✅ النوع الجديد الذي يمثل الدفعة
-  final int? selectedContractId;
+  final List<PaymentsLedgerData> ledgerEntries; // ✅ النوع الجديد الذي يمثل الدفعة والأمتار المحولة
+  final String? selectedContractId;             // 🌟 String بدلاً من int
   final String? errorMessage;
 
   PaymentsState copyWith({
@@ -24,7 +24,7 @@ class PaymentsState extends Equatable {
     List<Client>? clients,
     List<Contract>? contracts,
     List<PaymentsLedgerData>? ledgerEntries,
-    int? selectedContractId,
+    String? selectedContractId, // 🌟 String
     String? errorMessage,
   }) {
     return PaymentsState(

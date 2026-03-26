@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/payments_cubit.dart';
 
-// (هذه الاستيرادات ستحتوي على خطأ أحمر مؤقت حتى نحدثها في الخطوة القادمة)
 import '../../core/utils/pdf_generator.dart';
 import '../../core/utils/pdf_preview_page.dart';
 import '../../core/utils/whatsapp_helper.dart';
@@ -33,16 +32,15 @@ class PaymentsView extends StatelessWidget {
           if (state.status == PaymentsStatus.loading && state.contracts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (state.contracts.isEmpty) {
-            return const Center(
-              child: Text('لا يوجد عقود مسجلة. يرجى إضافة عقد أولاً.', style: TextStyle(fontSize: 18)),
-            );
+            return const Center(child: Text('لا يوجد عقود مسجلة. يرجى إضافة عقد أولاً.', style: TextStyle(fontSize: 18)));
           }
 
           return Column(
             children:[
-              // --- القسم العلوي: اختيار العقد ---
+              // ==========================================
+              // --- القسم العلوي: اختيار العقد (الفلترة) ---
+              // ==========================================
               Container(
                 padding: const EdgeInsets.all(24.0),
                 color: Colors.orange.shade50,
@@ -51,14 +49,17 @@ class PaymentsView extends StatelessWidget {
                     const Text('اختر العقد المطلوب: ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: DropdownButtonFormField<int>(
+                      // 🌟 القائمة المنسدلة أصبحت تدعم String UUID
+                      child: DropdownButtonFormField<String>(
                         value: state.selectedContractId,
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          final clientName = state.clients.firstWhere((c) => c.id == contract.clientId).name;
+                          // البحث عن اسم العميل بأمان
+                          final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
                           return DropdownMenuItem(
                             value: contract.id,
-                            child: Text('عقد رقم ${contract.id} - العميل: $clientName (${contract.apartmentDetails})'),
+                            // إظهار اسم العميل ووصف الشقة لسهولة البحث للمحاسب
+                            child: Text('العميل: $clientName (${contract.apartmentDetails})'),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -67,6 +68,7 @@ class PaymentsView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    // زر إضافة دفعة (يظهر فقط إذا تم اختيار عقد)
                     if (state.selectedContractId != null)
                       ElevatedButton.icon(
                         onPressed: () => _showAddPaymentDialog(context, state.selectedContractId!),
@@ -78,7 +80,9 @@ class PaymentsView extends StatelessWidget {
                 ),
               ),
 
+              // ==========================================
               // --- القسم السفلي: جدول الحركات للعقد المحدد ---
+              // ==========================================
               Expanded(
                 child: state.selectedContractId == null
                     ? const Center(child: Text('يرجى اختيار عقد من القائمة بالأعلى لعرض الدفعات.', style: TextStyle(fontSize: 18, color: Colors.grey)))
@@ -93,29 +97,36 @@ class PaymentsView extends StatelessWidget {
                                 columns: const[
                                   DataColumn(label: Text('رقم الإيصال', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('المبلغ المدفوع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('سعر المتر (وقت الدفع)', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('الأمتار المحولة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
                                   DataColumn(label: Text('تاريخ الدفع', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                                 ],
                                 rows: state.ledgerEntries.map((entry) {
                                   return DataRow(cells:[
-                                    DataCell(Text(entry.id.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    // 🌟 عرض أول 8 أحرف من الـ UUID فقط لجمالية الجدول وعدم تشوهه
+                                    DataCell(Text(entry.id.split('-').first, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                                    
+                                    // تنسيق مالي جميل (إضافة فاصلة عشرية إذا لزم الأمر، وإخفاء الأصفار الزائدة)
                                     DataCell(Text('${entry.amountPaid.toStringAsFixed(0)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
                                     DataCell(Text('${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س')),
                                     DataCell(Text('${entry.convertedMeters.toStringAsFixed(3)} م2', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
+                                    
                                     DataCell(Text('${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}')),
+                                    
+                                    // 🌟 أزرار الإجراءات (الطباعة والواتساب)
                                     DataCell(Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children:[
                                         IconButton(
                                           icon: const Icon(Icons.print, color: Colors.blue),
                                           tooltip: 'معاينة وطباعة الفاتورة',
                                           onPressed: () async {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...'), duration: Duration(seconds: 1)));
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
                                             final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
                                             final client = state.clients.firstWhere((c) => c.id == contract.clientId);
                                             
-                                            // سيتم إصلاح هذا السطر في الخطوة القادمة
+                                            // توليد الـ PDF من بيانات دفتر الأستاذ
                                             final pdfBytes = await PdfGenerator.generateReceiptPdf(
                                               entry: entry,
                                               contract: contract,
@@ -123,18 +134,20 @@ class PaymentsView extends StatelessWidget {
                                             );
 
                                             if (context.mounted) {
-                                              Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id}_${client.name}')));
+                                              // عرض المعاينة
+                                              Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id.split('-').first}_${client.name}')));
                                             }
                                           },
                                         ),
                                         IconButton(
+                                          // إذا تم الإرسال سابقاً، يصبح اللون رمادي
                                           icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
                                           tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
                                           onPressed: () async {
                                             final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
                                             final client = state.clients.firstWhere((c) => c.id == contract.clientId);
                                             
-                                            // سيتم إصلاح هذا السطر في الخطوة القادمة
+                                            // إرسال رسالة الواتساب وفتح التطبيق الخارجي
                                             final success = await WhatsAppHelper.sendReceiptMessage(
                                               entry: entry,
                                               contract: contract,
@@ -142,6 +155,7 @@ class PaymentsView extends StatelessWidget {
                                             );
 
                                             if (context.mounted && success) {
+                                              // تحديث حالة الفاتورة في قاعدة البيانات لتسجيل الإرسال
                                               context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
                                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب!'), backgroundColor: Colors.green));
                                             }
@@ -162,7 +176,11 @@ class PaymentsView extends StatelessWidget {
     );
   }
 
-  void _showAddPaymentDialog(BuildContext parentContext, int contractId) {
+  // ==========================================
+  // --- النافذة المنبثقة: إدخال الدفعة ---
+  // ==========================================
+  // 🌟 contractId أصبح String
+  void _showAddPaymentDialog(BuildContext parentContext, String contractId) {
     final amountController = TextEditingController();
     final feesController = TextEditingController(text: '0');
 
@@ -170,13 +188,13 @@ class PaymentsView extends StatelessWidget {
       context: parentContext,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('إدخال دفعة جديدة (دفتر الأستاذ)'),
+          title: const Text('إدخال دفعة جديدة (دفتر الأستاذ)', style: TextStyle(color: Colors.deepOrange)),
           content: SizedBox(
             width: 400,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children:[
-                const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد تم إدخالها في شاشة الإعدادات.', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد (الأسعار الفعالة اليوم).', style: TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: amountController,
@@ -195,8 +213,10 @@ class PaymentsView extends StatelessWidget {
           actions:[
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
               onPressed: () {
                 if (amountController.text.isNotEmpty) {
+                  // استدعاء دالة الإضافة في الـ Cubit التي تتكفل بكل العمليات الحسابية والتجميد
                   parentContext.read<PaymentsCubit>().addLedgerEntry(
                     contractId: contractId,
                     amountPaid: double.parse(amountController.text),
@@ -205,7 +225,7 @@ class PaymentsView extends StatelessWidget {
                   Navigator.pop(dialogContext);
                 }
               },
-              child: const Text('حفظ الدفعة آلياً'),
+              child: const Text('حفظ الدفعة وحساب الأمتار آلياً'),
             ),
           ],
         );

@@ -35,6 +35,7 @@ class Clients extends Table {
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get clientId => text().references(Clients, #id)(); // 🌟 ربط عبر UUID
+  TextColumn get contractType => text().withDefault(const Constant('لاحق التخصص'))(); 
   
   TextColumn get apartmentDetails => text()(); // وصف الشقة (أرضي، قبو، الخ)
   RealColumn get totalArea => real()(); // المساحة الكلية للشقة
