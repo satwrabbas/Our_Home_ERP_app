@@ -1,7 +1,6 @@
 import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
 
-/// المدير الذكي الذي يربط بين قاعدة البيانات المحلية (Drift) والسحابية (Supabase)
 class ErpRepository {
   const ErpRepository({
     required LocalStorageApi localStorageApi,
@@ -18,7 +17,7 @@ class ErpRepository {
   Future<List<Client>> getClients() => _localApi.getClients();
 
   Future<void> addClient(ClientsCompanion clientCompanion) async {
-    final localId = await _localApi.addClient(clientCompanion);
+    final localId = await _localApi.addClient(clientCompanion); // localId هنا هو String
     try {
       final cloudData = {
         'id': localId,
@@ -34,7 +33,7 @@ class ErpRepository {
     }
   }
 
-  Future<void> deleteClient(int clientId) async {
+  Future<void> deleteClient(String clientId) async { // String
     await _localApi.deleteClient(clientId);
     try {
       await _cloudApi.upsertClient({'id': clientId, 'isDeleted': true, 'updatedAt': DateTime.now().toIso8601String()});
@@ -44,21 +43,22 @@ class ErpRepository {
   }
 
   // ==========================================
-  // 📄 العقود (Contracts) - ثوابت الاتفاق
+  // 📄 العقود (Contracts)
   // ==========================================
   Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
-    final localId = await _localApi.addContract(contractCompanion);
+    final localId = await _localApi.addContract(contractCompanion); // String
     try {
       final cloudData = {
         'id': localId,
         'clientId': contractCompanion.clientId.value,
+        'contractType': contractCompanion.contractType.present ? contractCompanion.contractType.value : 'لاحق التخصص',
         'apartmentDetails': contractCompanion.apartmentDetails.value,
         'totalArea': contractCompanion.totalArea.value,
         'baseMeterPriceAtSigning': contractCompanion.baseMeterPriceAtSigning.value,
         'coefficients': contractCompanion.coefficients.present ? contractCompanion.coefficients.value : '{}',
-        'contractDate': contractCompanion.contractDate.value.toIso8601String(),
+        'contractDate': contractCompanion.contractDate.present ? contractCompanion.contractDate.value.toIso8601String() : DateTime.now().toIso8601String(),
         'isCompleted': contractCompanion.isCompleted.present ? contractCompanion.isCompleted.value : false,
         'isDeleted': false,
         'updatedAt': DateTime.now().toIso8601String(),
@@ -70,19 +70,18 @@ class ErpRepository {
   }
 
   // ==========================================
-  // 💰 دفتر الأستاذ (Payments Ledger) - الأمتار المحولة
+  // 💰 دفتر الأستاذ (Payments Ledger)
   // ==========================================
-  Future<List<PaymentsLedgerData>> getContractLedger(int contractId) => _localApi.getContractLedger(contractId);
+  Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _localApi.getContractLedger(contractId); // String
 
   Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
-    final localId = await _localApi.addLedgerEntry(entryCompanion);
+    final localId = await _localApi.addLedgerEntry(entryCompanion); // String
     try {
       final cloudData = {
         'id': localId,
         'contractId': entryCompanion.contractId.value,
-        // scheduleId قد يكون فارغاً إذا كان دفعاً غير مجدول
         'scheduleId': entryCompanion.scheduleId.present ? entryCompanion.scheduleId.value : null,
-        'paymentDate': entryCompanion.paymentDate.value.toIso8601String(),
+        'paymentDate': entryCompanion.paymentDate.present ? entryCompanion.paymentDate.value.toIso8601String() : DateTime.now().toIso8601String(),
         'amountPaid': entryCompanion.amountPaid.value,
         'meterPriceAtPayment': entryCompanion.meterPriceAtPayment.value,
         'convertedMeters': entryCompanion.convertedMeters.value,
@@ -97,7 +96,7 @@ class ErpRepository {
     }
   }
 
-  Future<void> markWhatsAppAsSent(int entryId) async {
+  Future<void> markWhatsAppAsSent(String entryId) async { // String
     await _localApi.updateWhatsAppStatus(entryId);
     try {
       await _cloudApi.upsertPayment({'id': entryId, 'isWhatsAppSent': true, 'updatedAt': DateTime.now().toIso8601String()});
@@ -113,6 +112,5 @@ class ErpRepository {
 
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
     await _localApi.savePrices(pricesCompanion);
-    // (يمكن إضافة دالة للرفع السحابي في CloudStorageClient لاحقاً إذا أردت مزامنة الأسعار)
   }
 }
