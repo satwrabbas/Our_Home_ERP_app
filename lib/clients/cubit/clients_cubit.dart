@@ -1,7 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-// نحتاج استدعاء مكتبة drift للوصول إلى Value() عند إنشاء ClientsCompanion
 import 'package:local_storage_api/local_storage_api.dart' show ClientsCompanion;
 import 'package:drift/drift.dart' show Value;
 
@@ -12,7 +11,7 @@ class ClientsCubit extends Cubit<ClientsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب جميع العملاء من قاعدة البيانات
+  /// جلب جميع العملاء (النشطين غير المحذوفين)
   Future<void> fetchClients() async {
     emit(state.copyWith(status: ClientsStatus.loading));
     try {
@@ -33,9 +32,17 @@ class ClientsCubit extends Cubit<ClientsState> {
       );
       
       await _erpRepository.addClient(newClient);
-      
-      // بعد الإضافة بنجاح، نُعيد جلب القائمة لتحديث الشاشة
-      await fetchClients();
+      await fetchClients(); // تحديث الشاشة
+    } catch (e) {
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  /// 🌟 حذف عميل (حذف مؤقت Soft Delete)
+  Future<void> deleteClient(String id) async { // 🌟 لاحظ أن الـ ID أصبح String
+    try {
+      await _erpRepository.deleteClient(id);
+      await fetchClients(); // تحديث الشاشة ليختفي العميل
     } catch (e) {
       emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
     }
