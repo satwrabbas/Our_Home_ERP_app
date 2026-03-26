@@ -49,18 +49,18 @@ class Contracts extends Table {
 // ==========================================
 // 3. جدول سجل أسعار المواد (Material Prices History)
 // ==========================================
-// لا نقوم بتحديث سطر واحد، بل نضيف سطراً جديداً كلما تغيرت الأسعار 
-// لكي لا تتأثر حسابات الأشهر السابقة!
 class MaterialPricesHistory extends Table {
   IntColumn get id => integer().autoIncrement()();
   
-  DateTimeColumn get effectiveDate => dateTime().withDefault(currentDateAndTime)(); // تاريخ اعتماد هذه التسعيرة
+  DateTimeColumn get effectiveDate => dateTime().withDefault(currentDateAndTime)(); 
   
   RealColumn get ironPrice => real()(); 
   RealColumn get cementPrice => real()(); 
   RealColumn get block15Price => real()(); 
+  
+  // 🌟 تم دمج الكوفراج والبيتون المسلح في هذا العمود
   RealColumn get formworkAndPouringWages => real()(); 
-  RealColumn get reinforcedConcretePrice => real()(); 
+  
   RealColumn get aggregateMaterialsPrice => real()(); 
   RealColumn get ordinaryWorkerWage => real()(); 
 

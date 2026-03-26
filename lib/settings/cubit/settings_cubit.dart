@@ -22,13 +22,12 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// إضافة تسعيرة جديدة إلى السجل (دون مسح القديمة)
+/// إضافة تسعيرة جديدة إلى السجل (6 بنود مدمجة)
   Future<void> updatePrices({
     required double iron,
     required double cement,
     required double block15,
-    required double formwork,
-    required double concrete,
+    required double formwork, // الكوفراج والبيتون معاً
     required double aggregates,
     required double worker,
   }) async {
@@ -38,16 +37,14 @@ class SettingsCubit extends Cubit<SettingsState> {
         cementPrice: cement,
         block15Price: block15,
         formworkAndPouringWages: formwork,
-        reinforcedConcretePrice: concrete,
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
-        effectiveDate: Value(DateTime.now()), // تاريخ اعتماد هذه الأسعار
+        effectiveDate: Value(DateTime.now()), 
       );
       
       await _erpRepository.savePrices(newPrices);
-      await fetchPrices(); // تحديث الشاشة لتُظهر أحدث سعر
+      await fetchPrices(); 
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
   }
-}
