@@ -1312,17 +1312,6 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
-  static const VerificationMeta _reinforcedConcretePriceMeta =
-      const VerificationMeta('reinforcedConcretePrice');
-  @override
-  late final GeneratedColumn<double> reinforcedConcretePrice =
-      GeneratedColumn<double>(
-        'reinforced_concrete_price',
-        aliasedName,
-        false,
-        type: DriftSqlType.double,
-        requiredDuringInsert: true,
-      );
   static const VerificationMeta _aggregateMaterialsPriceMeta =
       const VerificationMeta('aggregateMaterialsPrice');
   @override
@@ -1395,7 +1384,6 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
     cementPrice,
     block15Price,
     formworkAndPouringWages,
-    reinforcedConcretePrice,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
     createdAt,
@@ -1466,17 +1454,6 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
       );
     } else if (isInserting) {
       context.missing(_formworkAndPouringWagesMeta);
-    }
-    if (data.containsKey('reinforced_concrete_price')) {
-      context.handle(
-        _reinforcedConcretePriceMeta,
-        reinforcedConcretePrice.isAcceptableOrUnknown(
-          data['reinforced_concrete_price']!,
-          _reinforcedConcretePriceMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_reinforcedConcretePriceMeta);
     }
     if (data.containsKey('aggregate_materials_price')) {
       context.handle(
@@ -1554,10 +1531,6 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
         DriftSqlType.double,
         data['${effectivePrefix}formwork_and_pouring_wages'],
       )!,
-      reinforcedConcretePrice: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}reinforced_concrete_price'],
-      )!,
       aggregateMaterialsPrice: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}aggregate_materials_price'],
@@ -1595,7 +1568,6 @@ class MaterialPricesHistoryData extends DataClass
   final double cementPrice;
   final double block15Price;
   final double formworkAndPouringWages;
-  final double reinforcedConcretePrice;
   final double aggregateMaterialsPrice;
   final double ordinaryWorkerWage;
   final DateTime createdAt;
@@ -1608,7 +1580,6 @@ class MaterialPricesHistoryData extends DataClass
     required this.cementPrice,
     required this.block15Price,
     required this.formworkAndPouringWages,
-    required this.reinforcedConcretePrice,
     required this.aggregateMaterialsPrice,
     required this.ordinaryWorkerWage,
     required this.createdAt,
@@ -1625,9 +1596,6 @@ class MaterialPricesHistoryData extends DataClass
     map['block15_price'] = Variable<double>(block15Price);
     map['formwork_and_pouring_wages'] = Variable<double>(
       formworkAndPouringWages,
-    );
-    map['reinforced_concrete_price'] = Variable<double>(
-      reinforcedConcretePrice,
     );
     map['aggregate_materials_price'] = Variable<double>(
       aggregateMaterialsPrice,
@@ -1647,7 +1615,6 @@ class MaterialPricesHistoryData extends DataClass
       cementPrice: Value(cementPrice),
       block15Price: Value(block15Price),
       formworkAndPouringWages: Value(formworkAndPouringWages),
-      reinforcedConcretePrice: Value(reinforcedConcretePrice),
       aggregateMaterialsPrice: Value(aggregateMaterialsPrice),
       ordinaryWorkerWage: Value(ordinaryWorkerWage),
       createdAt: Value(createdAt),
@@ -1669,9 +1636,6 @@ class MaterialPricesHistoryData extends DataClass
       block15Price: serializer.fromJson<double>(json['block15Price']),
       formworkAndPouringWages: serializer.fromJson<double>(
         json['formworkAndPouringWages'],
-      ),
-      reinforcedConcretePrice: serializer.fromJson<double>(
-        json['reinforcedConcretePrice'],
       ),
       aggregateMaterialsPrice: serializer.fromJson<double>(
         json['aggregateMaterialsPrice'],
@@ -1696,9 +1660,6 @@ class MaterialPricesHistoryData extends DataClass
       'formworkAndPouringWages': serializer.toJson<double>(
         formworkAndPouringWages,
       ),
-      'reinforcedConcretePrice': serializer.toJson<double>(
-        reinforcedConcretePrice,
-      ),
       'aggregateMaterialsPrice': serializer.toJson<double>(
         aggregateMaterialsPrice,
       ),
@@ -1716,7 +1677,6 @@ class MaterialPricesHistoryData extends DataClass
     double? cementPrice,
     double? block15Price,
     double? formworkAndPouringWages,
-    double? reinforcedConcretePrice,
     double? aggregateMaterialsPrice,
     double? ordinaryWorkerWage,
     DateTime? createdAt,
@@ -1730,8 +1690,6 @@ class MaterialPricesHistoryData extends DataClass
     block15Price: block15Price ?? this.block15Price,
     formworkAndPouringWages:
         formworkAndPouringWages ?? this.formworkAndPouringWages,
-    reinforcedConcretePrice:
-        reinforcedConcretePrice ?? this.reinforcedConcretePrice,
     aggregateMaterialsPrice:
         aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
     ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
@@ -1757,9 +1715,6 @@ class MaterialPricesHistoryData extends DataClass
       formworkAndPouringWages: data.formworkAndPouringWages.present
           ? data.formworkAndPouringWages.value
           : this.formworkAndPouringWages,
-      reinforcedConcretePrice: data.reinforcedConcretePrice.present
-          ? data.reinforcedConcretePrice.value
-          : this.reinforcedConcretePrice,
       aggregateMaterialsPrice: data.aggregateMaterialsPrice.present
           ? data.aggregateMaterialsPrice.value
           : this.aggregateMaterialsPrice,
@@ -1781,7 +1736,6 @@ class MaterialPricesHistoryData extends DataClass
           ..write('cementPrice: $cementPrice, ')
           ..write('block15Price: $block15Price, ')
           ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
-          ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
           ..write('createdAt: $createdAt, ')
@@ -1799,7 +1753,6 @@ class MaterialPricesHistoryData extends DataClass
     cementPrice,
     block15Price,
     formworkAndPouringWages,
-    reinforcedConcretePrice,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
     createdAt,
@@ -1816,7 +1769,6 @@ class MaterialPricesHistoryData extends DataClass
           other.cementPrice == this.cementPrice &&
           other.block15Price == this.block15Price &&
           other.formworkAndPouringWages == this.formworkAndPouringWages &&
-          other.reinforcedConcretePrice == this.reinforcedConcretePrice &&
           other.aggregateMaterialsPrice == this.aggregateMaterialsPrice &&
           other.ordinaryWorkerWage == this.ordinaryWorkerWage &&
           other.createdAt == this.createdAt &&
@@ -1832,7 +1784,6 @@ class MaterialPricesHistoryCompanion
   final Value<double> cementPrice;
   final Value<double> block15Price;
   final Value<double> formworkAndPouringWages;
-  final Value<double> reinforcedConcretePrice;
   final Value<double> aggregateMaterialsPrice;
   final Value<double> ordinaryWorkerWage;
   final Value<DateTime> createdAt;
@@ -1845,7 +1796,6 @@ class MaterialPricesHistoryCompanion
     this.cementPrice = const Value.absent(),
     this.block15Price = const Value.absent(),
     this.formworkAndPouringWages = const Value.absent(),
-    this.reinforcedConcretePrice = const Value.absent(),
     this.aggregateMaterialsPrice = const Value.absent(),
     this.ordinaryWorkerWage = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1859,7 +1809,6 @@ class MaterialPricesHistoryCompanion
     required double cementPrice,
     required double block15Price,
     required double formworkAndPouringWages,
-    required double reinforcedConcretePrice,
     required double aggregateMaterialsPrice,
     required double ordinaryWorkerWage,
     this.createdAt = const Value.absent(),
@@ -1869,7 +1818,6 @@ class MaterialPricesHistoryCompanion
        cementPrice = Value(cementPrice),
        block15Price = Value(block15Price),
        formworkAndPouringWages = Value(formworkAndPouringWages),
-       reinforcedConcretePrice = Value(reinforcedConcretePrice),
        aggregateMaterialsPrice = Value(aggregateMaterialsPrice),
        ordinaryWorkerWage = Value(ordinaryWorkerWage);
   static Insertable<MaterialPricesHistoryData> custom({
@@ -1879,7 +1827,6 @@ class MaterialPricesHistoryCompanion
     Expression<double>? cementPrice,
     Expression<double>? block15Price,
     Expression<double>? formworkAndPouringWages,
-    Expression<double>? reinforcedConcretePrice,
     Expression<double>? aggregateMaterialsPrice,
     Expression<double>? ordinaryWorkerWage,
     Expression<DateTime>? createdAt,
@@ -1894,8 +1841,6 @@ class MaterialPricesHistoryCompanion
       if (block15Price != null) 'block15_price': block15Price,
       if (formworkAndPouringWages != null)
         'formwork_and_pouring_wages': formworkAndPouringWages,
-      if (reinforcedConcretePrice != null)
-        'reinforced_concrete_price': reinforcedConcretePrice,
       if (aggregateMaterialsPrice != null)
         'aggregate_materials_price': aggregateMaterialsPrice,
       if (ordinaryWorkerWage != null)
@@ -1913,7 +1858,6 @@ class MaterialPricesHistoryCompanion
     Value<double>? cementPrice,
     Value<double>? block15Price,
     Value<double>? formworkAndPouringWages,
-    Value<double>? reinforcedConcretePrice,
     Value<double>? aggregateMaterialsPrice,
     Value<double>? ordinaryWorkerWage,
     Value<DateTime>? createdAt,
@@ -1928,8 +1872,6 @@ class MaterialPricesHistoryCompanion
       block15Price: block15Price ?? this.block15Price,
       formworkAndPouringWages:
           formworkAndPouringWages ?? this.formworkAndPouringWages,
-      reinforcedConcretePrice:
-          reinforcedConcretePrice ?? this.reinforcedConcretePrice,
       aggregateMaterialsPrice:
           aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
       ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
@@ -1962,11 +1904,6 @@ class MaterialPricesHistoryCompanion
         formworkAndPouringWages.value,
       );
     }
-    if (reinforcedConcretePrice.present) {
-      map['reinforced_concrete_price'] = Variable<double>(
-        reinforcedConcretePrice.value,
-      );
-    }
     if (aggregateMaterialsPrice.present) {
       map['aggregate_materials_price'] = Variable<double>(
         aggregateMaterialsPrice.value,
@@ -1996,7 +1933,6 @@ class MaterialPricesHistoryCompanion
           ..write('cementPrice: $cementPrice, ')
           ..write('block15Price: $block15Price, ')
           ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
-          ..write('reinforcedConcretePrice: $reinforcedConcretePrice, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
           ..write('createdAt: $createdAt, ')
@@ -4384,7 +4320,6 @@ typedef $$MaterialPricesHistoryTableCreateCompanionBuilder =
       required double cementPrice,
       required double block15Price,
       required double formworkAndPouringWages,
-      required double reinforcedConcretePrice,
       required double aggregateMaterialsPrice,
       required double ordinaryWorkerWage,
       Value<DateTime> createdAt,
@@ -4399,7 +4334,6 @@ typedef $$MaterialPricesHistoryTableUpdateCompanionBuilder =
       Value<double> cementPrice,
       Value<double> block15Price,
       Value<double> formworkAndPouringWages,
-      Value<double> reinforcedConcretePrice,
       Value<double> aggregateMaterialsPrice,
       Value<double> ordinaryWorkerWage,
       Value<DateTime> createdAt,
@@ -4443,11 +4377,6 @@ class $$MaterialPricesHistoryTableFilterComposer
 
   ColumnFilters<double> get formworkAndPouringWages => $composableBuilder(
     column: $table.formworkAndPouringWages,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get reinforcedConcretePrice => $composableBuilder(
-    column: $table.reinforcedConcretePrice,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4516,11 +4445,6 @@ class $$MaterialPricesHistoryTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get reinforcedConcretePrice => $composableBuilder(
-    column: $table.reinforcedConcretePrice,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<double> get aggregateMaterialsPrice => $composableBuilder(
     column: $table.aggregateMaterialsPrice,
     builder: (column) => ColumnOrderings(column),
@@ -4579,11 +4503,6 @@ class $$MaterialPricesHistoryTableAnnotationComposer
 
   GeneratedColumn<double> get formworkAndPouringWages => $composableBuilder(
     column: $table.formworkAndPouringWages,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get reinforcedConcretePrice => $composableBuilder(
-    column: $table.reinforcedConcretePrice,
     builder: (column) => column,
   );
 
@@ -4659,7 +4578,6 @@ class $$MaterialPricesHistoryTableTableManager
                 Value<double> cementPrice = const Value.absent(),
                 Value<double> block15Price = const Value.absent(),
                 Value<double> formworkAndPouringWages = const Value.absent(),
-                Value<double> reinforcedConcretePrice = const Value.absent(),
                 Value<double> aggregateMaterialsPrice = const Value.absent(),
                 Value<double> ordinaryWorkerWage = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4672,7 +4590,6 @@ class $$MaterialPricesHistoryTableTableManager
                 cementPrice: cementPrice,
                 block15Price: block15Price,
                 formworkAndPouringWages: formworkAndPouringWages,
-                reinforcedConcretePrice: reinforcedConcretePrice,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
                 createdAt: createdAt,
@@ -4687,7 +4604,6 @@ class $$MaterialPricesHistoryTableTableManager
                 required double cementPrice,
                 required double block15Price,
                 required double formworkAndPouringWages,
-                required double reinforcedConcretePrice,
                 required double aggregateMaterialsPrice,
                 required double ordinaryWorkerWage,
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4700,7 +4616,6 @@ class $$MaterialPricesHistoryTableTableManager
                 cementPrice: cementPrice,
                 block15Price: block15Price,
                 formworkAndPouringWages: formworkAndPouringWages,
-                reinforcedConcretePrice: reinforcedConcretePrice,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
                 createdAt: createdAt,

@@ -48,3 +48,4 @@ class SettingsCubit extends Cubit<SettingsState> {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
   }
+}
