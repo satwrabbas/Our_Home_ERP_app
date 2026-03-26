@@ -42,7 +42,6 @@ class ContractsView extends StatelessWidget {
             return const Center(child: Text('لم يتم توقيع أي عقود بعد. اضغط على "عقد جديد".', style: TextStyle(fontSize: 18)));
           }
 
-          // عرض العقود بأسماء الحقول الجديدة
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: SizedBox(
@@ -51,20 +50,52 @@ class ContractsView extends StatelessWidget {
                 headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
                 columns: const[
                   DataColumn(label: Text('رقم العقد', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('وصف الشقة', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('المساحة الكلية (م2)', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('سعر المتر المبدئي', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('تاريخ التوقيع', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('مكتمل؟', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 إظهار اسم العميل
+                  DataColumn(label: Text('نوع العقد', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 نوع العقد
+                  DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('المساحة', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
                 rows: state.contracts.map((contract) {
+                  // جلب اسم العميل من قائمة العملاء لعرضه في الجدول بدلاً من الـ ID المعقد
+                  final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
+
                   return DataRow(cells:[
-                    DataCell(Text(contract.id.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
+                    DataCell(Text(contract.id.split('-').first, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                    DataCell(Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    DataCell(Text(contract.contractType, style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold))),
                     DataCell(Text(contract.apartmentDetails)),
                     DataCell(Text('${contract.totalArea} م2')),
-                    DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                    DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green))),
                     DataCell(Text('${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}')),
-                    DataCell(Icon(contract.isCompleted ? Icons.check_circle : Icons.pending_actions, color: contract.isCompleted ? Colors.green : Colors.orange)),
+                    DataCell(
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        tooltip: 'إلغاء وحذف العقد',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('تأكيد الإلغاء'),
+                              content: Text('هل أنت متأكد من إلغاء عقد الشقة الخاص بالعميل "$clientName"؟'),
+                              actions:[
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                  onPressed: () {
+                                    context.read<ContractsCubit>().deleteContract(contract.id);
+                                    Navigator.pop(ctx);
+                                  },
+                                  child: const Text('حذف نهائي'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ]);
                 }).toList(),
               ),
@@ -81,7 +112,10 @@ class ContractsView extends StatelessWidget {
 
     if (state.clients.isEmpty) return;
 
-    int? selectedClientId = state.clients.first.id;
+    // 🌟 تحويل المتغيرات لـ String لدعم الـ UUID
+    String? selectedClientId = state.clients.first.id;
+    String selectedContractType = 'لاحق التخصص'; // 🌟 قيمة افتراضية
+
     final detailsController = TextEditingController();
     final areaController = TextEditingController();
     final priceController = TextEditingController();
@@ -89,80 +123,97 @@ class ContractsView extends StatelessWidget {
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('توقيع عقد شقة جديد (تسعير مرن)'),
-          content: SizedBox(
-            width: 550,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children:[
-                  DropdownButtonFormField<int>(
-                    value: selectedClientId,
-                    decoration: const InputDecoration(labelText: 'اختر العميل', border: OutlineInputBorder()),
-                    items: state.clients.map((client) => DropdownMenuItem(value: client.id, child: Text(client.name))).toList(),
-                    onChanged: (val) => selectedClientId = val,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
-                  const SizedBox(height: 16),
-                  TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  
-                  // الزر السحري
-                  SizedBox(
-                    width: double.infinity,
-                    height: 45,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        if (currentPrices == null) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يرجى حفظ أسعار المواد من شاشة الإعدادات أولاً!'), backgroundColor: Colors.red));
-                          return;
-                        }
-                        if (areaController.text.isEmpty) return;
+        // 🌟 استخدام StatefulBuilder لنتمكن من تغيير القيم داخل النافذة المنبثقة
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('توقيع عقد شقة جديد (تسعير مرن)', style: TextStyle(color: Colors.teal)),
+              content: SizedBox(
+                width: 550,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children:[
+                      // قائمة اختيار العميل (الآن تدعم String UUID)
+                      DropdownButtonFormField<String>(
+                        value: selectedClientId,
+                        decoration: const InputDecoration(labelText: 'اختر العميل (الفريق الثاني)', border: OutlineInputBorder()),
+                        items: state.clients.map((client) => DropdownMenuItem(value: client.id, child: Text(client.name))).toList(),
+                        onChanged: (val) => setState(() => selectedClientId = val),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // 🌟 قائمة اختيار نوع العقد
+                      DropdownButtonFormField<String>(
+                        value: selectedContractType,
+                        decoration: const InputDecoration(labelText: 'نوع العقد', border: OutlineInputBorder()),
+                        items:['لاحق التخصص', 'متخصص', 'تجاري', 'شراكة']
+                            .map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                        onChanged: (val) => setState(() => selectedContractType = val ?? 'لاحق التخصص'),
+                      ),
+                      const SizedBox(height: 16),
 
-                        final calculations = CalculatorHelper.calculateContractValues(
-                          area: double.parse(areaController.text),
-                          currentPrices: currentPrices,
-                        );
+                      TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
+                      const SizedBox(height: 16),
+                      TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (currentPrices == null) {
+                              ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يرجى حفظ أسعار المواد من شاشة الإعدادات أولاً!'), backgroundColor: Colors.red));
+                              return;
+                            }
+                            if (areaController.text.isEmpty) return;
 
-                        priceController.text = calculations['pricePerSqm']!.toStringAsFixed(0);
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر الأساسي بنجاح!'), backgroundColor: Colors.green));
-                      },
-                      icon: const Icon(Icons.calculate),
-                      label: const Text('حساب سعر المتر مبدئياً (حسب سوق اليوم)'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
-                    ),
-                  ),
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(thickness: 2)),
+                            final calculations = CalculatorHelper.calculateContractValues(
+                              area: double.parse(areaController.text),
+                              currentPrices: currentPrices,
+                            );
 
-                  TextField(
-                    controller: priceController,
-                    decoration: const InputDecoration(labelText: 'سعر المتر المربع عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
-                    keyboardType: TextInputType.number,
+                            priceController.text = calculations['pricePerSqm']!.toStringAsFixed(0);
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر الأساسي بنجاح!'), backgroundColor: Colors.green));
+                          },
+                          icon: const Icon(Icons.calculate),
+                          label: const Text('حساب سعر المتر مبدئياً (حسب سوق اليوم)'),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white),
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(thickness: 2)),
+
+                      TextField(
+                        controller: priceController,
+                        decoration: const InputDecoration(labelText: 'سعر المتر المربع عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions:[
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              onPressed: () {
-                if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty) {
-                  parentContext.read<ContractsCubit>().addContract(
-                    clientId: selectedClientId!,
-                    details: detailsController.text,
-                    area: double.parse(areaController.text),
-                    basePrice: double.parse(priceController.text),
-                    coefficients: {}, // المعاملات الخاصة تُضاف لاحقاً إن وجدت
-                  );
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('اعتماد وحفظ العقد'),
-            ),
-          ],
+              actions:[
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+                ElevatedButton(
+                  onPressed: () {
+                    if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty) {
+                      parentContext.read<ContractsCubit>().addContract(
+                        clientId: selectedClientId!,
+                        contractType: selectedContractType, // 🌟 حفظ نوع العقد
+                        details: detailsController.text,
+                        area: double.parse(areaController.text),
+                        basePrice: double.parse(priceController.text),
+                        coefficients: {}, 
+                      );
+                      Navigator.pop(dialogContext);
+                    }
+                  },
+                  child: const Text('اعتماد وحفظ العقد'),
+                ),
+              ],
+            );
+          }
         );
       },
     );
