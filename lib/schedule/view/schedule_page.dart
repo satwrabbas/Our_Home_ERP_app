@@ -110,32 +110,13 @@ class ScheduleView extends StatelessWidget {
                                       DataCell(
                                         isPaid
                                           ? const Text('مُسددة بالكامل في دفتر الأستاذ', style: TextStyle(color: Colors.grey))
-                                          : ElevatedButton(
-                                         style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-                                         // 🌟 1. أضفنا كلمة async هنا
-                                         onPressed: () async { 
-                                           if (amountController.text.isNotEmpty) {
-                                             
-                                             // 🌟 2. أضفنا كلمة await لكي ننتظر قاعدة البيانات حتى تنتهي تماماً
-                                             await parentContext.read<PaymentsCubit>().addLedgerEntry(
-                                               contractId: contractId,
-                                               amountPaid: double.parse(amountController.text),
-                                               scheduleId: schedule.id, 
-                                             );
-                                             
-                                             // 3. نتأكد أن الشاشة ما زالت مفتوحة قبل تحديثها
-                                             if (parentContext.mounted) {
-                                               // الآن نقوم بتحديث الشاشة، وستظهر النتيجة "مدفوع" فوراً من المرة الأولى!
-                                               parentContext.read<ScheduleCubit>().selectContract(contractId);
-                                               Navigator.pop(dialogContext);
-                                               ScaffoldMessenger.of(parentContext).showSnackBar(
-                                                 const SnackBar(content: Text('تم تسجيل الدفعة وحساب الأمتار بنجاح!'), backgroundColor: Colors.green)
-                                               );
-                                             }
-                                           }
-                                         },
-                                         child: const Text('تأكيد الدفع وإغلاق القسط'),
-                                       ),
+                                          : ElevatedButton.icon(
+                                              onPressed: () => _showFlexiblePaymentDialog(context, schedule, state.selectedContractId!),
+                                              icon: const Icon(Icons.payments_outlined),
+                                              label: const Text('تسديد الآن'),
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+                                            ),
+                                      ),
                                     ],
                                   );
                                 }).toList(),
@@ -178,20 +159,26 @@ class ScheduleView extends StatelessWidget {
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-              onPressed: () {
+              // 🌟 1. أضفنا كلمة async هنا
+              onPressed: () async { 
                 if (amountController.text.isNotEmpty) {
-                  // 1. نرسل المبلغ لدفتر الأستاذ ليحسب الأمتار ويحفظها
-                  parentContext.read<PaymentsCubit>().addLedgerEntry(
+                  
+                  // 🌟 2. أضفنا كلمة await لكي ننتظر قاعدة البيانات حتى تنتهي تماماً
+                  await parentContext.read<PaymentsCubit>().addLedgerEntry(
                     contractId: contractId,
                     amountPaid: double.parse(amountController.text),
-                    scheduleId: schedule.id, // 🌟 نرسل رقم القسط ليتم إغلاقه آلياً
+                    scheduleId: schedule.id, 
                   );
                   
-                  // 2. نقوم بتحديث شاشة المراقبة لكي نرى القسط يتحول للأخضر فوراً
-                  parentContext.read<ScheduleCubit>().selectContract(contractId);
-                  
-                  Navigator.pop(dialogContext);
-                  ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('تم تسجيل الدفعة وحساب الأمتار بنجاح!'), backgroundColor: Colors.green));
+                  // 3. نتأكد أن الشاشة ما زالت مفتوحة قبل تحديثها
+                  if (parentContext.mounted) {
+                    // الآن نقوم بتحديث الشاشة، وستظهر النتيجة "مدفوع" فوراً من المرة الأولى!
+                    parentContext.read<ScheduleCubit>().selectContract(contractId);
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      const SnackBar(content: Text('تم تسجيل الدفعة وحساب الأمتار بنجاح!'), backgroundColor: Colors.green)
+                    );
+                  }
                 }
               },
               child: const Text('تأكيد الدفع وإغلاق القسط'),
