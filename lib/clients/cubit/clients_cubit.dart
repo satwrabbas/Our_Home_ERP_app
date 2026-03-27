@@ -13,7 +13,7 @@ class ClientsCubit extends Cubit<ClientsState> {
 
   /// جلب جميع العملاء (النشطين غير المحذوفين)
   Future<void> fetchClients() async {
-    emit(state.copyWith(status: ClientsStatus.loading));
+    if (state.status == ClientsStatus.initial) emit(state.copyWith(status: ClientsStatus.loading));
     try {
       final clients = await _erpRepository.getClients();
       emit(state.copyWith(status: ClientsStatus.success, clients: clients));

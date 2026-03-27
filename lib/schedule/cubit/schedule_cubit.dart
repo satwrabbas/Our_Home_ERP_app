@@ -11,7 +11,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   /// 1. جلب البيانات الأساسية (العملاء والعقود الفعالة) لملء القوائم المنسدلة
   Future<void> fetchInitialData() async {
-    emit(state.copyWith(status: ScheduleStatus.loading));
+    if (state.status == ScheduleStatus.initial) emit(state.copyWith(status: ScheduleStatus.loading));
     try {
       final clients = await _erpRepository.getClients();
       final contracts = await _erpRepository.getAllContracts();
@@ -28,7 +28,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   /// 2. عند اختيار عقد من القائمة المنسدلة، نجلب "جدول الاستحقاقات" الخاص به
   Future<void> selectContract(String contractId) async {
-    emit(state.copyWith(status: ScheduleStatus.loading, selectedContractId: contractId));
+    emit(state.copyWith(selectedContractId: contractId));
     try {
       // جلب الأقساط المجدولة (مرتبة من الأقدم استحقاقاً إلى الأحدث)
       final scheduleList = await _erpRepository.getContractSchedule(contractId);

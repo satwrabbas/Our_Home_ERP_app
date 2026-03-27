@@ -12,7 +12,7 @@ class HomeCubit extends Cubit<HomeState> {
   /// جلب وتحليل جميع بيانات الشركة لعرضها في لوحة القيادة (Dashboard)
   Future<void> fetchDashboardData() async {
     // 1. إظهار شاشة التحميل
-    emit(state.copyWith(status: HomeStatus.loading));
+    if (state.status == HomeStatus.initial) emit(state.copyWith(status: HomeStatus.loading));
     try {
       // 2. جلب البيانات الأساسية من المستودع
       final clients = await _erpRepository.getClients();

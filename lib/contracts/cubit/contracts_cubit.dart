@@ -14,7 +14,7 @@ class ContractsCubit extends Cubit<ContractsState> {
 
   /// جلب العملاء والعقود الفعالة (غير المحذوفة) لعرضها في الجدول
   Future<void> fetchData() async {
-    emit(state.copyWith(status: ContractsStatus.loading));
+    if (state.status == ContractsStatus.initial) emit(state.copyWith(status: ContractsStatus.loading));
     try {
       final clients = await _erpRepository.getClients();
       final allContracts = await _erpRepository.getAllContracts();

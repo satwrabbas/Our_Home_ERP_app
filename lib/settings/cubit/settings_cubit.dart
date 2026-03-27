@@ -13,7 +13,7 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   /// جلب أحدث تسعيرة معتمدة من السجل التاريخي
   Future<void> fetchPrices() async {
-    emit(state.copyWith(status: SettingsStatus.loading));
+    if (state.status == SettingsStatus.initial) emit(state.copyWith(status: SettingsStatus.loading));
     try {
       final prices = await _erpRepository.getLatestPrices();
       emit(state.copyWith(status: SettingsStatus.success, currentPrices: prices));

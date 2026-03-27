@@ -49,16 +49,15 @@ class PaymentsView extends StatelessWidget {
                     const Text('اختر العقد المطلوب: ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(width: 16),
                     Expanded(
-                      // 🌟 القائمة المنسدلة أصبحت تدعم String UUID
                       child: DropdownButtonFormField<String>(
-                        value: state.selectedContractId,
+                        // 🌟 فحص الأمان هنا أيضاً
+                        value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
+                        
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          // البحث عن اسم العميل بأمان
                           final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
                           return DropdownMenuItem(
                             value: contract.id,
-                            // إظهار اسم العميل ووصف الشقة لسهولة البحث للمحاسب
                             child: Text('العميل: $clientName (${contract.apartmentDetails})'),
                           );
                         }).toList(),
