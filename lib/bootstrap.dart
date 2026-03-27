@@ -47,8 +47,8 @@ Future<void> bootstrap(FutureOr<Widget> Function(ErpRepository) builder) async {
       // ==========================================
       // TODO: ضع الروابط الخاصة بمشروعك في Supabase هنا
       await Supabase.initialize(
-        url: 'https://YOUR_PROJECT_ID.supabase.co',
-        anonKey: 'YOUR_SUPABASE_ANON_KEY',
+        url: 'https://krdfrdzyfdcqjmnuzads.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZGZyZHp5ZmRjcWptbnV6YWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NTQzOTksImV4cCI6MjA5MDEzMDM5OX0.IzREUxh7vyCE3mBlVj79U6ED8ACOfORGND6YS4yPxgg',
       );
 
       // ==========================================
