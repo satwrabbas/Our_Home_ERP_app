@@ -18,6 +18,9 @@ import '../cubit/dashboard_cubit.dart';
 import '../../home/view/home_page.dart'; // 🌟 إضافة
 import '../../home/cubit/home_cubit.dart'; // 🌟 إضافة
 
+import '../../schedule/view/schedule_page.dart';
+import '../../schedule/cubit/schedule_cubit.dart';
+
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
@@ -33,6 +36,7 @@ class DashboardPage extends StatelessWidget {
         BlocProvider(create: (_) => ClientsCubit(repo)..fetchClients()),
         BlocProvider(create: (_) => ContractsCubit(repo)..fetchData()),
         BlocProvider(create: (_) => PaymentsCubit(repo)..fetchInitialData()),
+        BlocProvider(create: (_) => ScheduleCubit(repo)..fetchInitialData()),
         BlocProvider(create: (_) => SettingsCubit(repo)..fetchPrices()),
       ],
       child: const DashboardView(),
@@ -61,7 +65,8 @@ class DashboardView extends StatelessWidget {
               if (index == 1) context.read<ClientsCubit>().fetchClients();
               if (index == 2) context.read<ContractsCubit>().fetchData();
               if (index == 3) context.read<PaymentsCubit>().fetchInitialData();
-              if (index == 4) context.read<SettingsCubit>().fetchPrices();
+              if (index == 4) context.read<ScheduleCubit>().fetchInitialData(); // 🌟 إضافة التحديث
+              if (index == 5) context.read<SettingsCubit>().fetchPrices();
             },
             labelType: NavigationRailLabelType.all,
             backgroundColor: Colors.blue.shade900,
@@ -74,6 +79,7 @@ class DashboardView extends StatelessWidget {
               NavigationRailDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: Text('العملاء')),
               NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('العقود')),
               NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('الأقساط')),
+              NavigationRailDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: Text('المراقبة')), // 🌟 إضافة الزر
               NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('الإعدادات')),
             ],
           ),
@@ -86,6 +92,7 @@ class DashboardView extends StatelessWidget {
                 ClientsPage(),  // Index 1
                 ContractsPage(),// Index 2
                 PaymentsPage(), // Index 3
+                SchedulePage(),
                 SettingsPage(), // Index 4
               ],
             ),

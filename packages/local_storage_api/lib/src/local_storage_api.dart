@@ -1,43 +1,39 @@
 import 'database.dart';
 
-/// الواجهة البرمجية التي تتحكم بالبيانات المحلية (Drift) بناءً على الهيكل الهندسي الجديد (UUID)
 class LocalStorageApi {
   LocalStorageApi({AppDatabase? database}) : _db = database ?? AppDatabase();
 
   final AppDatabase _db;
-
   AppDatabase get database => _db;
 
-  // ==========================================
-  // 👥 العملاء (Clients)
-  // ==========================================
+  // العملاء
   Future<List<Client>> getClients() => _db.getActiveClients();
-  Future<String> addClient(ClientsCompanion client) => _db.insertClient(client); // 🌟 يرجع String
+  Future<String> addClient(ClientsCompanion client) => _db.insertClient(client);
   Future<bool> updateClient(Client client) => _db.updateClient(client);
-  Future<int> deleteClient(String id) => _db.softDeleteClient(id); // 🌟 يستقبل String
+  Future<int> deleteClient(String id) => _db.softDeleteClient(id);
 
-  // ==========================================
-  // 📄 العقود (Contracts)
-  // ==========================================
+  // العقود
   Future<List<Contract>> getAllContracts() => _db.getActiveContracts();
-  Future<String> addContract(ContractsCompanion contract) => _db.insertContract(contract); // 🌟 String
-  Future<int> deleteContract(String id) => _db.softDeleteContract(id); // 🌟 String
+  Future<String> addContract(ContractsCompanion contract) => _db.insertContract(contract);
+  Future<int> deleteContract(String id) => _db.softDeleteContract(id);
 
-  // ==========================================
-  // 💰 دفتر الأستاذ للمدفوعات (Payments Ledger)
-  // ==========================================
-  Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _db.getLedgerForContract(contractId); // 🌟 String
-  Future<String> addLedgerEntry(PaymentsLedgerCompanion entry) => _db.insertLedgerEntry(entry); // 🌟 String
-  Future<int> updateWhatsAppStatus(String entryId) => _db.markWhatsAppAsSent(entryId); // 🌟 String
+  // دفتر الأستاذ
+  Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _db.getLedgerForContract(contractId);
+  Future<String> addLedgerEntry(PaymentsLedgerCompanion entry) => _db.insertLedgerEntry(entry);
+  Future<int> updateWhatsAppStatus(String entryId) => _db.markWhatsAppAsSent(entryId);
 
-  // ==========================================
-  // ⚙️ الإعدادات (سجل أسعار المواد التاريخي)
-  // ==========================================
+  // الإعدادات
   Future<MaterialPricesHistoryData?> getLatestPrices() => _db.getLatestPrices();
-  Future<String> savePrices(MaterialPricesHistoryCompanion prices) => _db.insertMaterialPriceRecord(prices); // 🌟 String
+  Future<String> savePrices(MaterialPricesHistoryCompanion prices) => _db.insertMaterialPriceRecord(prices);
 
   // ==========================================
-  // 🧹 فرمتة القاعدة
+  // 📅 جدول الاستحقاقات (Installments Schedule) 🌟 (هذا ما كان ينقصنا)
   // ==========================================
+  Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _db.getScheduleForContract(contractId);
+  Future<String> addScheduleEntry(InstallmentsScheduleCompanion entry) => _db.insertScheduleEntry(entry);
+  Future<int> updateScheduleStatus(String id, String status) => _db.updateScheduleStatus(id, status);
+  Future<int> deleteScheduleEntry(String id) => _db.softDeleteScheduleEntry(id);
+
+  // فرمتة القاعدة
   Future<void> formatDatabase() => _db.clearAllData();
 }

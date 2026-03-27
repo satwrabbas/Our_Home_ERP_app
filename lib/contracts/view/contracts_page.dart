@@ -50,16 +50,16 @@ class ContractsView extends StatelessWidget {
                 headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
                 columns: const[
                   DataColumn(label: Text('رقم العقد', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 إظهار اسم العميل
-                  DataColumn(label: Text('نوع العقد', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 نوع العقد
+                  DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('نوع العقد', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('المساحة', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 عمود جديد للمدة
                   DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
                 rows: state.contracts.map((contract) {
-                  // جلب اسم العميل من قائمة العملاء لعرضه في الجدول بدلاً من الـ ID المعقد
                   final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
 
                   return DataRow(cells:[
@@ -69,6 +69,7 @@ class ContractsView extends StatelessWidget {
                     DataCell(Text(contract.apartmentDetails)),
                     DataCell(Text('${contract.totalArea} م2')),
                     DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green))),
+                    DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))), // 🌟 عرض عدد الأشهر
                     DataCell(Text('${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}')),
                     DataCell(
                       IconButton(
@@ -112,18 +113,19 @@ class ContractsView extends StatelessWidget {
 
     if (state.clients.isEmpty) return;
 
-    // 🌟 تحويل المتغيرات لـ String لدعم الـ UUID
     String? selectedClientId = state.clients.first.id;
-    String selectedContractType = 'لاحق التخصص'; // 🌟 قيمة افتراضية
+    String selectedContractType = 'لاحق التخصص'; 
 
     final detailsController = TextEditingController();
     final areaController = TextEditingController();
     final priceController = TextEditingController();
+    
+    // 🌟 حقل جديد لعدد الأشهر بقيمة افتراضية 48
+    final monthsController = TextEditingController(text: '48'); 
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
-        // 🌟 استخدام StatefulBuilder لنتمكن من تغيير القيم داخل النافذة المنبثقة
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -134,7 +136,6 @@ class ContractsView extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:[
-                      // قائمة اختيار العميل (الآن تدعم String UUID)
                       DropdownButtonFormField<String>(
                         value: selectedClientId,
                         decoration: const InputDecoration(labelText: 'اختر العميل (الفريق الثاني)', border: OutlineInputBorder()),
@@ -143,7 +144,6 @@ class ContractsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       
-                      // 🌟 قائمة اختيار نوع العقد
                       DropdownButtonFormField<String>(
                         value: selectedContractType,
                         decoration: const InputDecoration(labelText: 'نوع العقد', border: OutlineInputBorder()),
@@ -155,7 +155,15 @@ class ContractsView extends StatelessWidget {
 
                       TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
                       const SizedBox(height: 16),
-                      TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+                      
+                      // 🌟 وضع المساحة ومدة التقسيط بجانب بعضهما
+                      Row(
+                        children:[
+                          Expanded(child: TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                          const SizedBox(width: 16),
+                          Expanded(child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'مدة التقسيط (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       
                       SizedBox(
@@ -197,13 +205,15 @@ class ContractsView extends StatelessWidget {
                 TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
                 ElevatedButton(
                   onPressed: () {
-                    if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty) {
+                    if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty && monthsController.text.isNotEmpty) {
+                      // 🌟 تمرير عدد الأشهر إلى المستودع ليتم حفظها
                       parentContext.read<ContractsCubit>().addContract(
                         clientId: selectedClientId!,
-                        contractType: selectedContractType, // 🌟 حفظ نوع العقد
+                        contractType: selectedContractType,
                         details: detailsController.text,
                         area: double.parse(areaController.text),
                         basePrice: double.parse(priceController.text),
+                        installmentsCount: int.parse(monthsController.text), // 🌟 الحقل الجديد
                         coefficients: {}, 
                       );
                       Navigator.pop(dialogContext);
