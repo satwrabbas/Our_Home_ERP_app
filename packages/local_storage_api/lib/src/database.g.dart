@@ -589,6 +589,18 @@ class $ContractsTable extends Contracts
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _installmentsCountMeta = const VerificationMeta(
+    'installmentsCount',
+  );
+  @override
+  late final GeneratedColumn<int> installmentsCount = GeneratedColumn<int>(
+    'installments_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(48),
+  );
   static const VerificationMeta _coefficientsMeta = const VerificationMeta(
     'coefficients',
   );
@@ -689,6 +701,7 @@ class $ContractsTable extends Contracts
     apartmentDetails,
     totalArea,
     baseMeterPriceAtSigning,
+    installmentsCount,
     coefficients,
     contractDate,
     isCompleted,
@@ -758,6 +771,15 @@ class $ContractsTable extends Contracts
       );
     } else if (isInserting) {
       context.missing(_baseMeterPriceAtSigningMeta);
+    }
+    if (data.containsKey('installments_count')) {
+      context.handle(
+        _installmentsCountMeta,
+        installmentsCount.isAcceptableOrUnknown(
+          data['installments_count']!,
+          _installmentsCountMeta,
+        ),
+      );
     }
     if (data.containsKey('coefficients')) {
       context.handle(
@@ -845,6 +867,10 @@ class $ContractsTable extends Contracts
         DriftSqlType.double,
         data['${effectivePrefix}base_meter_price_at_signing'],
       )!,
+      installmentsCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}installments_count'],
+      )!,
       coefficients: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}coefficients'],
@@ -889,6 +915,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   final String apartmentDetails;
   final double totalArea;
   final double baseMeterPriceAtSigning;
+  final int installmentsCount;
   final String coefficients;
   final DateTime contractDate;
   final bool isCompleted;
@@ -903,6 +930,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     required this.apartmentDetails,
     required this.totalArea,
     required this.baseMeterPriceAtSigning,
+    required this.installmentsCount,
     required this.coefficients,
     required this.contractDate,
     required this.isCompleted,
@@ -922,6 +950,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     map['base_meter_price_at_signing'] = Variable<double>(
       baseMeterPriceAtSigning,
     );
+    map['installments_count'] = Variable<int>(installmentsCount);
     map['coefficients'] = Variable<String>(coefficients);
     map['contract_date'] = Variable<DateTime>(contractDate);
     map['is_completed'] = Variable<bool>(isCompleted);
@@ -940,6 +969,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       apartmentDetails: Value(apartmentDetails),
       totalArea: Value(totalArea),
       baseMeterPriceAtSigning: Value(baseMeterPriceAtSigning),
+      installmentsCount: Value(installmentsCount),
       coefficients: Value(coefficients),
       contractDate: Value(contractDate),
       isCompleted: Value(isCompleted),
@@ -964,6 +994,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       baseMeterPriceAtSigning: serializer.fromJson<double>(
         json['baseMeterPriceAtSigning'],
       ),
+      installmentsCount: serializer.fromJson<int>(json['installmentsCount']),
       coefficients: serializer.fromJson<String>(json['coefficients']),
       contractDate: serializer.fromJson<DateTime>(json['contractDate']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
@@ -985,6 +1016,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       'baseMeterPriceAtSigning': serializer.toJson<double>(
         baseMeterPriceAtSigning,
       ),
+      'installmentsCount': serializer.toJson<int>(installmentsCount),
       'coefficients': serializer.toJson<String>(coefficients),
       'contractDate': serializer.toJson<DateTime>(contractDate),
       'isCompleted': serializer.toJson<bool>(isCompleted),
@@ -1002,6 +1034,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     String? apartmentDetails,
     double? totalArea,
     double? baseMeterPriceAtSigning,
+    int? installmentsCount,
     String? coefficients,
     DateTime? contractDate,
     bool? isCompleted,
@@ -1017,6 +1050,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     totalArea: totalArea ?? this.totalArea,
     baseMeterPriceAtSigning:
         baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
+    installmentsCount: installmentsCount ?? this.installmentsCount,
     coefficients: coefficients ?? this.coefficients,
     contractDate: contractDate ?? this.contractDate,
     isCompleted: isCompleted ?? this.isCompleted,
@@ -1039,6 +1073,9 @@ class Contract extends DataClass implements Insertable<Contract> {
       baseMeterPriceAtSigning: data.baseMeterPriceAtSigning.present
           ? data.baseMeterPriceAtSigning.value
           : this.baseMeterPriceAtSigning,
+      installmentsCount: data.installmentsCount.present
+          ? data.installmentsCount.value
+          : this.installmentsCount,
       coefficients: data.coefficients.present
           ? data.coefficients.value
           : this.coefficients,
@@ -1064,6 +1101,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           ..write('apartmentDetails: $apartmentDetails, ')
           ..write('totalArea: $totalArea, ')
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
+          ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -1083,6 +1121,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     apartmentDetails,
     totalArea,
     baseMeterPriceAtSigning,
+    installmentsCount,
     coefficients,
     contractDate,
     isCompleted,
@@ -1101,6 +1140,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           other.apartmentDetails == this.apartmentDetails &&
           other.totalArea == this.totalArea &&
           other.baseMeterPriceAtSigning == this.baseMeterPriceAtSigning &&
+          other.installmentsCount == this.installmentsCount &&
           other.coefficients == this.coefficients &&
           other.contractDate == this.contractDate &&
           other.isCompleted == this.isCompleted &&
@@ -1117,6 +1157,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<String> apartmentDetails;
   final Value<double> totalArea;
   final Value<double> baseMeterPriceAtSigning;
+  final Value<int> installmentsCount;
   final Value<String> coefficients;
   final Value<DateTime> contractDate;
   final Value<bool> isCompleted;
@@ -1132,6 +1173,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.apartmentDetails = const Value.absent(),
     this.totalArea = const Value.absent(),
     this.baseMeterPriceAtSigning = const Value.absent(),
+    this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
     this.contractDate = const Value.absent(),
     this.isCompleted = const Value.absent(),
@@ -1148,6 +1190,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     required String apartmentDetails,
     required double totalArea,
     required double baseMeterPriceAtSigning,
+    this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
     required DateTime contractDate,
     this.isCompleted = const Value.absent(),
@@ -1168,6 +1211,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Expression<String>? apartmentDetails,
     Expression<double>? totalArea,
     Expression<double>? baseMeterPriceAtSigning,
+    Expression<int>? installmentsCount,
     Expression<String>? coefficients,
     Expression<DateTime>? contractDate,
     Expression<bool>? isCompleted,
@@ -1185,6 +1229,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       if (totalArea != null) 'total_area': totalArea,
       if (baseMeterPriceAtSigning != null)
         'base_meter_price_at_signing': baseMeterPriceAtSigning,
+      if (installmentsCount != null) 'installments_count': installmentsCount,
       if (coefficients != null) 'coefficients': coefficients,
       if (contractDate != null) 'contract_date': contractDate,
       if (isCompleted != null) 'is_completed': isCompleted,
@@ -1203,6 +1248,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Value<String>? apartmentDetails,
     Value<double>? totalArea,
     Value<double>? baseMeterPriceAtSigning,
+    Value<int>? installmentsCount,
     Value<String>? coefficients,
     Value<DateTime>? contractDate,
     Value<bool>? isCompleted,
@@ -1220,6 +1266,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       totalArea: totalArea ?? this.totalArea,
       baseMeterPriceAtSigning:
           baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
+      installmentsCount: installmentsCount ?? this.installmentsCount,
       coefficients: coefficients ?? this.coefficients,
       contractDate: contractDate ?? this.contractDate,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -1253,6 +1300,9 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       map['base_meter_price_at_signing'] = Variable<double>(
         baseMeterPriceAtSigning.value,
       );
+    }
+    if (installmentsCount.present) {
+      map['installments_count'] = Variable<int>(installmentsCount.value);
     }
     if (coefficients.present) {
       map['coefficients'] = Variable<String>(coefficients.value);
@@ -1290,6 +1340,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           ..write('apartmentDetails: $apartmentDetails, ')
           ..write('totalArea: $totalArea, ')
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
+          ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -3754,6 +3805,7 @@ typedef $$ContractsTableCreateCompanionBuilder =
       required String apartmentDetails,
       required double totalArea,
       required double baseMeterPriceAtSigning,
+      Value<int> installmentsCount,
       Value<String> coefficients,
       required DateTime contractDate,
       Value<bool> isCompleted,
@@ -3771,6 +3823,7 @@ typedef $$ContractsTableUpdateCompanionBuilder =
       Value<String> apartmentDetails,
       Value<double> totalArea,
       Value<double> baseMeterPriceAtSigning,
+      Value<int> installmentsCount,
       Value<String> coefficients,
       Value<DateTime> contractDate,
       Value<bool> isCompleted,
@@ -3883,6 +3936,11 @@ class $$ContractsTableFilterComposer
 
   ColumnFilters<double> get baseMeterPriceAtSigning => $composableBuilder(
     column: $table.baseMeterPriceAtSigning,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get installmentsCount => $composableBuilder(
+    column: $table.installmentsCount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4029,6 +4087,11 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get installmentsCount => $composableBuilder(
+    column: $table.installmentsCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get coefficients => $composableBuilder(
     column: $table.coefficients,
     builder: (column) => ColumnOrderings(column),
@@ -4115,6 +4178,11 @@ class $$ContractsTableAnnotationComposer
 
   GeneratedColumn<double> get baseMeterPriceAtSigning => $composableBuilder(
     column: $table.baseMeterPriceAtSigning,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get installmentsCount => $composableBuilder(
+    column: $table.installmentsCount,
     builder: (column) => column,
   );
 
@@ -4258,6 +4326,7 @@ class $$ContractsTableTableManager
                 Value<String> apartmentDetails = const Value.absent(),
                 Value<double> totalArea = const Value.absent(),
                 Value<double> baseMeterPriceAtSigning = const Value.absent(),
+                Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
                 Value<DateTime> contractDate = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
@@ -4273,6 +4342,7 @@ class $$ContractsTableTableManager
                 apartmentDetails: apartmentDetails,
                 totalArea: totalArea,
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
+                installmentsCount: installmentsCount,
                 coefficients: coefficients,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
@@ -4290,6 +4360,7 @@ class $$ContractsTableTableManager
                 required String apartmentDetails,
                 required double totalArea,
                 required double baseMeterPriceAtSigning,
+                Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
                 required DateTime contractDate,
                 Value<bool> isCompleted = const Value.absent(),
@@ -4305,6 +4376,7 @@ class $$ContractsTableTableManager
                 apartmentDetails: apartmentDetails,
                 totalArea: totalArea,
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
+                installmentsCount: installmentsCount,
                 coefficients: coefficients,
                 contractDate: contractDate,
                 isCompleted: isCompleted,

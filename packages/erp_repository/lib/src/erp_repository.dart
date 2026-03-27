@@ -47,8 +47,8 @@ class ErpRepository {
   // ==========================================
   Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
-  Future<void> addContract(ContractsCompanion contractCompanion) async {
-    final localId = await _localApi.addContract(contractCompanion); // String
+Future<void> addContract(ContractsCompanion contractCompanion) async {
+    final localId = await _localApi.addContract(contractCompanion);
     try {
       final cloudData = {
         'id': localId,
@@ -57,6 +57,10 @@ class ErpRepository {
         'apartmentDetails': contractCompanion.apartmentDetails.value,
         'totalArea': contractCompanion.totalArea.value,
         'baseMeterPriceAtSigning': contractCompanion.baseMeterPriceAtSigning.value,
+        
+        // 🌟 إرسال عدد الأشهر إلى السحابة
+        'installmentsCount': contractCompanion.installmentsCount.present ? contractCompanion.installmentsCount.value : 48,
+        
         'coefficients': contractCompanion.coefficients.present ? contractCompanion.coefficients.value : '{}',
         'contractDate': contractCompanion.contractDate.present ? contractCompanion.contractDate.value.toIso8601String() : DateTime.now().toIso8601String(),
         'isCompleted': contractCompanion.isCompleted.present ? contractCompanion.isCompleted.value : false,
@@ -69,7 +73,7 @@ class ErpRepository {
     }
   }
 
-    Future<void> deleteContract(String contractId) async {
+  Future<void> deleteContract(String contractId) async {
     await _localApi.deleteContract(contractId);
     try {
       await _cloudApi.upsertContract({

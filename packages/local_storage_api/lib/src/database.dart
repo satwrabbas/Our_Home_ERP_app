@@ -34,20 +34,20 @@ class Clients extends Table {
 // ==========================================
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
-  TextColumn get clientId => text().references(Clients, #id)(); // 🌟 ربط عبر UUID
+  TextColumn get clientId => text().references(Clients, #id)(); 
+  
   TextColumn get contractType => text().withDefault(const Constant('لاحق التخصص'))(); 
+  TextColumn get apartmentDetails => text()(); 
+  RealColumn get totalArea => real()(); 
+  RealColumn get baseMeterPriceAtSigning => real()(); 
   
-  TextColumn get apartmentDetails => text()(); // وصف الشقة (أرضي، قبو، الخ)
-  RealColumn get totalArea => real()(); // المساحة الكلية للشقة
-  RealColumn get baseMeterPriceAtSigning => real()(); // سعر المتر المربع يوم التوقيع
+  // 🌟 الحقل الجديد الأهم: عدد أشهر التقسيط (الافتراضي 48، لكن يمكن تغييره)
+  IntColumn get installmentsCount => integer().withDefault(const Constant(48))(); 
   
-  // حقل JSON لتخزين المعاملات (طابق، وجيبة، اتجاه) لمرونة إضافتها مستقبلاً
   TextColumn get coefficients => text().withDefault(const Constant('{}'))(); 
-  
-  DateTimeColumn get contractDate => dateTime()(); // تاريخ التوقيع
+  DateTimeColumn get contractDate => dateTime()(); 
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))(); 
 
-  // حقول النظام الاحترافي
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
