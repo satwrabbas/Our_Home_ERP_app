@@ -55,7 +55,7 @@ class ContractsView extends StatelessWidget {
                   DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('المساحة', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 عمود جديد للمدة
+                  DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
@@ -69,7 +69,7 @@ class ContractsView extends StatelessWidget {
                     DataCell(Text(contract.apartmentDetails)),
                     DataCell(Text('${contract.totalArea} م2')),
                     DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green))),
-                    DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))), // 🌟 عرض عدد الأشهر
+                    DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
                     DataCell(Text('${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}')),
                     DataCell(
                       IconButton(
@@ -116,11 +116,13 @@ class ContractsView extends StatelessWidget {
     String? selectedClientId = state.clients.first.id;
     String selectedContractType = 'لاحق التخصص'; 
 
+    // 🌟 المتغيرات الخاصة بالمعاملات (Coefficients)
+    double floorCoefficient = 0.0;
+    double directionCoefficient = 0.0;
+
     final detailsController = TextEditingController();
     final areaController = TextEditingController();
     final priceController = TextEditingController();
-    
-    // 🌟 حقل جديد لعدد الأشهر بقيمة افتراضية 48
     final monthsController = TextEditingController(text: '48'); 
 
     showDialog(
@@ -128,6 +130,9 @@ class ContractsView extends StatelessWidget {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
+            // 🌟 هل العقد مخصص لنُظهر خيارات التميز؟
+            bool isAllocated = selectedContractType == 'متخصص';
+
             return AlertDialog(
               title: const Text('توقيع عقد شقة جديد (تسعير مرن)', style: TextStyle(color: Colors.teal)),
               content: SizedBox(
@@ -149,14 +154,70 @@ class ContractsView extends StatelessWidget {
                         decoration: const InputDecoration(labelText: 'نوع العقد', border: OutlineInputBorder()),
                         items:['لاحق التخصص', 'متخصص', 'تجاري', 'شراكة']
                             .map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-                        onChanged: (val) => setState(() => selectedContractType = val ?? 'لاحق التخصص'),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedContractType = val ?? 'لاحق التخصص';
+                            // إذا غيرنا للاحق تخصص، نصفر المعاملات آلياً
+                            if (selectedContractType != 'متخصص') {
+                              floorCoefficient = 0.0;
+                              directionCoefficient = 0.0;
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 16),
+
+                      // 🌟 ظهور المعاملات الديناميكي بناءً على نوع العقد
+                      if (isAllocated) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:[
+                              const Text('معاملات التمييز (تزيد أو تنقص السعر بنسبة مئوية):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                              const SizedBox(height: 12),
+                              Row(
+                                children:[
+                                  Expanded(
+                                    child: DropdownButtonFormField<double>(
+                                      value: floorCoefficient,
+                                      decoration: const InputDecoration(labelText: 'معامل الطابق', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
+                                      items: const[
+                                        DropdownMenuItem(value: -0.02, child: Text('قبو (-2%)')),
+                                        DropdownMenuItem(value: 0.0, child: Text('أرضي (0%)')),
+                                        DropdownMenuItem(value: 0.05, child: Text('طابق أول (+5%)')),
+                                        DropdownMenuItem(value: 0.03, child: Text('طابق ثاني (+3%)')),
+                                        DropdownMenuItem(value: -0.01, child: Text('طابق أخير (-1%)')),
+                                      ],
+                                      onChanged: (val) => setState(() => floorCoefficient = val ?? 0.0),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: DropdownButtonFormField<double>(
+                                      value: directionCoefficient,
+                                      decoration: const InputDecoration(labelText: 'معامل الاتجاه', border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
+                                      items: const[
+                                        DropdownMenuItem(value: 0.0, child: Text('شمالي (0%)')),
+                                        DropdownMenuItem(value: 0.02, child: Text('قبلي/جنوبي (+2%)')),
+                                        DropdownMenuItem(value: 0.01, child: Text('شرقي (+1%)')),
+                                        DropdownMenuItem(value: 0.015, child: Text('إطلالة شارعين (+1.5%)')),
+                                      ],
+                                      onChanged: (val) => setState(() => directionCoefficient = val ?? 0.0),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
                       const SizedBox(height: 16),
                       
-                      // 🌟 وضع المساحة ومدة التقسيط بجانب بعضهما
                       Row(
                         children:[
                           Expanded(child: TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
@@ -166,6 +227,7 @@ class ContractsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       
+                      // الزر السحري
                       SizedBox(
                         width: double.infinity,
                         height: 45,
@@ -177,13 +239,21 @@ class ContractsView extends StatelessWidget {
                             }
                             if (areaController.text.isEmpty) return;
 
+                            // تجميع المعاملات إذا كانت الشقة متخصصة
+                            Map<String, double> coeffs = {};
+                            if (isAllocated) {
+                              if (floorCoefficient != 0.0) coeffs['floor'] = floorCoefficient;
+                              if (directionCoefficient != 0.0) coeffs['direction'] = directionCoefficient;
+                            }
+
                             final calculations = CalculatorHelper.calculateContractValues(
                               area: double.parse(areaController.text),
                               currentPrices: currentPrices,
+                              coefficients: coeffs, // 🌟 نمرر المعاملات للحاسبة لتقوم برفع السعر
                             );
 
                             priceController.text = calculations['pricePerSqm']!.toStringAsFixed(0);
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر الأساسي بنجاح!'), backgroundColor: Colors.green));
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر شامل المعاملات بنجاح!'), backgroundColor: Colors.green));
                           },
                           icon: const Icon(Icons.calculate),
                           label: const Text('حساب سعر المتر مبدئياً (حسب سوق اليوم)'),
@@ -194,7 +264,7 @@ class ContractsView extends StatelessWidget {
 
                       TextField(
                         controller: priceController,
-                        decoration: const InputDecoration(labelText: 'سعر المتر المربع عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
+                        decoration: const InputDecoration(labelText: 'سعر المتر المربع النهائي عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
                         keyboardType: TextInputType.number,
                       ),
                     ],
@@ -206,15 +276,22 @@ class ContractsView extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty && monthsController.text.isNotEmpty) {
-                      // 🌟 تمرير عدد الأشهر إلى المستودع ليتم حفظها
+                      
+                      // تجهيز المعاملات للحفظ في الـ JSON
+                      Map<String, double> coeffs = {};
+                      if (isAllocated) {
+                        if (floorCoefficient != 0.0) coeffs['floor'] = floorCoefficient;
+                        if (directionCoefficient != 0.0) coeffs['direction'] = directionCoefficient;
+                      }
+
                       parentContext.read<ContractsCubit>().addContract(
                         clientId: selectedClientId!,
                         contractType: selectedContractType,
                         details: detailsController.text,
                         area: double.parse(areaController.text),
                         basePrice: double.parse(priceController.text),
-                        installmentsCount: int.parse(monthsController.text), // 🌟 الحقل الجديد
-                        coefficients: {}, 
+                        installmentsCount: int.parse(monthsController.text), 
+                        coefficients: coeffs, // 🌟 حفظ الـ JSON في قاعدة البيانات
                       );
                       Navigator.pop(dialogContext);
                     }
