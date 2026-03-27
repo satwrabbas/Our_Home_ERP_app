@@ -8,10 +8,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => HomeCubit(context.read<ErpRepository>())..fetchDashboardData(),
-      child: const HomeView(),
-    );
+    // 🌟 ملاحظة: لأننا وضعنا الـ Provider في Dashboard، لا نحتاج لتكراره هنا
+    return const HomeView();
   }
 }
 
@@ -27,7 +25,6 @@ class HomeView extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.blue.shade900,
         actions:[
-          // زر لتحديث البيانات يدوياً إذا رغب المدير
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'تحديث الإحصائيات',
@@ -44,6 +41,7 @@ class HomeView extends StatelessWidget {
             return Center(child: Text('حدث خطأ: ${state.errorMessage}', style: const TextStyle(color: Colors.red)));
           }
 
+          // 🌟 عرض الإحصائيات بشكل آمن (مع وضع قيمة افتراضية "0" إذا لم توجد بيانات)
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -52,7 +50,6 @@ class HomeView extends StatelessWidget {
                 const Text('المؤشرات المالية والهندسية', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
                 const SizedBox(height: 24),
 
-                // 🌟 شبكة البطاقات الإحصائية (KPIs)
                 Wrap(
                   spacing: 16,
                   runSpacing: 16,
@@ -94,7 +91,6 @@ class HomeView extends StatelessWidget {
                 const Text('آخر الحركات المالية (أحدث 5 دفعات في الشركة)', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
                 const SizedBox(height: 16),
 
-                // 🌟 جدول آخر الدفعات
                 if (state.recentPayments.isEmpty)
                   const Text('لا توجد حركات مالية مسجلة بعد في دفتر الأستاذ.', style: TextStyle(fontSize: 16, color: Colors.grey))
                 else
@@ -131,18 +127,15 @@ class HomeView extends StatelessWidget {
     );
   }
 
-  // 🌟 دالة مساعدة لبناء البطاقات (Cards) بأناقة
   Widget _buildKpiCard({required String title, required String value, required IconData icon, required Color color}) {
     return Container(
-      width: 300, // عرض ثابت لكل بطاقة ليظهروا بجانب بعضهم
+      width: 300,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const[
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-        border: Border(bottom: BorderSide(color: color, width: 4)), // خط ملون في الأسفل يعطي طابعاً احترافياً
+        boxShadow: const[BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
+        border: Border(bottom: BorderSide(color: color, width: 4)),
       ),
       child: Row(
         children:[

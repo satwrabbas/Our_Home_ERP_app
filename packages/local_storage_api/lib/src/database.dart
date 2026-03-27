@@ -273,8 +273,8 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
-    // 🌟 تغيير الاسم لملف جديد جذرياً بسبب الـ UUID ليتم مسح القديم تلقائياً
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v3_uuid.sqlite')); 
+    // 🌟 تغيير الاسم لإنشاء ملف نظيف تماماً وخالٍ من تعارضات الـ Null القديمة
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v4_final.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

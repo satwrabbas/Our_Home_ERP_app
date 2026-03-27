@@ -9,29 +9,30 @@ class HomeCubit extends Cubit<HomeState> {
 
   final ErpRepository _erpRepository;
 
-  // ----------------- (الجزء الثاني سيبدأ من هنا) -----------------
   /// جلب وتحليل جميع بيانات الشركة لعرضها في لوحة القيادة (Dashboard)
   Future<void> fetchDashboardData() async {
+    // 1. إظهار شاشة التحميل
     emit(state.copyWith(status: HomeStatus.loading));
     try {
-      // 1. جلب العملاء والعقود الفعالة
+      // 2. جلب البيانات الأساسية من المستودع
       final clients = await _erpRepository.getClients();
       final contracts = await _erpRepository.getAllContracts();
 
-      // 2. حساب إجمالي مساحات الشقق المباعة (المتعاقد عليها)
+      // 3. حساب إجمالي مساحات الشقق المباعة (المتعاقد عليها)
       double soldMeters = 0.0;
       for (final contract in contracts) {
         soldMeters += contract.totalArea;
       }
 
-      // 3. تجميع كل الدفعات من كل العقود في قائمة واحدة
+      // 4. تجميع كل الدفعات (Ledger Entries) من كل العقود في قائمة واحدة
       List<PaymentsLedgerData> allPayments = [];
       for (final contract in contracts) {
+        // 🌟 نستخدم ID العقد (String UUID) لجلب الدفعات الخاصة به
         final payments = await _erpRepository.getContractLedger(contract.id);
         allPayments.addAll(payments);
       }
 
-      // 4. حساب الإجماليات من قائمة الدفعات المجمعة
+      // 5. حساب الإجماليات (الإيرادات والأمتار المحولة) من القائمة المجمعة
       double totalRevenue = 0.0;
       double totalConvertedMeters = 0.0;
       for (final payment in allPayments) {
@@ -39,11 +40,11 @@ class HomeCubit extends Cubit<HomeState> {
         totalConvertedMeters += payment.convertedMeters;
       }
 
-      // 5. فرز الدفعات حسب التاريخ (من الأحدث للأقدم) لجلب آخر 5 عمليات
+      // 6. فرز الدفعات حسب التاريخ (من الأحدث للأقدم) لعرض آخر 5 عمليات فقط
       allPayments.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
       final recentPayments = allPayments.take(5).toList();
 
-      // 6. إرسال جميع البيانات النهائية إلى واجهة المستخدم
+      // 7. إرسال جميع البيانات النهائية إلى واجهة المستخدم
       emit(state.copyWith(
         status: HomeStatus.success,
         clientsCount: clients.length,
@@ -54,6 +55,7 @@ class HomeCubit extends Cubit<HomeState> {
         recentPayments: recentPayments,
       ));
     } catch (e) {
+      // 8. في حال حدوث أي خطأ، نعرض رسالة الخطأ للمستخدم
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));
     }
   }
