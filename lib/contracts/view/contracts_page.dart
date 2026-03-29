@@ -116,7 +116,6 @@ class ContractsView extends StatelessWidget {
     String? selectedClientId = state.clients.first.id;
     String selectedContractType = 'لاحق التخصص'; 
 
-    // 🌟 المتغيرات الخاصة بالمعاملات (Coefficients)
     double floorCoefficient = 0.0;
     double directionCoefficient = 0.0;
 
@@ -130,8 +129,11 @@ class ContractsView extends StatelessWidget {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // 🌟 هل العقد مخصص لنُظهر خيارات التميز؟
+            // 🌟 هل العقد مخصص لنُظهر خيارات التميز وتفاصيل الشقة؟
             bool isAllocated = selectedContractType == 'متخصص';
+            
+            // 🌟 هل يحتاج لكتابة تفاصيل الشقة؟ (لاحق التخصص لا يحتاج)
+            bool needsDetails = selectedContractType != 'لاحق التخصص';
 
             return AlertDialog(
               title: const Text('توقيع عقد شقة جديد (تسعير مرن)', style: TextStyle(color: Colors.teal)),
@@ -157,7 +159,6 @@ class ContractsView extends StatelessWidget {
                         onChanged: (val) {
                           setState(() {
                             selectedContractType = val ?? 'لاحق التخصص';
-                            // إذا غيرنا للاحق تخصص، نصفر المعاملات آلياً
                             if (selectedContractType != 'متخصص') {
                               floorCoefficient = 0.0;
                               directionCoefficient = 0.0;
@@ -215,19 +216,21 @@ class ContractsView extends StatelessWidget {
                         const SizedBox(height: 16),
                       ],
 
-                      TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
-                      const SizedBox(height: 16),
+                      // 🌟 إخفاء حقل تفاصيل الشقة إذا كان العقد لاحق التخصص
+                      if (needsDetails) ...[
+                        TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'تفاصيل الشقة (أرضي، قبو، الخ)', border: OutlineInputBorder())),
+                        const SizedBox(height: 16),
+                      ],
                       
                       Row(
                         children:[
-                          Expanded(child: TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                          Expanded(child: TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2) أو عدد الأسهم', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                           const SizedBox(width: 16),
                           Expanded(child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'مدة التقسيط (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                         ],
                       ),
                       const SizedBox(height: 16),
                       
-                      // الزر السحري
                       SizedBox(
                         width: double.infinity,
                         height: 45,
@@ -239,7 +242,6 @@ class ContractsView extends StatelessWidget {
                             }
                             if (areaController.text.isEmpty) return;
 
-                            // تجميع المعاملات إذا كانت الشقة متخصصة
                             Map<String, double> coeffs = {};
                             if (isAllocated) {
                               if (floorCoefficient != 0.0) coeffs['floor'] = floorCoefficient;
@@ -249,11 +251,11 @@ class ContractsView extends StatelessWidget {
                             final calculations = CalculatorHelper.calculateContractValues(
                               area: double.parse(areaController.text),
                               currentPrices: currentPrices,
-                              coefficients: coeffs, // 🌟 نمرر المعاملات للحاسبة لتقوم برفع السعر
+                              coefficients: coeffs, 
                             );
 
                             priceController.text = calculations['pricePerSqm']!.toStringAsFixed(0);
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر شامل المعاملات بنجاح!'), backgroundColor: Colors.green));
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('تم احتساب سعر المتر مبدئياً بنجاح!'), backgroundColor: Colors.green));
                           },
                           icon: const Icon(Icons.calculate),
                           label: const Text('حساب سعر المتر مبدئياً (حسب سوق اليوم)'),
@@ -264,7 +266,7 @@ class ContractsView extends StatelessWidget {
 
                       TextField(
                         controller: priceController,
-                        decoration: const InputDecoration(labelText: 'سعر المتر المربع النهائي عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
+                        decoration: const InputDecoration(labelText: 'سعر المتر المربع عند التوقيع (ل.س)', border: OutlineInputBorder(), filled: true, fillColor: Colors.black12),
                         keyboardType: TextInputType.number,
                       ),
                     ],
@@ -275,9 +277,11 @@ class ContractsView extends StatelessWidget {
                 TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
                 ElevatedButton(
                   onPressed: () {
-                    if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty && monthsController.text.isNotEmpty) {
+                    // 🌟 توليد نص تلقائي إذا كان العقد لاحق التخصص
+                    final String finalDetails = needsDetails ? detailsController.text : 'أسهم / لاحق التخصص';
+
+                    if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty) {
                       
-                      // تجهيز المعاملات للحفظ في الـ JSON
                       Map<String, double> coeffs = {};
                       if (isAllocated) {
                         if (floorCoefficient != 0.0) coeffs['floor'] = floorCoefficient;
@@ -287,11 +291,11 @@ class ContractsView extends StatelessWidget {
                       parentContext.read<ContractsCubit>().addContract(
                         clientId: selectedClientId!,
                         contractType: selectedContractType,
-                        details: detailsController.text,
+                        details: finalDetails, // 🌟 تمرير النص المولد آلياً
                         area: double.parse(areaController.text),
                         basePrice: double.parse(priceController.text),
                         installmentsCount: int.parse(monthsController.text), 
-                        coefficients: coeffs, // 🌟 حفظ الـ JSON في قاعدة البيانات
+                        coefficients: coeffs, 
                       );
                       Navigator.pop(dialogContext);
                     }
