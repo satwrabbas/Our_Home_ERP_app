@@ -3,7 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart'; // 🌟 استدعاء مكتبة UUID
+import 'package:uuid/uuid.dart';
 
 part 'database.g.dart';
 
@@ -13,20 +13,21 @@ const _uuid = Uuid();
 // 1. جدول العملاء (الفريق الثاني)
 // ==========================================
 class Clients extends Table {
-  // 🌟 تحويل الـ ID إلى UUID
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get name => text().withLength(min: 2, max: 100)();
   TextColumn get phone => text().unique()(); 
   TextColumn get nationalId => text().nullable()(); 
   
-  // حقول النظام الاحترافي (Audit & Sync)
+  // 🌟 من قام بإضافة هذا العميل؟ (حقل التدقيق المالي)
+  TextColumn get userId => text()(); 
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   @override
-  Set<Column> get primaryKey => {id}; // تعريف المفتاح الأساسي
+  Set<Column> get primaryKey => {id};
 }
 
 // ==========================================
@@ -40,11 +41,12 @@ class Contracts extends Table {
   TextColumn get apartmentDetails => text()(); 
   RealColumn get totalArea => real()(); 
   RealColumn get baseMeterPriceAtSigning => real()(); 
-  
-  // 🌟 الحقل الجديد الأهم: عدد أشهر التقسيط (الافتراضي 48، لكن يمكن تغييره)
   IntColumn get installmentsCount => integer().withDefault(const Constant(48))(); 
-  
   TextColumn get coefficients => text().withDefault(const Constant('{}'))(); 
+  
+  // 🌟 من المهندس/المحاسب الذي كتب هذا العقد؟
+  TextColumn get userId => text()();
+
   DateTimeColumn get contractDate => dateTime()(); 
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))(); 
 
@@ -68,14 +70,13 @@ class MaterialPricesHistory extends Table {
   RealColumn get ironPrice => real()(); 
   RealColumn get cementPrice => real()(); 
   RealColumn get block15Price => real()(); 
-  
-  // 🌟 تم دمج الكوفراج والبيتون المسلح في هذا العمود
   RealColumn get formworkAndPouringWages => real()(); 
-  
   RealColumn get aggregateMaterialsPrice => real()(); 
   RealColumn get ordinaryWorkerWage => real()(); 
 
-  // حقول النظام الاحترافي
+  // 🌟 من المدير الذي عدل الأسعار في هذا اليوم؟
+  TextColumn get userId => text()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
@@ -89,13 +90,15 @@ class MaterialPricesHistory extends Table {
 // ==========================================
 class InstallmentsSchedule extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
-  TextColumn get contractId => text().references(Contracts, #id)(); // 🌟 ربط عبر UUID
+  TextColumn get contractId => text().references(Contracts, #id)(); 
   
   IntColumn get installmentNumber => integer()(); 
-  DateTimeColumn get dueDate => dateTime()(); // تاريخ الاستحقاق
-  TextColumn get status => text().withDefault(const Constant('pending'))(); // pending, partial, paid
+  DateTimeColumn get dueDate => dateTime()(); 
+  TextColumn get status => text().withDefault(const Constant('pending'))();
   
-  // حقول النظام الاحترافي
+  // 🌟 تتبع من أدار هذا القسط
+  TextColumn get userId => text()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -111,20 +114,22 @@ class InstallmentsSchedule extends Table {
 // هذا الجدول يسجل "الأموال الحقيقية" والأمتار التي اشترتها لحظة الدفع
 class PaymentsLedger extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
-  TextColumn get contractId => text().references(Contracts, #id)(); // 🌟 ربط عبر UUID
-  TextColumn get scheduleId => text().nullable().references(InstallmentsSchedule, #id)(); // الربط بالاستحقاق إن وجد
+  TextColumn get contractId => text().references(Contracts, #id)(); 
+  TextColumn get scheduleId => text().nullable().references(InstallmentsSchedule, #id)();
   
-  DateTimeColumn get paymentDate => dateTime()(); // تاريخ الدفع الفعلي
-  RealColumn get amountPaid => real()(); // المبلغ المدفوع
+  DateTimeColumn get paymentDate => dateTime()(); 
+  RealColumn get amountPaid => real()(); 
   
   // 🌟 جوهر النظام: تجميد السعر والأمتار في لحظة الدفع لكي لا تتغير لاحقاً
-  RealColumn get meterPriceAtPayment => real()(); // سعر المتر في ذلك الشهر
-  RealColumn get convertedMeters => real()(); // الأمتار المحولة = المبلغ / سعر المتر
+  RealColumn get meterPriceAtPayment => real()(); 
+  RealColumn get convertedMeters => real()(); 
 
   RealColumn get fees => real().withDefault(const Constant(0))(); 
   BoolColumn get isWhatsAppSent => boolean().withDefault(const Constant(false))();
   
-  // حقول النظام الاحترافي
+  // 🌟 من المحاسب الذي استلم هذا المبلغ وقبضه؟ (مهم جداً للتدقيق المالي)
+  TextColumn get userId => text()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -147,7 +152,6 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Client>> getActiveClients() => 
       (select(clients)..where((t) => t.isDeleted.equals(false))).get();
   
-  // 🌟 تعديل الإرجاع ليصبح String (UUID)
   Future<String> insertClient(ClientsCompanion client) async {
     final row = await into(clients).insertReturning(client);
     return row.id;
@@ -155,7 +159,6 @@ class AppDatabase extends _$AppDatabase {
   
   Future<bool> updateClient(Client client) => update(clients).replace(client);
   
-  // 🌟 تمرير ID كـ String
   Future<int> softDeleteClient(String id) {
     return (update(clients)..where((t) => t.id.equals(id))).write(
       ClientsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
@@ -273,8 +276,8 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
-    // 🌟 تغيير الاسم لإنشاء ملف نظيف تماماً وخالٍ من تعارضات الـ Null القديمة
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v4_final.sqlite')); 
+    // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v5_auth.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

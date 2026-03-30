@@ -52,6 +52,15 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -112,6 +121,7 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     name,
     phone,
     nationalId,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -153,6 +163,14 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         _nationalIdMeta,
         nationalId.isAcceptableOrUnknown(data['national_id']!, _nationalIdMeta),
       );
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -203,6 +221,10 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         DriftSqlType.string,
         data['${effectivePrefix}national_id'],
       ),
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -233,6 +255,7 @@ class Client extends DataClass implements Insertable<Client> {
   final String name;
   final String phone;
   final String? nationalId;
+  final String userId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -242,6 +265,7 @@ class Client extends DataClass implements Insertable<Client> {
     required this.name,
     required this.phone,
     this.nationalId,
+    required this.userId,
     required this.createdAt,
     required this.updatedAt,
     required this.isDeleted,
@@ -256,6 +280,7 @@ class Client extends DataClass implements Insertable<Client> {
     if (!nullToAbsent || nationalId != null) {
       map['national_id'] = Variable<String>(nationalId);
     }
+    map['user_id'] = Variable<String>(userId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -271,6 +296,7 @@ class Client extends DataClass implements Insertable<Client> {
       nationalId: nationalId == null && nullToAbsent
           ? const Value.absent()
           : Value(nationalId),
+      userId: Value(userId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -288,6 +314,7 @@ class Client extends DataClass implements Insertable<Client> {
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String>(json['phone']),
       nationalId: serializer.fromJson<String?>(json['nationalId']),
+      userId: serializer.fromJson<String>(json['userId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -302,6 +329,7 @@ class Client extends DataClass implements Insertable<Client> {
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String>(phone),
       'nationalId': serializer.toJson<String?>(nationalId),
+      'userId': serializer.toJson<String>(userId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -314,6 +342,7 @@ class Client extends DataClass implements Insertable<Client> {
     String? name,
     String? phone,
     Value<String?> nationalId = const Value.absent(),
+    String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -323,6 +352,7 @@ class Client extends DataClass implements Insertable<Client> {
     name: name ?? this.name,
     phone: phone ?? this.phone,
     nationalId: nationalId.present ? nationalId.value : this.nationalId,
+    userId: userId ?? this.userId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
@@ -336,6 +366,7 @@ class Client extends DataClass implements Insertable<Client> {
       nationalId: data.nationalId.present
           ? data.nationalId.value
           : this.nationalId,
+      userId: data.userId.present ? data.userId.value : this.userId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -350,6 +381,7 @@ class Client extends DataClass implements Insertable<Client> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -364,6 +396,7 @@ class Client extends DataClass implements Insertable<Client> {
     name,
     phone,
     nationalId,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -377,6 +410,7 @@ class Client extends DataClass implements Insertable<Client> {
           other.name == this.name &&
           other.phone == this.phone &&
           other.nationalId == this.nationalId &&
+          other.userId == this.userId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
@@ -388,6 +422,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
   final Value<String> name;
   final Value<String> phone;
   final Value<String?> nationalId;
+  final Value<String> userId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -398,6 +433,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
     this.nationalId = const Value.absent(),
+    this.userId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -409,18 +445,21 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     required String name,
     required String phone,
     this.nationalId = const Value.absent(),
+    required String userId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
-       phone = Value(phone);
+       phone = Value(phone),
+       userId = Value(userId);
   static Insertable<Client> custom({
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? phone,
     Expression<String>? nationalId,
+    Expression<String>? userId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -432,6 +471,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
       if (nationalId != null) 'national_id': nationalId,
+      if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -445,6 +485,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Value<String>? name,
     Value<String>? phone,
     Value<String?>? nationalId,
+    Value<String>? userId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
@@ -456,6 +497,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       name: name ?? this.name,
       phone: phone ?? this.phone,
       nationalId: nationalId ?? this.nationalId,
+      userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -478,6 +520,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     }
     if (nationalId.present) {
       map['national_id'] = Variable<String>(nationalId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -504,6 +549,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
           ..write('name: $name, ')
           ..write('phone: $phone, ')
           ..write('nationalId: $nationalId, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -613,6 +659,15 @@ class $ContractsTable extends Contracts
     requiredDuringInsert: false,
     defaultValue: const Constant('{}'),
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _contractDateMeta = const VerificationMeta(
     'contractDate',
   );
@@ -703,6 +758,7 @@ class $ContractsTable extends Contracts
     baseMeterPriceAtSigning,
     installmentsCount,
     coefficients,
+    userId,
     contractDate,
     isCompleted,
     createdAt,
@@ -790,6 +846,14 @@ class $ContractsTable extends Contracts
         ),
       );
     }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
     if (data.containsKey('contract_date')) {
       context.handle(
         _contractDateMeta,
@@ -875,6 +939,10 @@ class $ContractsTable extends Contracts
         DriftSqlType.string,
         data['${effectivePrefix}coefficients'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       contractDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}contract_date'],
@@ -917,6 +985,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   final double baseMeterPriceAtSigning;
   final int installmentsCount;
   final String coefficients;
+  final String userId;
   final DateTime contractDate;
   final bool isCompleted;
   final DateTime createdAt;
@@ -932,6 +1001,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     required this.baseMeterPriceAtSigning,
     required this.installmentsCount,
     required this.coefficients,
+    required this.userId,
     required this.contractDate,
     required this.isCompleted,
     required this.createdAt,
@@ -952,6 +1022,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     );
     map['installments_count'] = Variable<int>(installmentsCount);
     map['coefficients'] = Variable<String>(coefficients);
+    map['user_id'] = Variable<String>(userId);
     map['contract_date'] = Variable<DateTime>(contractDate);
     map['is_completed'] = Variable<bool>(isCompleted);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -971,6 +1042,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       baseMeterPriceAtSigning: Value(baseMeterPriceAtSigning),
       installmentsCount: Value(installmentsCount),
       coefficients: Value(coefficients),
+      userId: Value(userId),
       contractDate: Value(contractDate),
       isCompleted: Value(isCompleted),
       createdAt: Value(createdAt),
@@ -996,6 +1068,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       ),
       installmentsCount: serializer.fromJson<int>(json['installmentsCount']),
       coefficients: serializer.fromJson<String>(json['coefficients']),
+      userId: serializer.fromJson<String>(json['userId']),
       contractDate: serializer.fromJson<DateTime>(json['contractDate']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -1018,6 +1091,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       ),
       'installmentsCount': serializer.toJson<int>(installmentsCount),
       'coefficients': serializer.toJson<String>(coefficients),
+      'userId': serializer.toJson<String>(userId),
       'contractDate': serializer.toJson<DateTime>(contractDate),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -1036,6 +1110,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     double? baseMeterPriceAtSigning,
     int? installmentsCount,
     String? coefficients,
+    String? userId,
     DateTime? contractDate,
     bool? isCompleted,
     DateTime? createdAt,
@@ -1052,6 +1127,7 @@ class Contract extends DataClass implements Insertable<Contract> {
         baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
     installmentsCount: installmentsCount ?? this.installmentsCount,
     coefficients: coefficients ?? this.coefficients,
+    userId: userId ?? this.userId,
     contractDate: contractDate ?? this.contractDate,
     isCompleted: isCompleted ?? this.isCompleted,
     createdAt: createdAt ?? this.createdAt,
@@ -1079,6 +1155,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       coefficients: data.coefficients.present
           ? data.coefficients.value
           : this.coefficients,
+      userId: data.userId.present ? data.userId.value : this.userId,
       contractDate: data.contractDate.present
           ? data.contractDate.value
           : this.contractDate,
@@ -1103,6 +1180,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
           ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
+          ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
@@ -1123,6 +1201,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     baseMeterPriceAtSigning,
     installmentsCount,
     coefficients,
+    userId,
     contractDate,
     isCompleted,
     createdAt,
@@ -1142,6 +1221,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           other.baseMeterPriceAtSigning == this.baseMeterPriceAtSigning &&
           other.installmentsCount == this.installmentsCount &&
           other.coefficients == this.coefficients &&
+          other.userId == this.userId &&
           other.contractDate == this.contractDate &&
           other.isCompleted == this.isCompleted &&
           other.createdAt == this.createdAt &&
@@ -1159,6 +1239,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<double> baseMeterPriceAtSigning;
   final Value<int> installmentsCount;
   final Value<String> coefficients;
+  final Value<String> userId;
   final Value<DateTime> contractDate;
   final Value<bool> isCompleted;
   final Value<DateTime> createdAt;
@@ -1175,6 +1256,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.baseMeterPriceAtSigning = const Value.absent(),
     this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
+    this.userId = const Value.absent(),
     this.contractDate = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1192,6 +1274,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     required double baseMeterPriceAtSigning,
     this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
+    required String userId,
     required DateTime contractDate,
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1203,6 +1286,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
        apartmentDetails = Value(apartmentDetails),
        totalArea = Value(totalArea),
        baseMeterPriceAtSigning = Value(baseMeterPriceAtSigning),
+       userId = Value(userId),
        contractDate = Value(contractDate);
   static Insertable<Contract> custom({
     Expression<String>? id,
@@ -1213,6 +1297,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Expression<double>? baseMeterPriceAtSigning,
     Expression<int>? installmentsCount,
     Expression<String>? coefficients,
+    Expression<String>? userId,
     Expression<DateTime>? contractDate,
     Expression<bool>? isCompleted,
     Expression<DateTime>? createdAt,
@@ -1231,6 +1316,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
         'base_meter_price_at_signing': baseMeterPriceAtSigning,
       if (installmentsCount != null) 'installments_count': installmentsCount,
       if (coefficients != null) 'coefficients': coefficients,
+      if (userId != null) 'user_id': userId,
       if (contractDate != null) 'contract_date': contractDate,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -1250,6 +1336,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Value<double>? baseMeterPriceAtSigning,
     Value<int>? installmentsCount,
     Value<String>? coefficients,
+    Value<String>? userId,
     Value<DateTime>? contractDate,
     Value<bool>? isCompleted,
     Value<DateTime>? createdAt,
@@ -1268,6 +1355,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
       installmentsCount: installmentsCount ?? this.installmentsCount,
       coefficients: coefficients ?? this.coefficients,
+      userId: userId ?? this.userId,
       contractDate: contractDate ?? this.contractDate,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
@@ -1307,6 +1395,9 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     if (coefficients.present) {
       map['coefficients'] = Variable<String>(coefficients.value);
     }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
     if (contractDate.present) {
       map['contract_date'] = Variable<DateTime>(contractDate.value);
     }
@@ -1342,6 +1433,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
           ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
+          ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
@@ -1449,6 +1541,15 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1501,6 +1602,7 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
     formworkAndPouringWages,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
+    userId,
     createdAt,
     isDeleted,
     isSynced,
@@ -1592,6 +1694,14 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
     } else if (isInserting) {
       context.missing(_ordinaryWorkerWageMeta);
     }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1654,6 +1764,10 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
         DriftSqlType.double,
         data['${effectivePrefix}ordinary_worker_wage'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1685,6 +1799,7 @@ class MaterialPricesHistoryData extends DataClass
   final double formworkAndPouringWages;
   final double aggregateMaterialsPrice;
   final double ordinaryWorkerWage;
+  final String userId;
   final DateTime createdAt;
   final bool isDeleted;
   final bool isSynced;
@@ -1697,6 +1812,7 @@ class MaterialPricesHistoryData extends DataClass
     required this.formworkAndPouringWages,
     required this.aggregateMaterialsPrice,
     required this.ordinaryWorkerWage,
+    required this.userId,
     required this.createdAt,
     required this.isDeleted,
     required this.isSynced,
@@ -1716,6 +1832,7 @@ class MaterialPricesHistoryData extends DataClass
       aggregateMaterialsPrice,
     );
     map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage);
+    map['user_id'] = Variable<String>(userId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
@@ -1732,6 +1849,7 @@ class MaterialPricesHistoryData extends DataClass
       formworkAndPouringWages: Value(formworkAndPouringWages),
       aggregateMaterialsPrice: Value(aggregateMaterialsPrice),
       ordinaryWorkerWage: Value(ordinaryWorkerWage),
+      userId: Value(userId),
       createdAt: Value(createdAt),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
@@ -1758,6 +1876,7 @@ class MaterialPricesHistoryData extends DataClass
       ordinaryWorkerWage: serializer.fromJson<double>(
         json['ordinaryWorkerWage'],
       ),
+      userId: serializer.fromJson<String>(json['userId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
@@ -1779,6 +1898,7 @@ class MaterialPricesHistoryData extends DataClass
         aggregateMaterialsPrice,
       ),
       'ordinaryWorkerWage': serializer.toJson<double>(ordinaryWorkerWage),
+      'userId': serializer.toJson<String>(userId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
@@ -1794,6 +1914,7 @@ class MaterialPricesHistoryData extends DataClass
     double? formworkAndPouringWages,
     double? aggregateMaterialsPrice,
     double? ordinaryWorkerWage,
+    String? userId,
     DateTime? createdAt,
     bool? isDeleted,
     bool? isSynced,
@@ -1808,6 +1929,7 @@ class MaterialPricesHistoryData extends DataClass
     aggregateMaterialsPrice:
         aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
     ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
+    userId: userId ?? this.userId,
     createdAt: createdAt ?? this.createdAt,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
@@ -1836,6 +1958,7 @@ class MaterialPricesHistoryData extends DataClass
       ordinaryWorkerWage: data.ordinaryWorkerWage.present
           ? data.ordinaryWorkerWage.value
           : this.ordinaryWorkerWage,
+      userId: data.userId.present ? data.userId.value : this.userId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
@@ -1853,6 +1976,7 @@ class MaterialPricesHistoryData extends DataClass
           ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
@@ -1870,6 +1994,7 @@ class MaterialPricesHistoryData extends DataClass
     formworkAndPouringWages,
     aggregateMaterialsPrice,
     ordinaryWorkerWage,
+    userId,
     createdAt,
     isDeleted,
     isSynced,
@@ -1886,6 +2011,7 @@ class MaterialPricesHistoryData extends DataClass
           other.formworkAndPouringWages == this.formworkAndPouringWages &&
           other.aggregateMaterialsPrice == this.aggregateMaterialsPrice &&
           other.ordinaryWorkerWage == this.ordinaryWorkerWage &&
+          other.userId == this.userId &&
           other.createdAt == this.createdAt &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced);
@@ -1901,6 +2027,7 @@ class MaterialPricesHistoryCompanion
   final Value<double> formworkAndPouringWages;
   final Value<double> aggregateMaterialsPrice;
   final Value<double> ordinaryWorkerWage;
+  final Value<String> userId;
   final Value<DateTime> createdAt;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
@@ -1914,6 +2041,7 @@ class MaterialPricesHistoryCompanion
     this.formworkAndPouringWages = const Value.absent(),
     this.aggregateMaterialsPrice = const Value.absent(),
     this.ordinaryWorkerWage = const Value.absent(),
+    this.userId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
@@ -1928,6 +2056,7 @@ class MaterialPricesHistoryCompanion
     required double formworkAndPouringWages,
     required double aggregateMaterialsPrice,
     required double ordinaryWorkerWage,
+    required String userId,
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
@@ -1937,7 +2066,8 @@ class MaterialPricesHistoryCompanion
        block15Price = Value(block15Price),
        formworkAndPouringWages = Value(formworkAndPouringWages),
        aggregateMaterialsPrice = Value(aggregateMaterialsPrice),
-       ordinaryWorkerWage = Value(ordinaryWorkerWage);
+       ordinaryWorkerWage = Value(ordinaryWorkerWage),
+       userId = Value(userId);
   static Insertable<MaterialPricesHistoryData> custom({
     Expression<String>? id,
     Expression<DateTime>? effectiveDate,
@@ -1947,6 +2077,7 @@ class MaterialPricesHistoryCompanion
     Expression<double>? formworkAndPouringWages,
     Expression<double>? aggregateMaterialsPrice,
     Expression<double>? ordinaryWorkerWage,
+    Expression<String>? userId,
     Expression<DateTime>? createdAt,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
@@ -1964,6 +2095,7 @@ class MaterialPricesHistoryCompanion
         'aggregate_materials_price': aggregateMaterialsPrice,
       if (ordinaryWorkerWage != null)
         'ordinary_worker_wage': ordinaryWorkerWage,
+      if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
@@ -1980,6 +2112,7 @@ class MaterialPricesHistoryCompanion
     Value<double>? formworkAndPouringWages,
     Value<double>? aggregateMaterialsPrice,
     Value<double>? ordinaryWorkerWage,
+    Value<String>? userId,
     Value<DateTime>? createdAt,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
@@ -1996,6 +2129,7 @@ class MaterialPricesHistoryCompanion
       aggregateMaterialsPrice:
           aggregateMaterialsPrice ?? this.aggregateMaterialsPrice,
       ordinaryWorkerWage: ordinaryWorkerWage ?? this.ordinaryWorkerWage,
+      userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
@@ -2034,6 +2168,9 @@ class MaterialPricesHistoryCompanion
     if (ordinaryWorkerWage.present) {
       map['ordinary_worker_wage'] = Variable<double>(ordinaryWorkerWage.value);
     }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2060,6 +2197,7 @@ class MaterialPricesHistoryCompanion
           ..write('formworkAndPouringWages: $formworkAndPouringWages, ')
           ..write('aggregateMaterialsPrice: $aggregateMaterialsPrice, ')
           ..write('ordinaryWorkerWage: $ordinaryWorkerWage, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
@@ -2131,6 +2269,15 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2192,6 +2339,7 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
     installmentNumber,
     dueDate,
     status,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -2244,6 +2392,14 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -2301,6 +2457,10 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2333,6 +2493,7 @@ class InstallmentsScheduleData extends DataClass
   final int installmentNumber;
   final DateTime dueDate;
   final String status;
+  final String userId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -2343,6 +2504,7 @@ class InstallmentsScheduleData extends DataClass
     required this.installmentNumber,
     required this.dueDate,
     required this.status,
+    required this.userId,
     required this.createdAt,
     required this.updatedAt,
     required this.isDeleted,
@@ -2356,6 +2518,7 @@ class InstallmentsScheduleData extends DataClass
     map['installment_number'] = Variable<int>(installmentNumber);
     map['due_date'] = Variable<DateTime>(dueDate);
     map['status'] = Variable<String>(status);
+    map['user_id'] = Variable<String>(userId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -2370,6 +2533,7 @@ class InstallmentsScheduleData extends DataClass
       installmentNumber: Value(installmentNumber),
       dueDate: Value(dueDate),
       status: Value(status),
+      userId: Value(userId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -2388,6 +2552,7 @@ class InstallmentsScheduleData extends DataClass
       installmentNumber: serializer.fromJson<int>(json['installmentNumber']),
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
       status: serializer.fromJson<String>(json['status']),
+      userId: serializer.fromJson<String>(json['userId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -2403,6 +2568,7 @@ class InstallmentsScheduleData extends DataClass
       'installmentNumber': serializer.toJson<int>(installmentNumber),
       'dueDate': serializer.toJson<DateTime>(dueDate),
       'status': serializer.toJson<String>(status),
+      'userId': serializer.toJson<String>(userId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -2416,6 +2582,7 @@ class InstallmentsScheduleData extends DataClass
     int? installmentNumber,
     DateTime? dueDate,
     String? status,
+    String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -2426,6 +2593,7 @@ class InstallmentsScheduleData extends DataClass
     installmentNumber: installmentNumber ?? this.installmentNumber,
     dueDate: dueDate ?? this.dueDate,
     status: status ?? this.status,
+    userId: userId ?? this.userId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
@@ -2444,6 +2612,7 @@ class InstallmentsScheduleData extends DataClass
           : this.installmentNumber,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       status: data.status.present ? data.status.value : this.status,
+      userId: data.userId.present ? data.userId.value : this.userId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -2459,6 +2628,7 @@ class InstallmentsScheduleData extends DataClass
           ..write('installmentNumber: $installmentNumber, ')
           ..write('dueDate: $dueDate, ')
           ..write('status: $status, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -2474,6 +2644,7 @@ class InstallmentsScheduleData extends DataClass
     installmentNumber,
     dueDate,
     status,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -2488,6 +2659,7 @@ class InstallmentsScheduleData extends DataClass
           other.installmentNumber == this.installmentNumber &&
           other.dueDate == this.dueDate &&
           other.status == this.status &&
+          other.userId == this.userId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
@@ -2501,6 +2673,7 @@ class InstallmentsScheduleCompanion
   final Value<int> installmentNumber;
   final Value<DateTime> dueDate;
   final Value<String> status;
+  final Value<String> userId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -2512,6 +2685,7 @@ class InstallmentsScheduleCompanion
     this.installmentNumber = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.status = const Value.absent(),
+    this.userId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -2524,6 +2698,7 @@ class InstallmentsScheduleCompanion
     required int installmentNumber,
     required DateTime dueDate,
     this.status = const Value.absent(),
+    required String userId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -2531,13 +2706,15 @@ class InstallmentsScheduleCompanion
     this.rowid = const Value.absent(),
   }) : contractId = Value(contractId),
        installmentNumber = Value(installmentNumber),
-       dueDate = Value(dueDate);
+       dueDate = Value(dueDate),
+       userId = Value(userId);
   static Insertable<InstallmentsScheduleData> custom({
     Expression<String>? id,
     Expression<String>? contractId,
     Expression<int>? installmentNumber,
     Expression<DateTime>? dueDate,
     Expression<String>? status,
+    Expression<String>? userId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -2550,6 +2727,7 @@ class InstallmentsScheduleCompanion
       if (installmentNumber != null) 'installment_number': installmentNumber,
       if (dueDate != null) 'due_date': dueDate,
       if (status != null) 'status': status,
+      if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -2564,6 +2742,7 @@ class InstallmentsScheduleCompanion
     Value<int>? installmentNumber,
     Value<DateTime>? dueDate,
     Value<String>? status,
+    Value<String>? userId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
@@ -2576,6 +2755,7 @@ class InstallmentsScheduleCompanion
       installmentNumber: installmentNumber ?? this.installmentNumber,
       dueDate: dueDate ?? this.dueDate,
       status: status ?? this.status,
+      userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -2601,6 +2781,9 @@ class InstallmentsScheduleCompanion
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -2628,6 +2811,7 @@ class InstallmentsScheduleCompanion
           ..write('installmentNumber: $installmentNumber, ')
           ..write('dueDate: $dueDate, ')
           ..write('status: $status, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -2751,6 +2935,15 @@ class $PaymentsLedgerTable extends PaymentsLedger
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2816,6 +3009,7 @@ class $PaymentsLedgerTable extends PaymentsLedger
     convertedMeters,
     fees,
     isWhatsAppSent,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -2906,6 +3100,14 @@ class $PaymentsLedgerTable extends PaymentsLedger
         ),
       );
     }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -2975,6 +3177,10 @@ class $PaymentsLedgerTable extends PaymentsLedger
         DriftSqlType.bool,
         data['${effectivePrefix}is_whats_app_sent'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3011,6 +3217,7 @@ class PaymentsLedgerData extends DataClass
   final double convertedMeters;
   final double fees;
   final bool isWhatsAppSent;
+  final String userId;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -3025,6 +3232,7 @@ class PaymentsLedgerData extends DataClass
     required this.convertedMeters,
     required this.fees,
     required this.isWhatsAppSent,
+    required this.userId,
     required this.createdAt,
     required this.updatedAt,
     required this.isDeleted,
@@ -3044,6 +3252,7 @@ class PaymentsLedgerData extends DataClass
     map['converted_meters'] = Variable<double>(convertedMeters);
     map['fees'] = Variable<double>(fees);
     map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent);
+    map['user_id'] = Variable<String>(userId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -3064,6 +3273,7 @@ class PaymentsLedgerData extends DataClass
       convertedMeters: Value(convertedMeters),
       fees: Value(fees),
       isWhatsAppSent: Value(isWhatsAppSent),
+      userId: Value(userId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -3088,6 +3298,7 @@ class PaymentsLedgerData extends DataClass
       convertedMeters: serializer.fromJson<double>(json['convertedMeters']),
       fees: serializer.fromJson<double>(json['fees']),
       isWhatsAppSent: serializer.fromJson<bool>(json['isWhatsAppSent']),
+      userId: serializer.fromJson<String>(json['userId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -3107,6 +3318,7 @@ class PaymentsLedgerData extends DataClass
       'convertedMeters': serializer.toJson<double>(convertedMeters),
       'fees': serializer.toJson<double>(fees),
       'isWhatsAppSent': serializer.toJson<bool>(isWhatsAppSent),
+      'userId': serializer.toJson<String>(userId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -3124,6 +3336,7 @@ class PaymentsLedgerData extends DataClass
     double? convertedMeters,
     double? fees,
     bool? isWhatsAppSent,
+    String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -3138,6 +3351,7 @@ class PaymentsLedgerData extends DataClass
     convertedMeters: convertedMeters ?? this.convertedMeters,
     fees: fees ?? this.fees,
     isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
+    userId: userId ?? this.userId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
@@ -3168,6 +3382,7 @@ class PaymentsLedgerData extends DataClass
       isWhatsAppSent: data.isWhatsAppSent.present
           ? data.isWhatsAppSent.value
           : this.isWhatsAppSent,
+      userId: data.userId.present ? data.userId.value : this.userId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -3187,6 +3402,7 @@ class PaymentsLedgerData extends DataClass
           ..write('convertedMeters: $convertedMeters, ')
           ..write('fees: $fees, ')
           ..write('isWhatsAppSent: $isWhatsAppSent, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -3206,6 +3422,7 @@ class PaymentsLedgerData extends DataClass
     convertedMeters,
     fees,
     isWhatsAppSent,
+    userId,
     createdAt,
     updatedAt,
     isDeleted,
@@ -3224,6 +3441,7 @@ class PaymentsLedgerData extends DataClass
           other.convertedMeters == this.convertedMeters &&
           other.fees == this.fees &&
           other.isWhatsAppSent == this.isWhatsAppSent &&
+          other.userId == this.userId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
@@ -3240,6 +3458,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
   final Value<double> convertedMeters;
   final Value<double> fees;
   final Value<bool> isWhatsAppSent;
+  final Value<String> userId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -3255,6 +3474,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     this.convertedMeters = const Value.absent(),
     this.fees = const Value.absent(),
     this.isWhatsAppSent = const Value.absent(),
+    this.userId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -3271,6 +3491,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     required double convertedMeters,
     this.fees = const Value.absent(),
     this.isWhatsAppSent = const Value.absent(),
+    required String userId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -3280,7 +3501,8 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
        paymentDate = Value(paymentDate),
        amountPaid = Value(amountPaid),
        meterPriceAtPayment = Value(meterPriceAtPayment),
-       convertedMeters = Value(convertedMeters);
+       convertedMeters = Value(convertedMeters),
+       userId = Value(userId);
   static Insertable<PaymentsLedgerData> custom({
     Expression<String>? id,
     Expression<String>? contractId,
@@ -3291,6 +3513,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     Expression<double>? convertedMeters,
     Expression<double>? fees,
     Expression<bool>? isWhatsAppSent,
+    Expression<String>? userId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -3308,6 +3531,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
       if (convertedMeters != null) 'converted_meters': convertedMeters,
       if (fees != null) 'fees': fees,
       if (isWhatsAppSent != null) 'is_whats_app_sent': isWhatsAppSent,
+      if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -3326,6 +3550,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     Value<double>? convertedMeters,
     Value<double>? fees,
     Value<bool>? isWhatsAppSent,
+    Value<String>? userId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
@@ -3342,6 +3567,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
       convertedMeters: convertedMeters ?? this.convertedMeters,
       fees: fees ?? this.fees,
       isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
+      userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -3382,6 +3608,9 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     if (isWhatsAppSent.present) {
       map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent.value);
     }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -3412,6 +3641,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
           ..write('convertedMeters: $convertedMeters, ')
           ..write('fees: $fees, ')
           ..write('isWhatsAppSent: $isWhatsAppSent, ')
+          ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -3451,6 +3681,7 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String name,
       required String phone,
       Value<String?> nationalId,
+      required String userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -3463,6 +3694,7 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> phone,
       Value<String?> nationalId,
+      Value<String> userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -3519,6 +3751,11 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<String> get nationalId => $composableBuilder(
     column: $table.nationalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3597,6 +3834,11 @@ class $$ClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3640,6 +3882,9 @@ class $$ClientsTableAnnotationComposer
     column: $table.nationalId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3711,6 +3956,7 @@ class $$ClientsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> phone = const Value.absent(),
                 Value<String?> nationalId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -3721,6 +3967,7 @@ class $$ClientsTableTableManager
                 name: name,
                 phone: phone,
                 nationalId: nationalId,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -3733,6 +3980,7 @@ class $$ClientsTableTableManager
                 required String name,
                 required String phone,
                 Value<String?> nationalId = const Value.absent(),
+                required String userId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -3743,6 +3991,7 @@ class $$ClientsTableTableManager
                 name: name,
                 phone: phone,
                 nationalId: nationalId,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -3807,6 +4056,7 @@ typedef $$ContractsTableCreateCompanionBuilder =
       required double baseMeterPriceAtSigning,
       Value<int> installmentsCount,
       Value<String> coefficients,
+      required String userId,
       required DateTime contractDate,
       Value<bool> isCompleted,
       Value<DateTime> createdAt,
@@ -3825,6 +4075,7 @@ typedef $$ContractsTableUpdateCompanionBuilder =
       Value<double> baseMeterPriceAtSigning,
       Value<int> installmentsCount,
       Value<String> coefficients,
+      Value<String> userId,
       Value<DateTime> contractDate,
       Value<bool> isCompleted,
       Value<DateTime> createdAt,
@@ -3946,6 +4197,11 @@ class $$ContractsTableFilterComposer
 
   ColumnFilters<String> get coefficients => $composableBuilder(
     column: $table.coefficients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4097,6 +4353,11 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get contractDate => $composableBuilder(
     column: $table.contractDate,
     builder: (column) => ColumnOrderings(column),
@@ -4190,6 +4451,9 @@ class $$ContractsTableAnnotationComposer
     column: $table.coefficients,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get contractDate => $composableBuilder(
     column: $table.contractDate,
@@ -4328,6 +4592,7 @@ class $$ContractsTableTableManager
                 Value<double> baseMeterPriceAtSigning = const Value.absent(),
                 Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<DateTime> contractDate = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4344,6 +4609,7 @@ class $$ContractsTableTableManager
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
                 installmentsCount: installmentsCount,
                 coefficients: coefficients,
+                userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
                 createdAt: createdAt,
@@ -4362,6 +4628,7 @@ class $$ContractsTableTableManager
                 required double baseMeterPriceAtSigning,
                 Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
+                required String userId,
                 required DateTime contractDate,
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4378,6 +4645,7 @@ class $$ContractsTableTableManager
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
                 installmentsCount: installmentsCount,
                 coefficients: coefficients,
+                userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
                 createdAt: createdAt,
@@ -4518,6 +4786,7 @@ typedef $$MaterialPricesHistoryTableCreateCompanionBuilder =
       required double formworkAndPouringWages,
       required double aggregateMaterialsPrice,
       required double ordinaryWorkerWage,
+      required String userId,
       Value<DateTime> createdAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
@@ -4533,6 +4802,7 @@ typedef $$MaterialPricesHistoryTableUpdateCompanionBuilder =
       Value<double> formworkAndPouringWages,
       Value<double> aggregateMaterialsPrice,
       Value<double> ordinaryWorkerWage,
+      Value<String> userId,
       Value<DateTime> createdAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
@@ -4585,6 +4855,11 @@ class $$MaterialPricesHistoryTableFilterComposer
 
   ColumnFilters<double> get ordinaryWorkerWage => $composableBuilder(
     column: $table.ordinaryWorkerWage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4653,6 +4928,11 @@ class $$MaterialPricesHistoryTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4713,6 +4993,9 @@ class $$MaterialPricesHistoryTableAnnotationComposer
     column: $table.ordinaryWorkerWage,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4778,6 +5061,7 @@ class $$MaterialPricesHistoryTableTableManager
                 Value<double> formworkAndPouringWages = const Value.absent(),
                 Value<double> aggregateMaterialsPrice = const Value.absent(),
                 Value<double> ordinaryWorkerWage = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
@@ -4791,6 +5075,7 @@ class $$MaterialPricesHistoryTableTableManager
                 formworkAndPouringWages: formworkAndPouringWages,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
+                userId: userId,
                 createdAt: createdAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
@@ -4806,6 +5091,7 @@ class $$MaterialPricesHistoryTableTableManager
                 required double formworkAndPouringWages,
                 required double aggregateMaterialsPrice,
                 required double ordinaryWorkerWage,
+                required String userId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
@@ -4819,6 +5105,7 @@ class $$MaterialPricesHistoryTableTableManager
                 formworkAndPouringWages: formworkAndPouringWages,
                 aggregateMaterialsPrice: aggregateMaterialsPrice,
                 ordinaryWorkerWage: ordinaryWorkerWage,
+                userId: userId,
                 createdAt: createdAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
@@ -4860,6 +5147,7 @@ typedef $$InstallmentsScheduleTableCreateCompanionBuilder =
       required int installmentNumber,
       required DateTime dueDate,
       Value<String> status,
+      required String userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -4873,6 +5161,7 @@ typedef $$InstallmentsScheduleTableUpdateCompanionBuilder =
       Value<int> installmentNumber,
       Value<DateTime> dueDate,
       Value<String> status,
+      Value<String> userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -4963,6 +5252,11 @@ class $$InstallmentsScheduleTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5064,6 +5358,11 @@ class $$InstallmentsScheduleTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5130,6 +5429,9 @@ class $$InstallmentsScheduleTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5233,6 +5535,7 @@ class $$InstallmentsScheduleTableTableManager
                 Value<int> installmentNumber = const Value.absent(),
                 Value<DateTime> dueDate = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -5244,6 +5547,7 @@ class $$InstallmentsScheduleTableTableManager
                 installmentNumber: installmentNumber,
                 dueDate: dueDate,
                 status: status,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -5257,6 +5561,7 @@ class $$InstallmentsScheduleTableTableManager
                 required int installmentNumber,
                 required DateTime dueDate,
                 Value<String> status = const Value.absent(),
+                required String userId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -5268,6 +5573,7 @@ class $$InstallmentsScheduleTableTableManager
                 installmentNumber: installmentNumber,
                 dueDate: dueDate,
                 status: status,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -5379,6 +5685,7 @@ typedef $$PaymentsLedgerTableCreateCompanionBuilder =
       required double convertedMeters,
       Value<double> fees,
       Value<bool> isWhatsAppSent,
+      required String userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -5396,6 +5703,7 @@ typedef $$PaymentsLedgerTableUpdateCompanionBuilder =
       Value<double> convertedMeters,
       Value<double> fees,
       Value<bool> isWhatsAppSent,
+      Value<String> userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -5499,6 +5807,11 @@ class $$PaymentsLedgerTableFilterComposer
 
   ColumnFilters<bool> get isWhatsAppSent => $composableBuilder(
     column: $table.isWhatsAppSent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5613,6 +5926,11 @@ class $$PaymentsLedgerTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5721,6 +6039,9 @@ class $$PaymentsLedgerTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5820,6 +6141,7 @@ class $$PaymentsLedgerTableTableManager
                 Value<double> convertedMeters = const Value.absent(),
                 Value<double> fees = const Value.absent(),
                 Value<bool> isWhatsAppSent = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -5835,6 +6157,7 @@ class $$PaymentsLedgerTableTableManager
                 convertedMeters: convertedMeters,
                 fees: fees,
                 isWhatsAppSent: isWhatsAppSent,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -5852,6 +6175,7 @@ class $$PaymentsLedgerTableTableManager
                 required double convertedMeters,
                 Value<double> fees = const Value.absent(),
                 Value<bool> isWhatsAppSent = const Value.absent(),
+                required String userId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -5867,6 +6191,7 @@ class $$PaymentsLedgerTableTableManager
                 convertedMeters: convertedMeters,
                 fees: fees,
                 isWhatsAppSent: isWhatsAppSent,
+                userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
