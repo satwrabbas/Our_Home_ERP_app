@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/schedule_cubit.dart';
-import '../../payments/cubit/payments_cubit.dart'; // 🌟 جلبنا محاسب دفتر الأستاذ للعمل هنا
+
+// 🌟 استدعاء مساعد الواتساب الجديد (للتذكير)
+import '../../core/utils/whatsapp_helper.dart';
 
 class SchedulePage extends StatelessWidget {
   const SchedulePage({super.key});
@@ -20,7 +22,7 @@ class ScheduleView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('مراقبة الأقساط (تسديد مرن)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('مراقبة الأقساط (جدول الاستحقاقات)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.indigo,
       ),
@@ -35,6 +37,9 @@ class ScheduleView extends StatelessWidget {
 
           return Column(
             children:[
+              // ==========================================
+              // --- القسم العلوي: فلترة حسب العقد ---
+              // ==========================================
               Container(
                 padding: const EdgeInsets.all(24.0),
                 color: Colors.indigo.shade50,
@@ -46,9 +51,8 @@ class ScheduleView extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        // 🌟 الحل السحري: فحص أمان للتأكد أن العقد ما زال موجوداً في القائمة!
+                        // فحص أمان لضمان عدم انهيار القائمة
                         value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
-                        
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
                           final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
@@ -63,6 +67,9 @@ class ScheduleView extends StatelessWidget {
                 ),
               ),
 
+              // ==========================================
+              // --- القسم السفلي: جدول المراقبة والتنبيه ---
+              // ==========================================
               Expanded(
                 child: state.selectedContractId == null
                     ? const Center(child: Text('يرجى اختيار عقد من القائمة بالأعلى لعرض جدول الأقساط.', style: TextStyle(fontSize: 18, color: Colors.grey)))
@@ -78,7 +85,7 @@ class ScheduleView extends StatelessWidget {
                                   DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('إجراءات (دفع مرن)', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('إجراءات (تواصل)', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 تم تعديل العنوان
                                 ],
                                 rows: state.scheduleList.map((schedule) {
                                   final isPaid = schedule.status == 'paid';
@@ -109,12 +116,31 @@ class ScheduleView extends StatelessWidget {
                                       ),
                                       DataCell(
                                         isPaid
-                                          ? const Text('مُسددة بالكامل في دفتر الأستاذ', style: TextStyle(color: Colors.grey))
+                                          ? const Text('مُسددة في دفتر الأستاذ', style: TextStyle(color: Colors.grey))
                                           : ElevatedButton.icon(
-                                              onPressed: () => _showFlexiblePaymentDialog(context, schedule, state.selectedContractId!),
-                                              icon: const Icon(Icons.payments_outlined),
-                                              label: const Text('تسديد الآن'),
-                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+                                              onPressed: () async {
+                                                // 🌟 1. جلب البيانات المطلوبة للتذكير
+                                                final contract = state.contracts.firstWhere((c) => c.id == schedule.contractId);
+                                                final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                                
+                                                // 🌟 2. إرسال تذكير واتساب
+                                                final success = await WhatsAppHelper.sendReminderMessage(
+                                                  schedule: schedule,
+                                                  contract: contract,
+                                                  client: client,
+                                                );
+
+                                                if (context.mounted) {
+                                                  if (success) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
+                                                  } else {
+                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب. تأكد من اتصالك بالإنترنت.'), backgroundColor: Colors.red));
+                                                  }
+                                                }
+                                              },
+                                              icon: const Icon(Icons.chat),
+                                              label: const Text('تذكير (واتساب)'),
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                                             ),
                                       ),
                                     ],
@@ -128,64 +154,6 @@ class ScheduleView extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-
-  // 🌟 النافذة السحرية: تطلب المبلغ الفعلي وترسله لدفتر الأستاذ
-  void _showFlexiblePaymentDialog(BuildContext parentContext, InstallmentsScheduleData schedule, String contractId) {
-    final amountController = TextEditingController();
-
-    showDialog(
-      context: parentContext,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text('تسديد القسط رقم (${schedule.installmentNumber})', style: const TextStyle(color: Colors.indigo)),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:[
-                const Text('أدخل المبلغ الفعلي الذي أحضره العميل. سيقوم النظام بحساب "الأمتار المحولة" تلقائياً بناءً على تسعيرة اليوم وإضافتها لدفتر الأستاذ.', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: amountController,
-                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-          ),
-          actions:[
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-              // 🌟 1. أضفنا كلمة async هنا
-              onPressed: () async { 
-                if (amountController.text.isNotEmpty) {
-                  
-                  // 🌟 2. أضفنا كلمة await لكي ننتظر قاعدة البيانات حتى تنتهي تماماً
-                  await parentContext.read<PaymentsCubit>().addLedgerEntry(
-                    contractId: contractId,
-                    amountPaid: double.parse(amountController.text),
-                    scheduleId: schedule.id, 
-                  );
-                  
-                  // 3. نتأكد أن الشاشة ما زالت مفتوحة قبل تحديثها
-                  if (parentContext.mounted) {
-                    // الآن نقوم بتحديث الشاشة، وستظهر النتيجة "مدفوع" فوراً من المرة الأولى!
-                    parentContext.read<ScheduleCubit>().selectContract(contractId);
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(parentContext).showSnackBar(
-                      const SnackBar(content: Text('تم تسجيل الدفعة وحساب الأمتار بنجاح!'), backgroundColor: Colors.green)
-                    );
-                  }
-                }
-              },
-              child: const Text('تأكيد الدفع وإغلاق القسط'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
