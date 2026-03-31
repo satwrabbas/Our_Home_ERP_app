@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'; // دعم العربية
 import 'package:erp_repository/erp_repository.dart';
-import 'package:our_home_erp_app/contracts/view/contracts_page.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // مهم جداً لدعم العربية
-import 'package:our_home_erp_app/dashboard/view/dashboard_page.dart';
 
-import 'package:our_home_erp_app/contracts/view/contracts_page.dart';
-// بدلاً من: import 'package:our_home_erp_app/clients/view/clients_page.dart';
+// 🌟 استدعاء شاشة تسجيل الدخول لتكون الواجهة الأولى
+import '../../login/view/login_page.dart';
 
 class App extends StatelessWidget {
   const App({
@@ -14,12 +12,10 @@ class App extends StatelessWidget {
     super.key,
   });
 
-  // نستقبل المستودع من ملف main
   final ErpRepository erpRepository;
 
   @override
   Widget build(BuildContext context) {
-    // RepositoryProvider يضمن أن المستودع متاح لجميع شاشات التطبيق
     return RepositoryProvider.value(
       value: erpRepository,
       child: const AppView(),
@@ -41,7 +37,7 @@ class AppView extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
+      supportedLocales: const[
         Locale('ar', 'AE'), // اللغة العربية مدعومة
       ],
       locale: const Locale('ar', 'AE'), // إجبار التطبيق على العربية
@@ -50,7 +46,9 @@ class AppView extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Tahoma', // خط ممتاز للويندوز
       ),
-      home: const DashboardPage(), // <-- ديدة هنا
+      
+      // 🌟 التعديل السحري: الواجهة الأولى هي شاشة تسجيل الدخول!
+      home: const LoginPage(), 
     );
   }
 }
