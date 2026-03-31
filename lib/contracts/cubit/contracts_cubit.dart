@@ -49,6 +49,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         installmentsCount: Value(installmentsCount), // 🌟 حفظ عدد الأشهر في القاعدة
         coefficients: Value(jsonEncode(coefficients)),
         contractDate: DateTime.now(),
+        userId:  '',
       );
       
       await _erpRepository.addContract(newContract);

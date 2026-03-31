@@ -29,6 +29,7 @@ class ClientsCubit extends Cubit<ClientsState> {
         name: name,
         phone: phone,
         nationalId: Value(nationalId),
+        userId:  '',
       );
       
       await _erpRepository.addClient(newClient);

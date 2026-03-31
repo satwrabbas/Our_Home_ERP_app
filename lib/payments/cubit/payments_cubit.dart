@@ -79,6 +79,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         meterPriceAtPayment: meterPriceToday, // 🌟 تجميد سعر المتر
         convertedMeters: convertedMeters,     // 🌟 تجميد الأمتار المحولة
         fees: Value(fees),
+        userId:  '',
       );
       
       await _erpRepository.addLedgerEntry(newEntry);

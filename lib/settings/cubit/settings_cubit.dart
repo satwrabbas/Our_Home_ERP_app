@@ -40,6 +40,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
         effectiveDate: Value(DateTime.now()), 
+        userId:  '',
       );
       
       await _erpRepository.savePrices(newPrices);
