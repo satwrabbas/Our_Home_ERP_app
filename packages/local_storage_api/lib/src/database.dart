@@ -277,7 +277,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
     // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v5_auth.sqlite')); 
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v6_clean.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

@@ -18,21 +18,14 @@ class ErpRepository {
   // ==========================================
   // 🔐 المصادقة (Authentication)
   // ==========================================
-
-  /// جلب مُعرّف المستخدم الحالي من السحابة (Supabase)
-  /// إذا كان null فهذا يعني أن المحاسب لم يسجل دخوله بعد
   String? get currentUserId => _cloudApi.currentUserId;
 
-  /// تسجيل الدخول (يتصل بالسحابة ليتأكد من الإيميل وكلمة المرور)
   Future<void> signIn({required String email, required String password}) async {
     await _cloudApi.signIn(email: email, password: password);
   }
 
-  /// تسجيل الخروج
   Future<void> signOut() async {
     await _cloudApi.signOut();
-    // 🌟 حماية أمنية: مسح قاعدة البيانات المحلية بالكامل عند تسجيل الخروج
-    // لكي لا يتمكن أي شخص يفتح الكمبيوتر من رؤية بيانات الشركة
     await _localApi.formatDatabase();
   }
 
@@ -40,7 +33,6 @@ class ErpRepository {
   // 🔄 محرك المزامنة الشبحي (Background Sync Engine)
   // ==========================================
   Future<void> syncPendingData() async {
-    // لا نقوم بالمزامنة أبداً إذا لم يكن هناك مستخدم مسجل الدخول
     if (_isSyncing || currentUserId == null) return;
     
     _isSyncing = true;
@@ -53,10 +45,11 @@ class ErpRepository {
       for (var c in pendingClients) {
         await _cloudApi.upsertClient({
           'id': c.id, 'name': c.name, 'phone': c.phone, 'nationalId': c.nationalId,
-          'userId': c.userId, // يرفع الـ ID الحقيقي للسحابة
+          'userId': c.userId, 
           'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String(),
         });
-        await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(const drift.ClientsCompanion(isSynced: drift.Value(true)));
+        // 🌟 لاحظ: ClientsCompanion هنا بدون drift. قبلها
+        await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(const ClientsCompanion(isSynced: drift.Value(true)));
       }
 
       // 2. مزامنة العقود
@@ -67,10 +60,10 @@ class ErpRepository {
           'apartmentDetails': c.apartmentDetails, 'totalArea': c.totalArea,
           'baseMeterPriceAtSigning': c.baseMeterPriceAtSigning, 'installmentsCount': c.installmentsCount,
           'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(),
-          'userId': c.userId,
+          'userId': c.userId, 
           'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String(),
         });
-        await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const drift.ContractsCompanion(isSynced: drift.Value(true)));
+        await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const ContractsCompanion(isSynced: drift.Value(true)));
       }
 
       // 3. مزامنة جدول الاستحقاقات
@@ -79,13 +72,13 @@ class ErpRepository {
         final cloudSchedules = pendingSchedules.map((s) => {
           'id': s.id, 'contractId': s.contractId, 'installmentNumber': s.installmentNumber,
           'dueDate': s.dueDate.toIso8601String(), 'status': s.status,
-          'userId': s.userId,
+          'userId': s.userId, 
           'isDeleted': s.isDeleted, 'updatedAt': s.updatedAt.toIso8601String(),
         }).toList();
         
         await _cloudApi.upsertSchedule(cloudSchedules); 
         for (var s in pendingSchedules) {
-          await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(const drift.InstallmentsScheduleCompanion(isSynced: drift.Value(true)));
+          await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(const InstallmentsScheduleCompanion(isSynced: drift.Value(true)));
         }
       }
 
@@ -97,10 +90,10 @@ class ErpRepository {
           'paymentDate': p.paymentDate.toIso8601String(), 'amountPaid': p.amountPaid,
           'meterPriceAtPayment': p.meterPriceAtPayment, 'convertedMeters': p.convertedMeters,
           'fees': p.fees, 'isWhatsAppSent': p.isWhatsAppSent,
-          'userId': p.userId,
+          'userId': p.userId, 
           'isDeleted': p.isDeleted, 'updatedAt': p.updatedAt.toIso8601String(),
         });
-        await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(const drift.PaymentsLedgerCompanion(isSynced: drift.Value(true)));
+        await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(const PaymentsLedgerCompanion(isSynced: drift.Value(true)));
       }
       
     } catch (e) {
@@ -115,9 +108,10 @@ class ErpRepository {
   // ==========================================
   Future<List<Client>> getClients() => _localApi.getClients();
 
-  Future<void> addClient(drift.ClientsCompanion clientCompanion) async {
+  // 🌟 الكلاس من المحلي (ClientsCompanion) وليس من (drift)
+  Future<void> addClient(ClientsCompanion clientCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-    // حقن ID المستخدم الحقيقي
+    
     final companionWithUser = clientCompanion.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.addClient(companionWithUser); 
     syncPendingData(); 
@@ -133,9 +127,9 @@ class ErpRepository {
   // ==========================================
   Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
-  Future<void> addContract(drift.ContractsCompanion contractCompanion) async {
+  Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-    
+
     final companionWithUser = contractCompanion.copyWith(userId: drift.Value(currentUserId!));
     final localId = await _localApi.addContract(companionWithUser);
     
@@ -144,12 +138,12 @@ class ErpRepository {
     
     for (int i = 1; i <= months; i++) {
       final dueDate = DateTime(startDate.year, startDate.month + i, startDate.day);
-      final entry = drift.InstallmentsScheduleCompanion.insert(
+      final entry = InstallmentsScheduleCompanion.insert(
         contractId: localId,
         installmentNumber: i,
         dueDate: dueDate,
         status: const drift.Value('pending'),
-        userId: currentUserId!, // إسناد ID المستخدم الحقيقي للقسط
+        userId: currentUserId!, 
       );
       await _localApi.addScheduleEntry(entry);
     }
@@ -177,7 +171,7 @@ class ErpRepository {
   // ==========================================
   Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _localApi.getContractLedger(contractId);
 
-  Future<void> addLedgerEntry(drift.PaymentsLedgerCompanion entryCompanion) async {
+  Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
 
     final companionWithUser = entryCompanion.copyWith(userId: drift.Value(currentUserId!));
@@ -200,7 +194,7 @@ class ErpRepository {
   // ==========================================
   Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
 
-  Future<void> savePrices(drift.MaterialPricesHistoryCompanion pricesCompanion) async {
+  Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
 
     final companionWithUser = pricesCompanion.copyWith(userId: drift.Value(currentUserId!));
