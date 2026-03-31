@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 
 import '../cubit/login_cubit.dart';
-import '../../dashboard/view/dashboard_page.dart'; // 🌟 للانتقال إليها بعد النجاح
+import '../../dashboard/view/dashboard_page.dart'; 
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -11,28 +11,49 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => LoginCubit(context.read<ErpRepository>()),
+      // 🌟 استدعاء دالة قراءة الإيميل المحفوظ بمجرد فتح الشاشة
+      create: (context) => LoginCubit(context.read<ErpRepository>())..loadSavedEmail(),
       child: const LoginView(),
     );
   }
 }
 
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  // 🌟 استخدمنا Controller لكي نتمكن من تعبئة الإيميل تلقائياً إذا كان محفوظاً
+  final _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade50,
       body: BlocListener<LoginCubit, LoginState>(
-        // 🌟 المراقب الذكي: ينتظر نتيجة السحابة ليقرر الخطوة التالية
         listener: (context, state) {
+          // 1. تعبئة حقل الإيميل آلياً إذا تم تحميله من الذاكرة وكان الحقل فارغاً
+          if (state.email.isNotEmpty && _emailController.text.isEmpty) {
+            _emailController.text = state.email;
+          }
+
+          // 2. معالجة الفشل
           if (state.status == LoginStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ غير معروف'), backgroundColor: Colors.red),
             );
-          } else if (state.status == LoginStatus.success) {
-            // نجاح الدخول: ننتقل للوحة التحكم ونمسح شاشة الدخول من الخلفية لكي لا يعود لها بالخطأ
+          } 
+          // 3. معالجة النجاح والانتقال للوحة التحكم
+          else if (state.status == LoginStatus.success) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const DashboardPage()),
             );
@@ -49,27 +70,39 @@ class LoginView extends StatelessWidget {
                 BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, 10)),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:[
-                const Icon(Icons.apartment, size: 80, color: Colors.blueGrey),
-                const SizedBox(height: 16),
-                const Text(
-                  'نظام بيتنا العقاري',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'تسجيل الدخول للموظفين',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 40),
-                _EmailInput(),
-                const SizedBox(height: 20),
-                _PasswordInput(),
-                const SizedBox(height: 40),
-                _LoginButton(),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children:[
+                  const Icon(Icons.apartment, size: 80, color: Colors.blueGrey),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'نظام بيتنا العقاري',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'تسجيل الدخول للموظفين',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 40),
+                  
+                  // حقل الإيميل مع تمرير الـ Controller
+                  _EmailInput(controller: _emailController),
+                  const SizedBox(height: 20),
+                  
+                  // حقل كلمة المرور
+                  const _PasswordInput(),
+                  const SizedBox(height: 12),
+                  
+                  // 🌟 مربع اختيار "تذكرني" الأنيق
+                  const _RememberMeCheckbox(),
+                  const SizedBox(height: 32),
+                  
+                  // زر تسجيل الدخول
+                  const _LoginButton(),
+                ],
+              ),
             ),
           ),
         ),
@@ -79,30 +112,32 @@ class LoginView extends StatelessWidget {
 }
 
 // ==========================================
-// 🧩 مكونات الشاشة الفرعية (لفصل الكود وتسريعه)
+// 🧩 مكونات الشاشة الفرعية 
 // ==========================================
 
 class _EmailInput extends StatelessWidget {
+  const _EmailInput({required this.controller});
+  
+  final TextEditingController controller;
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LoginCubit, LoginState>(
-      buildWhen: (previous, current) => previous.email != current.email,
-      builder: (context, state) {
-        return TextField(
-          onChanged: (email) => context.read<LoginCubit>().emailChanged(email),
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'البريد الإلكتروني',
-            prefixIcon: Icon(Icons.email_outlined),
-            border: OutlineInputBorder(),
-          ),
-        );
-      },
+    return TextField(
+      controller: controller,
+      onChanged: (email) => context.read<LoginCubit>().emailChanged(email),
+      keyboardType: TextInputType.emailAddress,
+      decoration: const InputDecoration(
+        labelText: 'البريد الإلكتروني',
+        prefixIcon: Icon(Icons.email_outlined),
+        border: OutlineInputBorder(),
+      ),
     );
   }
 }
 
 class _PasswordInput extends StatelessWidget {
+  const _PasswordInput();
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LoginCubit, LoginState>(
@@ -122,7 +157,33 @@ class _PasswordInput extends StatelessWidget {
   }
 }
 
+// 🌟 ميزة "تذكرني"
+class _RememberMeCheckbox extends StatelessWidget {
+  const _RememberMeCheckbox();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<LoginCubit, LoginState>(
+      buildWhen: (previous, current) => previous.rememberMe != current.rememberMe,
+      builder: (context, state) {
+        return Row(
+          children:[
+            Checkbox(
+              value: state.rememberMe,
+              activeColor: Colors.blueGrey,
+              onChanged: (value) => context.read<LoginCubit>().rememberMeChanged(value ?? false),
+            ),
+            const Text('تذكر البريد الإلكتروني', style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold)),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _LoginButton extends StatelessWidget {
+  const _LoginButton();
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LoginCubit, LoginState>(

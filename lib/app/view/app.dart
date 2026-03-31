@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // دعم العربية
+import 'package:flutter_localizations/flutter_localizations.dart'; 
 import 'package:erp_repository/erp_repository.dart';
 
-// 🌟 استدعاء شاشة تسجيل الدخول لتكون الواجهة الأولى
+// 🌟 استدعاء كلتا الشاشتين لكي نختار بينهما
 import '../../login/view/login_page.dart';
+import '../../dashboard/view/dashboard_page.dart';
 
 class App extends StatelessWidget {
   const App({
@@ -28,27 +29,32 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 السحر هنا: نسأل المستودع هل يمتلك (ID) لمستخدم مسجل دخول حالياً؟
+    final repo = context.read<ErpRepository>();
+    final bool isLoggedIn = repo.currentUserId != null;
+
     return MaterialApp(
       title: 'Our Home ERP',
       debugShowCheckedModeBanner: false,
-      // تفعيل دعم اللغة العربية من اليمين لليسار (RTL)
       localizationsDelegates: const[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const[
-        Locale('ar', 'AE'), // اللغة العربية مدعومة
+        Locale('ar', 'AE'), 
       ],
-      locale: const Locale('ar', 'AE'), // إجبار التطبيق على العربية
+      locale: const Locale('ar', 'AE'), 
       theme: ThemeData(
         primaryColor: const Color(0xFF13B9FF),
         useMaterial3: true,
-        fontFamily: 'Tahoma', // خط ممتاز للويندوز
+        fontFamily: 'Tahoma', 
       ),
       
-      // 🌟 التعديل السحري: الواجهة الأولى هي شاشة تسجيل الدخول!
-      home: const LoginPage(), 
+      // 🌟 التوجيه الذكي (Smart Routing):
+      // إذا كان مسجلاً الدخول -> افتح الإحصائيات مباشرة.
+      // إذا لم يكن مسجلاً (أو قام بتسجيل الخروج) -> افتح شاشة الدخول.
+      home: isLoggedIn ? const DashboardPage() : const LoginPage(), 
     );
   }
 }
