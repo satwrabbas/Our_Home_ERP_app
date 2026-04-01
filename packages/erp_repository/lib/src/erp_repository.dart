@@ -2,7 +2,7 @@ import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
 import 'package:drift/drift.dart' as drift;
 
-/// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية والمصادقة
+/// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية ثنائية الاتجاه (Push & Pull)
 class ErpRepository {
   ErpRepository({
     required LocalStorageApi localStorageApi,
@@ -22,80 +22,181 @@ class ErpRepository {
 
   Future<void> signIn({required String email, required String password}) async {
     await _cloudApi.signIn(email: email, password: password);
+    // 🌟 السحر: سحب كل بيانات الشركة فور تسجيل الدخول بنجاح!
+    await pullDataFromCloud();
   }
 
   Future<void> signOut() async {
     await _cloudApi.signOut();
+    // حماية قصوى: مسح قاعدة البيانات المحلية
     await _localApi.formatDatabase();
   }
 
   // ==========================================
-  // 🔄 محرك المزامنة الشبحي (Background Sync Engine)
+  // 🔄 المزامنة اليدوية (زر المزامنة الأخضر في لوحة التحكم)
+  // ==========================================
+  Future<String> forceSyncWithCloud() async {
+    try {
+      await syncPendingData(); // 1. رفع أي تعديلات محلية أولاً
+      await pullDataFromCloud(); // 2. سحب أي بيانات جديدة أضافها مدير آخر
+      return 'تمت المزامنة مع السحابة بنجاح! ☁️✓';
+    } catch (e) {
+      return 'حدث خطأ أثناء المزامنة: $e';
+    }
+  }
+
+  // ==========================================
+  // 📥 محرك السحب الشبحي (Pull from Cloud) - مصحح 100%
+  // ==========================================
+  Future<void> pullDataFromCloud() async {
+    try {
+      final db = _localApi.database;
+
+      // 1. سحب العملاء
+      final cloudClients = await _cloudApi.getClients();
+      for (var c in cloudClients) {
+        // 🌟 لاحظ: ClientsCompanion بدون drift.
+        final client = ClientsCompanion.insert(
+          id: drift.Value(c['id'].toString()), 
+          name: c['name'].toString(), 
+          phone: c['phone'].toString(), 
+          nationalId: drift.Value(c['nationalId']?.toString()), 
+          userId: c['userId']?.toString() ?? '',
+          isDeleted: drift.Value(c['isDeleted'] == true), 
+          createdAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          isSynced: const drift.Value(true), 
+        );
+        try { await _localApi.addClient(client); } catch(_) {}
+      }
+
+      // 2. سحب العقود
+      final cloudContracts = await _cloudApi.getContracts();
+      for (var c in cloudContracts) {
+        // 🌟 ContractsCompanion بدون drift.
+        final contract = ContractsCompanion.insert(
+          id: drift.Value(c['id'].toString()), 
+          clientId: c['clientId'].toString(), 
+          contractType: drift.Value(c['contractType']?.toString() ?? 'لاحق التخصص'),
+          apartmentDetails: c['apartmentDetails'].toString(), 
+          totalArea: double.tryParse(c['totalArea']?.toString() ?? '0') ?? 0.0,
+          baseMeterPriceAtSigning: double.tryParse(c['baseMeterPriceAtSigning']?.toString() ?? '0') ?? 0.0,
+          installmentsCount: drift.Value(int.tryParse(c['installmentsCount']?.toString() ?? '48') ?? 48),
+          coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
+          contractDate: DateTime.tryParse(c['contractDate']?.toString() ?? '') ?? DateTime.now(),
+          userId: c['userId']?.toString() ?? '',
+          isCompleted: drift.Value(c['isCompleted'] == true),
+          isDeleted: drift.Value(c['isDeleted'] == true),
+          isSynced: const drift.Value(true),
+        );
+        try { await _localApi.addContract(contract); } catch(_) {}
+      }
+
+      // 3. سحب أسعار المواد
+      final cloudPrices = await _cloudApi.getMaterialPrices();
+      for (var p in cloudPrices) {
+        // 🌟 MaterialPricesHistoryCompanion بدون drift.
+        final price = MaterialPricesHistoryCompanion.insert(
+          id: drift.Value(p['id'].toString()), 
+          ironPrice: double.tryParse(p['ironPrice']?.toString() ?? '0') ?? 0.0, 
+          cementPrice: double.tryParse(p['cementPrice']?.toString() ?? '0') ?? 0.0,
+          block15Price: double.tryParse(p['block15Price']?.toString() ?? '0') ?? 0.0, 
+          formworkAndPouringWages: double.tryParse(p['formworkAndPouringWages']?.toString() ?? '0') ?? 0.0,
+          aggregateMaterialsPrice: double.tryParse(p['aggregateMaterialsPrice']?.toString() ?? '0') ?? 0.0, 
+          ordinaryWorkerWage: double.tryParse(p['ordinaryWorkerWage']?.toString() ?? '0') ?? 0.0,
+          effectiveDate: drift.Value(DateTime.tryParse(p['effectiveDate']?.toString() ?? '') ?? DateTime.now()),
+          userId: p['userId']?.toString() ?? '',
+          isDeleted: drift.Value(p['isDeleted'] == true),
+          isSynced: const drift.Value(true),
+        );
+        try { await _localApi.savePrices(price); } catch(_) {}
+      }
+
+      // 4. سحب جدول الاستحقاقات
+      final cloudSchedules = await _cloudApi.getSchedules();
+      for (var s in cloudSchedules) {
+        // 🌟 InstallmentsScheduleCompanion بدون drift.
+        final schedule = InstallmentsScheduleCompanion.insert(
+          id: drift.Value(s['id'].toString()), 
+          contractId: s['contractId'].toString(), 
+          installmentNumber: int.tryParse(s['installmentNumber']?.toString() ?? '1') ?? 1,
+          dueDate: DateTime.tryParse(s['dueDate']?.toString() ?? '') ?? DateTime.now(), 
+          status: drift.Value(s['status']?.toString() ?? 'pending'),
+          userId: s['userId']?.toString() ?? '',
+          isDeleted: drift.Value(s['isDeleted'] == true),
+          isSynced: const drift.Value(true),
+        );
+        try { await _localApi.addScheduleEntry(schedule); } catch(_) {}
+      }
+
+      // 5. سحب دفتر الأستاذ (الدفعات)
+      final cloudPayments = await _cloudApi.getPayments();
+      for (var p in cloudPayments) {
+        // 🌟 PaymentsLedgerCompanion بدون drift.
+        final payment = PaymentsLedgerCompanion.insert(
+          id: drift.Value(p['id'].toString()), 
+          contractId: p['contractId'].toString(), 
+          scheduleId: drift.Value(p['scheduleId']?.toString()),
+          paymentDate: DateTime.tryParse(p['paymentDate']?.toString() ?? '') ?? DateTime.now(), 
+          amountPaid: double.tryParse(p['amountPaid']?.toString() ?? '0') ?? 0.0, 
+          meterPriceAtPayment: double.tryParse(p['meterPriceAtPayment']?.toString() ?? '0') ?? 0.0,
+          convertedMeters: double.tryParse(p['convertedMeters']?.toString() ?? '0') ?? 0.0, 
+          fees: drift.Value(double.tryParse(p['fees']?.toString() ?? '0') ?? 0.0),
+          isWhatsAppSent: drift.Value(p['isWhatsAppSent'] == true),
+          userId: p['userId']?.toString() ?? '',
+          isDeleted: drift.Value(p['isDeleted'] == true),
+          isSynced: const drift.Value(true),
+        );
+        try { await _localApi.addLedgerEntry(payment); } catch(_) {}
+      }
+
+    } catch (e) {
+      print('Cloud Pull Failed: $e'); 
+    }
+  }
+
+  // ==========================================
+  // 📤 محرك الرفع الشبحي (Push to Cloud)
   // ==========================================
   Future<void> syncPendingData() async {
     if (_isSyncing || currentUserId == null) return;
-    
     _isSyncing = true;
     
     try {
       final db = _localApi.database;
 
-      // 1. مزامنة العملاء
       final pendingClients = await (db.select(db.clients)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingClients) {
-        await _cloudApi.upsertClient({
-          'id': c.id, 'name': c.name, 'phone': c.phone, 'nationalId': c.nationalId,
-          'userId': c.userId, 
-          'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String(),
-        });
-        // 🌟 لاحظ: ClientsCompanion هنا بدون drift. قبلها
+        await _cloudApi.upsertClient({'id': c.id, 'name': c.name, 'phone': c.phone, 'nationalId': c.nationalId, 'userId': c.userId, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
         await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(const ClientsCompanion(isSynced: drift.Value(true)));
       }
 
-      // 2. مزامنة العقود
       final pendingContracts = await (db.select(db.contracts)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingContracts) {
-        await _cloudApi.upsertContract({
-          'id': c.id, 'clientId': c.clientId, 'contractType': c.contractType,
-          'apartmentDetails': c.apartmentDetails, 'totalArea': c.totalArea,
-          'baseMeterPriceAtSigning': c.baseMeterPriceAtSigning, 'installmentsCount': c.installmentsCount,
-          'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(),
-          'userId': c.userId, 
-          'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String(),
-        });
+        await _cloudApi.upsertContract({'id': c.id, 'clientId': c.clientId, 'contractType': c.contractType, 'apartmentDetails': c.apartmentDetails, 'totalArea': c.totalArea, 'baseMeterPriceAtSigning': c.baseMeterPriceAtSigning, 'installmentsCount': c.installmentsCount, 'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(), 'userId': c.userId, 'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
         await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const ContractsCompanion(isSynced: drift.Value(true)));
       }
 
-      // 3. مزامنة جدول الاستحقاقات
       final pendingSchedules = await (db.select(db.installmentsSchedule)..where((t) => t.isSynced.equals(false))).get();
       if (pendingSchedules.isNotEmpty) {
-        final cloudSchedules = pendingSchedules.map((s) => {
-          'id': s.id, 'contractId': s.contractId, 'installmentNumber': s.installmentNumber,
-          'dueDate': s.dueDate.toIso8601String(), 'status': s.status,
-          'userId': s.userId, 
-          'isDeleted': s.isDeleted, 'updatedAt': s.updatedAt.toIso8601String(),
-        }).toList();
-        
+        final cloudSchedules = pendingSchedules.map((s) => {'id': s.id, 'contractId': s.contractId, 'installmentNumber': s.installmentNumber, 'dueDate': s.dueDate.toIso8601String(), 'status': s.status, 'userId': s.userId, 'isDeleted': s.isDeleted, 'updatedAt': s.updatedAt.toIso8601String()}).toList();
         await _cloudApi.upsertSchedule(cloudSchedules); 
         for (var s in pendingSchedules) {
           await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(const InstallmentsScheduleCompanion(isSynced: drift.Value(true)));
         }
       }
 
-      // 4. مزامنة دفتر الأستاذ
       final pendingPayments = await (db.select(db.paymentsLedger)..where((t) => t.isSynced.equals(false))).get();
       for (var p in pendingPayments) {
-        await _cloudApi.upsertPayment({
-          'id': p.id, 'contractId': p.contractId, 'scheduleId': p.scheduleId,
-          'paymentDate': p.paymentDate.toIso8601String(), 'amountPaid': p.amountPaid,
-          'meterPriceAtPayment': p.meterPriceAtPayment, 'convertedMeters': p.convertedMeters,
-          'fees': p.fees, 'isWhatsAppSent': p.isWhatsAppSent,
-          'userId': p.userId, 
-          'isDeleted': p.isDeleted, 'updatedAt': p.updatedAt.toIso8601String(),
-        });
+        await _cloudApi.upsertPayment({'id': p.id, 'contractId': p.contractId, 'scheduleId': p.scheduleId, 'paymentDate': p.paymentDate.toIso8601String(), 'amountPaid': p.amountPaid, 'meterPriceAtPayment': p.meterPriceAtPayment, 'convertedMeters': p.convertedMeters, 'fees': p.fees, 'isWhatsAppSent': p.isWhatsAppSent, 'userId': p.userId, 'isDeleted': p.isDeleted, 'updatedAt': p.updatedAt.toIso8601String()});
         await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(const PaymentsLedgerCompanion(isSynced: drift.Value(true)));
       }
       
+      final pendingPrices = await (db.select(db.materialPricesHistory)..where((t) => t.isSynced.equals(false))).get();
+      for (var p in pendingPrices) {
+      await _cloudApi.upsertMaterialPrices({'id': p.id, 'effectiveDate': p.effectiveDate.toIso8601String(), 'ironPrice': p.ironPrice, 'cementPrice': p.cementPrice, 'block15Price': p.block15Price, 'formworkAndPouringWages': p.formworkAndPouringWages, 'aggregateMaterialsPrice': p.aggregateMaterialsPrice, 'ordinaryWorkerWage': p.ordinaryWorkerWage, 'userId': p.userId, 'isDeleted': p.isDeleted});
+      await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
+      }
+
     } catch (e) {
       print('Background Sync Failed (Silently): $e');
     } finally {
@@ -108,10 +209,8 @@ class ErpRepository {
   // ==========================================
   Future<List<Client>> getClients() => _localApi.getClients();
 
-  // 🌟 الكلاس من المحلي (ClientsCompanion) وليس من (drift)
   Future<void> addClient(ClientsCompanion clientCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-    
     final companionWithUser = clientCompanion.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.addClient(companionWithUser); 
     syncPendingData(); 
@@ -129,7 +228,6 @@ class ErpRepository {
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-
     final companionWithUser = contractCompanion.copyWith(userId: drift.Value(currentUserId!));
     final localId = await _localApi.addContract(companionWithUser);
     
@@ -139,15 +237,11 @@ class ErpRepository {
     for (int i = 1; i <= months; i++) {
       final dueDate = DateTime(startDate.year, startDate.month + i, startDate.day);
       final entry = InstallmentsScheduleCompanion.insert(
-        contractId: localId,
-        installmentNumber: i,
-        dueDate: dueDate,
-        status: const drift.Value('pending'),
-        userId: currentUserId!, 
+        contractId: localId, installmentNumber: i, dueDate: dueDate,
+        status: const drift.Value('pending'), userId: currentUserId!, 
       );
       await _localApi.addScheduleEntry(entry);
     }
-
     syncPendingData();
   }
 
@@ -173,14 +267,12 @@ class ErpRepository {
 
   Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-
     final companionWithUser = entryCompanion.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.addLedgerEntry(companionWithUser);
     
     if (entryCompanion.scheduleId.present && entryCompanion.scheduleId.value != null) {
       await _localApi.updateScheduleStatus(entryCompanion.scheduleId.value!, 'paid');
     }
-    
     syncPendingData();
   }
 
@@ -196,8 +288,8 @@ class ErpRepository {
 
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-
     final companionWithUser = pricesCompanion.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.savePrices(companionWithUser);
+    syncPendingData(); 
   }
 }

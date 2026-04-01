@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; 
 import 'package:erp_repository/erp_repository.dart';
 
-// 🌟 استدعاء كلتا الشاشتين لكي نختار بينهما
+// 🌟 استدعاء مكتبة السحابة لكي نفحص الجلسة (Session)
+import 'package:cloud_storage_api/cloud_storage_api.dart';
+
+// استدعاء الشاشتين
 import '../../login/view/login_page.dart';
 import '../../dashboard/view/dashboard_page.dart';
 
@@ -29,9 +32,13 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 السحر هنا: نسأل المستودع هل يمتلك (ID) لمستخدم مسجل دخول حالياً؟
-    final repo = context.read<ErpRepository>();
-    final bool isLoggedIn = repo.currentUserId != null;
+    
+    // ==========================================
+    // 🌟 حارس البوابة التلقائي (Auto-Login Gate)
+    // ==========================================
+    // نسأل Supabase: هل يوجد مستخدم سجل دخوله سابقاً على هذا الكمبيوتر ولم يسجل خروجه؟
+    final session = Supabase.instance.client.auth.currentSession;
+    final bool isLoggedIn = session != null; // إذا لم تكن null، فهذا يعني أنه مسجل دخول!
 
     return MaterialApp(
       title: 'Our Home ERP',
@@ -52,8 +59,8 @@ class AppView extends StatelessWidget {
       ),
       
       // 🌟 التوجيه الذكي (Smart Routing):
-      // إذا كان مسجلاً الدخول -> افتح الإحصائيات مباشرة.
-      // إذا لم يكن مسجلاً (أو قام بتسجيل الخروج) -> افتح شاشة الدخول.
+      // إذا كان مسجلاً للدخول، افتح لوحة التحكم مباشرة. 
+      // إذا لم يكن كذلك، افتح شاشة تسجيل الدخول.
       home: isLoggedIn ? const DashboardPage() : const LoginPage(), 
     );
   }
