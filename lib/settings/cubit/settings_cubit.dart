@@ -43,7 +43,8 @@ class SettingsCubit extends Cubit<SettingsState> {
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
         effectiveDate: Value(DateTime.now()), 
-        userId: '', // الـ Repository سيقوم بوضع الـ ID الصحيح
+        userId: '', 
+        isDeleted: const Value(false), // 🌟 أضف هذا السطر هنا!
       );
       
       await _erpRepository.savePrices(newPrices);
@@ -52,5 +53,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
+
+
   }
 }

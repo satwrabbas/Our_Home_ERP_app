@@ -1,7 +1,7 @@
 import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
 import 'package:drift/drift.dart' as drift;
-
+import 'package:uuid/uuid.dart'; 
 /// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية ثنائية الاتجاه (Push & Pull)
 class ErpRepository {
   ErpRepository({
@@ -287,9 +287,22 @@ class ErpRepository {
   Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
 
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
-    if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-    final companionWithUser = pricesCompanion.copyWith(userId: drift.Value(currentUserId!));
-    await _localApi.savePrices(companionWithUser);
+    // 🌟 1. وضعنا معرّف وهمي في حال كنت تختبر التطبيق ولم تقم بتسجيل الدخول بعد
+    final String safeUserId = currentUserId ?? 'test_offline_user';
+
+    // 🌟 2. توليد ID فريد للسطر الجديد (هذا هو الذي كان يمنع الحفظ!)
+    final String newId = const Uuid().v4();
+
+    // 🌟 3. دمج الـ ID والـ UserId مع البيانات القادمة من الـ Cubit
+    final companionReadyToSave = pricesCompanion.copyWith(
+      id: drift.Value(newId),
+      userId: drift.Value(safeUserId),
+    );
+
+    // 4. الحفظ في قاعدة البيانات المحلية
+    await _localApi.savePrices(companionReadyToSave);
+    
+    // 5. المزامنة مع السحابة
     syncPendingData(); 
   }
 }

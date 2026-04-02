@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
-// تأكد من مسار الـ Cubit الخاص بك
 import '../cubit/settings_cubit.dart'; 
 
 class SettingsPage extends StatelessWidget {
@@ -33,7 +32,6 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   void dispose() {
-    // 🌟 تنظيف الذاكرة مهم جداً في Very Good CLI
     ironController.dispose();
     cementController.dispose();
     blockController.dispose();
@@ -52,10 +50,9 @@ class _SettingsViewState extends State<SettingsView> {
         backgroundColor: Colors.blueGrey,
       ),
       body: BlocConsumer<SettingsCubit, SettingsState>(
-        listenWhen: (previous, current) => previous.status != current.status, // 🌟 تحسين الأداء
+        listenWhen: (previous, current) => previous.status != current.status,
         listener: (context, state) {
           if (state.status == SettingsStatus.success && state.currentPrices != null) {
-            // تحديث الحقول فور نجاح الجلب أو الحفظ
             ironController.text = state.currentPrices!.ironPrice.toStringAsFixed(0);
             cementController.text = state.currentPrices!.cementPrice.toStringAsFixed(0);
             blockController.text = state.currentPrices!.block15Price.toStringAsFixed(0);
@@ -63,23 +60,26 @@ class _SettingsViewState extends State<SettingsView> {
             aggregatesController.text = state.currentPrices!.aggregateMaterialsPrice.toStringAsFixed(0);
             workerController.text = state.currentPrices!.ordinaryWorkerWage.toStringAsFixed(0);
             
-            // إظهار رسالة النجاح فقط إذا كنا قادمين من عملية حفظ (وليس فتح الصفحة لأول مرة)
-            // يمكننا معرفة ذلك إذا كان الـ Snackbar غير معروض سلفاً
-          } else if (state.status == SettingsStatus.failure) {
+            // 🌟 السحر هنا: نعرض رسالة النجاح فقط إذا تأكدنا من حفظها!
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red),
+              const SnackBar(content: Text('تم الحفظ وجلب أحدث الأسعار بنجاح! ✅'), backgroundColor: Colors.green),
+            );
+
+          } else if (state.status == SettingsStatus.failure) {
+            // 🌟 إظهار الخطأ الحقيقي إذا حدث
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
             );
           }
         },
         builder: (context, state) {
-          // 🌟 إظهار مؤشر التحميل عند الجلب وعند الحفظ
           if (state.status == SettingsStatus.loading || state.status == SettingsStatus.initial) {
             return const Center(child: CircularProgressIndicator());
           }
 
           return Center(
             child: Container(
-              width: 600, // تصميم متجاوب ممتاز
+              width: 600, 
               padding: const EdgeInsets.all(24.0),
               child: SingleChildScrollView(
                 child: Column(
@@ -110,9 +110,9 @@ class _SettingsViewState extends State<SettingsView> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
                         onPressed: () {
-                          // إغلاق الكيبورد عند الضغط على حفظ
                           FocusScope.of(context).unfocus();
                           
+                          // 🌟 قمنا بإزالة الـ Snackbar الخادع من هنا
                           context.read<SettingsCubit>().updatePrices(
                             iron: double.tryParse(ironController.text) ?? 0,
                             cement: double.tryParse(cementController.text) ?? 0,
@@ -121,7 +121,6 @@ class _SettingsViewState extends State<SettingsView> {
                             aggregates: double.tryParse(aggregatesController.text) ?? 0,
                             worker: double.tryParse(workerController.text) ?? 0,
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث الأسعار بنجاح!')));
                         },
                         child: const Text('حفظ الأسعار الافرادية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ),

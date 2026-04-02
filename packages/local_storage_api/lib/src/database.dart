@@ -205,19 +205,34 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // --- استعلامات سجل أسعار المواد ---
   // ==========================================
-  // جلب السعر الفعال في تاريخ معين (أو أحدث سعر إذا لم يمرر تاريخ)
+  
+  // جلب أحدث سعر
   Future<MaterialPricesHistoryData?> getLatestPrices() {
     return (select(materialPricesHistory)
-          ..where((t) => t.isDeleted.equals(false))
+          ..where((t) => t.isDeleted.equals(false)) 
           ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
           ..limit(1))
         .getSingleOrNull();
   }
   
-  // إضافة تسعيرة شهرية جديدة (بدلاً من تحديث القديمة)
+  // 🌟 (الفكرة العبقرية) إلغاء القديم قبل إضافة الجديد
   Future<String> insertMaterialPriceRecord(MaterialPricesHistoryCompanion prices) async {
-    final row = await into(materialPricesHistory).insertReturning(prices);
-    return row.id;
+    return transaction(() async {
+      // 1. ضربة استباقية: تحويل كل الأسعار القديمة إلى محذوفة
+      await (update(materialPricesHistory)
+            ..where((t) => t.isDeleted.equals(false)))
+          .write(
+            // 🌟 تم إزالة كلمة const من هنا
+            MaterialPricesHistoryCompanion(
+              isDeleted: const Value(true), // وضعناها هنا بشكل صحيح
+              isSynced: const Value(false), 
+            ),
+          );
+
+      // 2. إدخال التسعيرة الجديدة
+      final row = await into(materialPricesHistory).insertReturning(prices);
+      return row.id;
+    });
   }
 
   // ==========================================
@@ -277,7 +292,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
     // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v6_clean.sqlite')); 
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v7_clean.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }
