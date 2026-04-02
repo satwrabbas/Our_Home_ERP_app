@@ -159,10 +159,38 @@ class AppDatabase extends _$AppDatabase {
   
   Future<bool> updateClient(Client client) => update(clients).replace(client);
   
-  Future<int> softDeleteClient(String id) {
-    return (update(clients)..where((t) => t.id.equals(id))).write(
-      ClientsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
-    );
+  // ==========================================
+  // --- استعلامات الحذف التعاقبي (Cascading Soft Delete) ---
+  // ==========================================
+  
+  /// حذف عميل (يحذف معه آلياً: عقوده، أقساطه، ومدفوعاته)
+  Future<void> softDeleteClient(String clientId) async {
+    return transaction(() async {
+      // 1. حذف العميل نفسه
+      await (update(clients)..where((t) => t.id.equals(clientId))).write(
+        ClientsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+      );
+
+      // 2. جلب كل عقود هذا العميل
+      final clientContracts = await (select(contracts)..where((t) => t.clientId.equals(clientId))).get();
+
+      for (final contract in clientContracts) {
+        // أ. حذف العقد
+        await (update(contracts)..where((t) => t.id.equals(contract.id))).write(
+          ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        );
+
+        // ب. حذف جدول استحقاقات هذا العقد
+        await (update(installmentsSchedule)..where((t) => t.contractId.equals(contract.id))).write(
+          InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        );
+
+        // ج. حذف جميع مدفوعات هذا العقد (دفتر الأستاذ)
+        await (update(paymentsLedger)..where((t) => t.contractId.equals(contract.id))).write(
+          PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        );
+      }
+    });
   }
 
   // ==========================================
@@ -176,10 +204,24 @@ class AppDatabase extends _$AppDatabase {
     return row.id;
   }
   
-  Future<int> softDeleteContract(String id) {
-    return (update(contracts)..where((t) => t.id.equals(id))).write(
-      ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
-    );
+  /// حذف عقد (يحذف معه آلياً: أقساطه ومدفوعاته)
+  Future<void> softDeleteContract(String contractId) async {
+    return transaction(() async {
+      // 1. حذف العقد
+      await (update(contracts)..where((t) => t.id.equals(contractId))).write(
+        ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+      );
+
+      // 2. حذف جدول استحقاقات العقد
+      await (update(installmentsSchedule)..where((t) => t.contractId.equals(contractId))).write(
+        InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+      );
+
+      // 3. حذف جميع مدفوعات العقد
+      await (update(paymentsLedger)..where((t) => t.contractId.equals(contractId))).write(
+        PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+      );
+    });
   }
 
   // ==========================================
@@ -286,13 +328,22 @@ class AppDatabase extends _$AppDatabase {
       await delete(clients).go();
     });
   }
+
+  // ==========================================
+  // ☁️ دوال الحقن السحابي (Cloud Sync Upserts)
+  // ==========================================
+  Future<void> syncClient(ClientsCompanion entity) => into(clients).insertOnConflictUpdate(entity);
+  Future<void> syncContract(ContractsCompanion entity) => into(contracts).insertOnConflictUpdate(entity);
+  Future<void> syncMaterialPrice(MaterialPricesHistoryCompanion entity) => into(materialPricesHistory).insertOnConflictUpdate(entity);
+  Future<void> syncSchedule(InstallmentsScheduleCompanion entity) => into(installmentsSchedule).insertOnConflictUpdate(entity);
+  Future<void> syncPayment(PaymentsLedgerCompanion entity) => into(paymentsLedger).insertOnConflictUpdate(entity);
 }
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
     // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v7_clean.sqlite')); 
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v8_clean.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

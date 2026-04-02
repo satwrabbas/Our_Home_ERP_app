@@ -10,12 +10,16 @@ class LocalStorageApi {
   Future<List<Client>> getClients() => _db.getActiveClients();
   Future<String> addClient(ClientsCompanion client) => _db.insertClient(client);
   Future<bool> updateClient(Client client) => _db.updateClient(client);
-  Future<int> deleteClient(String id) => _db.softDeleteClient(id);
+  
+  // 🌟 تم التعديل إلى Future<void> لتتوافق مع الحذف التعاقبي (Cascading Soft Delete)
+  Future<void> deleteClient(String id) => _db.softDeleteClient(id);
 
   // العقود
   Future<List<Contract>> getAllContracts() => _db.getActiveContracts();
   Future<String> addContract(ContractsCompanion contract) => _db.insertContract(contract);
-  Future<int> deleteContract(String id) => _db.softDeleteContract(id);
+  
+  // 🌟 تم التعديل إلى Future<void> لتتوافق مع الحذف التعاقبي (Cascading Soft Delete)
+  Future<void> deleteContract(String id) => _db.softDeleteContract(id);
 
   // دفتر الأستاذ
   Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _db.getLedgerForContract(contractId);
