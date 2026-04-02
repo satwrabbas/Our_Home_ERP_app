@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
-import '../cubit/settings_cubit.dart';
+// تأكد من مسار الـ Cubit الخاص بك
+import '../cubit/settings_cubit.dart'; 
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -26,9 +27,21 @@ class _SettingsViewState extends State<SettingsView> {
   final ironController = TextEditingController();
   final cementController = TextEditingController();
   final blockController = TextEditingController();
-  final formworkController = TextEditingController(); // 🌟 أصبح يشمل الكوفراج والبيتون
+  final formworkController = TextEditingController(); 
   final aggregatesController = TextEditingController();
   final workerController = TextEditingController();
+
+  @override
+  void dispose() {
+    // 🌟 تنظيف الذاكرة مهم جداً في Very Good CLI
+    ironController.dispose();
+    cementController.dispose();
+    blockController.dispose();
+    formworkController.dispose();
+    aggregatesController.dispose();
+    workerController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,24 +52,34 @@ class _SettingsViewState extends State<SettingsView> {
         backgroundColor: Colors.blueGrey,
       ),
       body: BlocConsumer<SettingsCubit, SettingsState>(
+        listenWhen: (previous, current) => previous.status != current.status, // 🌟 تحسين الأداء
         listener: (context, state) {
           if (state.status == SettingsStatus.success && state.currentPrices != null) {
+            // تحديث الحقول فور نجاح الجلب أو الحفظ
             ironController.text = state.currentPrices!.ironPrice.toStringAsFixed(0);
             cementController.text = state.currentPrices!.cementPrice.toStringAsFixed(0);
             blockController.text = state.currentPrices!.block15Price.toStringAsFixed(0);
             formworkController.text = state.currentPrices!.formworkAndPouringWages.toStringAsFixed(0);
             aggregatesController.text = state.currentPrices!.aggregateMaterialsPrice.toStringAsFixed(0);
             workerController.text = state.currentPrices!.ordinaryWorkerWage.toStringAsFixed(0);
+            
+            // إظهار رسالة النجاح فقط إذا كنا قادمين من عملية حفظ (وليس فتح الصفحة لأول مرة)
+            // يمكننا معرفة ذلك إذا كان الـ Snackbar غير معروض سلفاً
+          } else if (state.status == SettingsStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red),
+            );
           }
         },
         builder: (context, state) {
-          if (state.status == SettingsStatus.loading) {
+          // 🌟 إظهار مؤشر التحميل عند الجلب وعند الحفظ
+          if (state.status == SettingsStatus.loading || state.status == SettingsStatus.initial) {
             return const Center(child: CircularProgressIndicator());
           }
 
           return Center(
             child: Container(
-              width: 600,
+              width: 600, // تصميم متجاوب ممتاز
               padding: const EdgeInsets.all(24.0),
               child: SingleChildScrollView(
                 child: Column(
@@ -74,7 +97,6 @@ class _SettingsViewState extends State<SettingsView> {
                     const SizedBox(height: 12),
                     TextField(controller: blockController, decoration: const InputDecoration(labelText: 'سعر (1 بلوكة) سماكة 15 سم واصل', border: OutlineInputBorder()), keyboardType: TextInputType.number),
                     const SizedBox(height: 12),
-                    // 🌟 الحقل المدمج
                     TextField(controller: formworkController, decoration: const InputDecoration(labelText: 'أجور كوفراج وصب وبيتون مسلح لـ (1 م³)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
                     const SizedBox(height: 12),
                     TextField(controller: aggregatesController, decoration: const InputDecoration(labelText: 'سعر (1 م³) مواد حصوية (بحص+نحاتة) واصل', border: OutlineInputBorder()), keyboardType: TextInputType.number),
@@ -88,6 +110,9 @@ class _SettingsViewState extends State<SettingsView> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
                         onPressed: () {
+                          // إغلاق الكيبورد عند الضغط على حفظ
+                          FocusScope.of(context).unfocus();
+                          
                           context.read<SettingsCubit>().updatePrices(
                             iron: double.tryParse(ironController.text) ?? 0,
                             cement: double.tryParse(cementController.text) ?? 0,
