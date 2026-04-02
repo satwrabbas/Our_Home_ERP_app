@@ -46,11 +46,16 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     required String contractId, 
     required double amountPaid,
     double fees = 0,
-    String? scheduleId, // لم يعد ضرورياً جداً بفضل الخوارزمية الجديدة، لكن سنبقيه
+    String? scheduleId, 
   }) async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
-      final contract = state.contracts.firstWhere((c) => c.id == contractId);
+      // 🌟 حماية ضد العقود المفقودة
+      final contractIndex = state.contracts.indexWhere((c) => c.id == contractId);
+      if (contractIndex == -1) {
+        throw Exception('هذا العقد غير موجود أو تم حذفه.');
+      }
+      final contract = state.contracts[contractIndex];
 
       final currentPrices = await _erpRepository.getLatestPrices();
       if (currentPrices == null) {
@@ -91,47 +96,30 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       );
       await _erpRepository.addLedgerEntry(newEntry);
 
-      // =========================================================================
-      // 🌟🌟🌟 الخوارزمية الذكية: تسوية جدول المراقبة آلياً (Smart Schedule Sync) 🌟🌟🌟
-      // =========================================================================
-      
-      // أ. جلب كل الدفعات السابقة لمعرفة إجمالي الأمتار التي يملكها العميل الآن
+      // 2. تحديث جدول المراقبة آلياً
       final allEntries = await _erpRepository.getContractLedger(contractId);
       double totalConvertedMetersAccumulated = 0;
       for (var entry in allEntries) {
         totalConvertedMetersAccumulated += entry.convertedMeters;
       }
 
-      // ب. حساب القسط الشهري المطلوب (بالأمتار)
       final int monthsCount = contract.installmentsCount > 0 ? contract.installmentsCount : 48;
       final double requiredMetersPerMonth = contract.totalArea / monthsCount;
-
-      // ج. معرفة عدد الأشهر التي غطاها العميل بالكامل بناءً على الأمتار المتراكمة
-      // نستخدم .floor() لنأخذ الرقم الصحيح للأشهر المغطاة بالكامل
       final int fullyPaidMonths = (totalConvertedMetersAccumulated / requiredMetersPerMonth).floor();
-
-      // د. جلب جدول الاستحقاقات لهذا العقد من قاعدة البيانات
       final schedules = await _erpRepository.getContractSchedule(contractId);
 
-      // هـ. تحديث حالة الأشهر بذكاء:
-      // - يملأ الفراغات القديمة أولاً.
-      // - يعطي مهلة (إغلاق أشهر مستقبلية) إذا كانت الدفعة ضخمة.
       for (var schedule in schedules) {
         if (schedule.installmentNumber <= fullyPaidMonths) {
-          // إذا كان الشهر ضمن التغطية، نجعله مدفوعاً
           if (schedule.status != 'paid') {
             await _erpRepository.updateScheduleStatus(schedule.id, 'paid');
           }
         } else {
-          // إذا كان الشهر خارج التغطية (مثلاً تراجع عن دفعة أو لم يكملها)، نعيده معلقاً
           if (schedule.status != 'pending') {
             await _erpRepository.updateScheduleStatus(schedule.id, 'pending');
           }
         }
       }
-      // =========================================================================
 
-      // تحديث الشاشة لإظهار التغييرات
       await selectContract(contractId);
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));

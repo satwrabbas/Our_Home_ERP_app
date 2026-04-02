@@ -6,7 +6,6 @@ import '../cubit/payments_cubit.dart';
 import '../../core/utils/pdf_generator.dart';
 import '../../core/utils/pdf_preview_page.dart';
 import '../../core/utils/whatsapp_helper.dart';
-// 🌟 استدعاء محرك تصدير الإكسل
 import '../../core/utils/excel_export_helper.dart';
 
 class PaymentsPage extends StatelessWidget {
@@ -34,8 +33,15 @@ class PaymentsView extends StatelessWidget {
           if (state.status == PaymentsStatus.loading && state.contracts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (state.contracts.isEmpty) {
-            return const Center(child: Text('لا يوجد عقود مسجلة. يرجى إضافة عقد أولاً.', style: TextStyle(fontSize: 18)));
+          
+          // 🌟 حماية مبكرة: إذا لم يكن هناك عملاء أو عقود، نوقف عرض الشاشة ونخبره
+          if (state.clients.isEmpty || state.contracts.isEmpty) {
+            return const Center(
+              child: Text(
+                'لا يوجد بيانات كافية. يرجى إضافة عميل وتوقيع عقد أولاً.', 
+                style: TextStyle(fontSize: 18, color: Colors.grey)
+              )
+            );
           }
 
           return Column(
@@ -52,11 +58,13 @@ class PaymentsView extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        // فحص أمان
                         value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
+                          // 🌟 الحماية السحرية: استخدام indexWhere بدلاً من firstWhere
+                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                          final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
+                          
                           return DropdownMenuItem(
                             value: contract.id,
                             child: Text('العميل: $clientName (${contract.apartmentDetails})'),
@@ -69,9 +77,7 @@ class PaymentsView extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     
-                    // 🌟 أزرار التحكم (تظهر فقط إذا تم اختيار عقد)
                     if (state.selectedContractId != null) ...[
-                      // 📗 زر تصدير الإكسل الجديد
                       ElevatedButton.icon(
                         onPressed: () async {
                           if (state.ledgerEntries.isEmpty) {
@@ -81,10 +87,18 @@ class PaymentsView extends StatelessWidget {
                           
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ملف الإكسل...')));
                           
-                          final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
-                          final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                          // 🌟 حماية عند التصدير
+                          final contractIdx = state.contracts.indexWhere((c) => c.id == state.selectedContractId);
+                          if(contractIdx == -1) return;
+                          final contract = state.contracts[contractIdx];
+                          
+                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                          if(clientIdx == -1) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('بيانات العميل مفقودة!'), backgroundColor: Colors.red));
+                            return;
+                          }
+                          final client = state.clients[clientIdx];
 
-                          // استدعاء دالة التصدير السحرية
                           final filePath = await ExcelExportHelper.exportLedgerToExcel(
                             ledgerEntries: state.ledgerEntries,
                             contract: contract,
@@ -104,12 +118,11 @@ class PaymentsView extends StatelessWidget {
                           }
                         },
                         icon: const Icon(Icons.table_view),
-                        label: const Text('تصدير كشف حساب Excel', style: TextStyle(fontSize: 16)),
+                        label: const Text('تصدير Excel', style: TextStyle(fontSize: 16)),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18)),
                       ),
                       const SizedBox(width: 12),
                       
-                      // 📙 زر إدخال الدفعة الأصلي
                       ElevatedButton.icon(
                         onPressed: () => _showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
@@ -157,10 +170,19 @@ class PaymentsView extends StatelessWidget {
                                           icon: const Icon(Icons.print, color: Colors.blue),
                                           tooltip: 'معاينة وطباعة الفاتورة',
                                           onPressed: () async {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
-                                            final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
-                                            final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                            // 🌟 حماية الطباعة
+                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                            if(contractIdx == -1) return;
+                                            final contract = state.contracts[contractIdx];
+
+                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                            if(clientIdx == -1) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن الطباعة. العميل محذوف!'), backgroundColor: Colors.red));
+                                              return;
+                                            }
+                                            final client = state.clients[clientIdx];
                                             
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
                                             final pdfBytes = await PdfGenerator.generateReceiptPdf(entry: entry, contract: contract, client: client);
 
                                             if (context.mounted) {
@@ -172,8 +194,17 @@ class PaymentsView extends StatelessWidget {
                                           icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
                                           tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
                                           onPressed: () async {
-                                            final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
-                                            final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                            // 🌟 حماية الواتساب
+                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                            if(contractIdx == -1) return;
+                                            final contract = state.contracts[contractIdx];
+
+                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                            if(clientIdx == -1) {
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن الإرسال. العميل محذوف!'), backgroundColor: Colors.red));
+                                              return;
+                                            }
+                                            final client = state.clients[clientIdx];
                                             
                                             final success = await WhatsAppHelper.sendReceiptMessage(entry: entry, contract: contract, client: client);
 
@@ -198,10 +229,8 @@ class PaymentsView extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // --- النافذة المنبثقة: إدخال الدفعة ---
-  // ==========================================
   void _showAddPaymentDialog(BuildContext parentContext, String contractId) {
+    // الكود الداخلي للنافذة المنبثقة يبقى كما هو...
     final amountController = TextEditingController();
     final feesController = TextEditingController(text: '0');
 
