@@ -31,8 +31,15 @@ class ScheduleView extends StatelessWidget {
           if (state.status == ScheduleStatus.loading && state.contracts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (state.contracts.isEmpty) {
-            return const Center(child: Text('لا يوجد عقود مسجلة في النظام لتوليد جداول استحقاق.', style: TextStyle(fontSize: 18)));
+          
+          // 🌟 1. حماية مبكرة: منع انهيار الشاشة إذا كانت الجداول فارغة
+          if (state.clients.isEmpty || state.contracts.isEmpty) {
+            return const Center(
+              child: Text(
+                'لا يوجد بيانات كافية. يرجى إضافة عميل وتوقيع عقد أولاً.', 
+                style: TextStyle(fontSize: 18, color: Colors.grey)
+              )
+            );
           }
 
           return Column(
@@ -51,12 +58,18 @@ class ScheduleView extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        // فحص أمان لضمان عدم انهيار القائمة
                         value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          final clientName = state.clients.firstWhere((c) => c.id == contract.clientId, orElse: () => state.clients.first).name;
-                          return DropdownMenuItem(value: contract.id, child: Text('العميل: $clientName (${contract.apartmentDetails})'));
+                          
+                          // 🌟 2. الحماية السحرية للقائمة المنسدلة باستخدام indexWhere
+                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                          final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
+                          
+                          return DropdownMenuItem(
+                            value: contract.id, 
+                            child: Text('العميل: $clientName (${contract.apartmentDetails})')
+                          );
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) context.read<ScheduleCubit>().selectContract(val);
@@ -85,7 +98,7 @@ class ScheduleView extends StatelessWidget {
                                   DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('إجراءات (تواصل)', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 تم تعديل العنوان
+                                  DataColumn(label: Text('إجراءات (تواصل)', style: TextStyle(fontWeight: FontWeight.bold))), 
                                 ],
                                 rows: state.scheduleList.map((schedule) {
                                   final isPaid = schedule.status == 'paid';
@@ -119,11 +132,19 @@ class ScheduleView extends StatelessWidget {
                                           ? const Text('مُسددة في دفتر الأستاذ', style: TextStyle(color: Colors.grey))
                                           : ElevatedButton.icon(
                                               onPressed: () async {
-                                                // 🌟 1. جلب البيانات المطلوبة للتذكير
-                                                final contract = state.contracts.firstWhere((c) => c.id == schedule.contractId);
-                                                final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+                                                // 🌟 3. حماية زر الواتساب من الانهيار
+                                                final contractIdx = state.contracts.indexWhere((c) => c.id == schedule.contractId);
+                                                if(contractIdx == -1) return;
+                                                final contract = state.contracts[contractIdx];
+
+                                                final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                                if(clientIdx == -1) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن الإرسال. العميل محذوف!'), backgroundColor: Colors.red));
+                                                  return;
+                                                }
+                                                final client = state.clients[clientIdx];
                                                 
-                                                // 🌟 2. إرسال تذكير واتساب
+                                                // إرسال تذكير واتساب
                                                 final success = await WhatsAppHelper.sendReminderMessage(
                                                   schedule: schedule,
                                                   contract: contract,
@@ -134,7 +155,7 @@ class ScheduleView extends StatelessWidget {
                                                   if (success) {
                                                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
                                                   } else {
-                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب. تأكد من اتصالك بالإنترنت.'), backgroundColor: Colors.red));
+                                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب. تأكد من اتصالك بالإنترنت أو تنصيب التطبيق.'), backgroundColor: Colors.red));
                                                   }
                                                 }
                                               },
