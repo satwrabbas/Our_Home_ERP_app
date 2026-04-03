@@ -46,16 +46,13 @@ class ErpRepository {
   }
 
   // ==========================================
-  // 📥 محرك السحب الشبحي (Pull from Cloud) - مصحح 100%
+  // 📥 محرك السحب الشبحي (Pull from Cloud) - النسخة المصححة
   // ==========================================
   Future<void> pullDataFromCloud() async {
     try {
-      final db = _localApi.database;
-
       // 1. سحب العملاء
       final cloudClients = await _cloudApi.getClients();
       for (var c in cloudClients) {
-        // 🌟 لاحظ: ClientsCompanion بدون drift.
         final client = ClientsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
           name: c['name'].toString(), 
@@ -63,16 +60,17 @@ class ErpRepository {
           nationalId: drift.Value(c['nationalId']?.toString()), 
           userId: c['userId']?.toString() ?? '',
           isDeleted: drift.Value(c['isDeleted'] == true), 
-          createdAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          // تأكد من استخدام updatedAt القادم من السحابة
+          updatedAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true), 
         );
-        try { await _localApi.addClient(client); } catch(_) {}
+        // التغيير هنا: استخدم syncClient بدلاً من addClient
+        await _localApi.syncClient(client); 
       }
 
       // 2. سحب العقود
       final cloudContracts = await _cloudApi.getContracts();
       for (var c in cloudContracts) {
-        // 🌟 ContractsCompanion بدون drift.
         final contract = ContractsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
           clientId: c['clientId'].toString(), 
@@ -86,15 +84,16 @@ class ErpRepository {
           userId: c['userId']?.toString() ?? '',
           isCompleted: drift.Value(c['isCompleted'] == true),
           isDeleted: drift.Value(c['isDeleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true),
         );
-        try { await _localApi.addContract(contract); } catch(_) {}
+        // التغيير هنا: استخدم syncContract
+        await _localApi.syncContract(contract);
       }
 
       // 3. سحب أسعار المواد
       final cloudPrices = await _cloudApi.getMaterialPrices();
       for (var p in cloudPrices) {
-        // 🌟 MaterialPricesHistoryCompanion بدون drift.
         final price = MaterialPricesHistoryCompanion.insert(
           id: drift.Value(p['id'].toString()), 
           ironPrice: double.tryParse(p['ironPrice']?.toString() ?? '0') ?? 0.0, 
@@ -108,13 +107,13 @@ class ErpRepository {
           isDeleted: drift.Value(p['isDeleted'] == true),
           isSynced: const drift.Value(true),
         );
-        try { await _localApi.savePrices(price); } catch(_) {}
+        // التغيير هنا: استخدم syncPrice
+        await _localApi.syncPrice(price);
       }
 
       // 4. سحب جدول الاستحقاقات
       final cloudSchedules = await _cloudApi.getSchedules();
       for (var s in cloudSchedules) {
-        // 🌟 InstallmentsScheduleCompanion بدون drift.
         final schedule = InstallmentsScheduleCompanion.insert(
           id: drift.Value(s['id'].toString()), 
           contractId: s['contractId'].toString(), 
@@ -123,15 +122,16 @@ class ErpRepository {
           status: drift.Value(s['status']?.toString() ?? 'pending'),
           userId: s['userId']?.toString() ?? '',
           isDeleted: drift.Value(s['isDeleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(s['updatedAt']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true),
         );
-        try { await _localApi.addScheduleEntry(schedule); } catch(_) {}
+        // التغيير هنا: استخدم syncSchedule
+        await _localApi.syncSchedule(schedule);
       }
 
       // 5. سحب دفتر الأستاذ (الدفعات)
       final cloudPayments = await _cloudApi.getPayments();
       for (var p in cloudPayments) {
-        // 🌟 PaymentsLedgerCompanion بدون drift.
         final payment = PaymentsLedgerCompanion.insert(
           id: drift.Value(p['id'].toString()), 
           contractId: p['contractId'].toString(), 
@@ -144,13 +144,16 @@ class ErpRepository {
           isWhatsAppSent: drift.Value(p['isWhatsAppSent'] == true),
           userId: p['userId']?.toString() ?? '',
           isDeleted: drift.Value(p['isDeleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(p['updatedAt']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true),
         );
-        try { await _localApi.addLedgerEntry(payment); } catch(_) {}
+        // التغيير هنا: استخدم syncPayment
+        await _localApi.syncPayment(payment);
       }
 
+      print('✅ تم تحديث كافة البيانات المحلية من السحابة بنجاح');
     } catch (e) {
-      print('Cloud Pull Failed: $e'); 
+      print('❌ Cloud Pull Failed: $e'); 
     }
   }
 
