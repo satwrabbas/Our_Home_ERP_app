@@ -330,6 +330,25 @@ class AppDatabase extends _$AppDatabase {
     });
   }
   
+  // ==========================================
+  // ☁️ دوال الحقن السحابي (Aggressive Cloud Sync Upserts)
+  // ==========================================
+  
+  // نستخدم insertOrReplace لضمان مسح السطر المحلي القديم واستبداله بالكامل بنسخة السحابة
+  Future<void> syncClient(ClientsCompanion entity) => 
+      into(clients).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncContract(ContractsCompanion entity) => 
+      into(contracts).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncMaterialPrice(MaterialPricesHistoryCompanion entity) => 
+      into(materialPricesHistory).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncSchedule(InstallmentsScheduleCompanion entity) => 
+      into(installmentsSchedule).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncPayment(PaymentsLedgerCompanion entity) => 
+      into(paymentsLedger).insert(entity, mode: InsertMode.insertOrReplace);
 }
 
 LazyDatabase _openConnection() {
