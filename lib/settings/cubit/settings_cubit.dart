@@ -11,19 +11,27 @@ class SettingsCubit extends Cubit<SettingsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب أحدث تسعيرة معتمدة من السجل التاريخي
+  /// جلب أحدث تسعيرة (مع محاولة سحب التحديثات من الإنترنت أولاً)
   Future<void> fetchPrices() async {
-    // 🌟 التعديل الأول: إزالة شرط الـ initial. دائمًا نرسل loading لعمل تحديث للـ UI
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
+      // 🌟 التعديل الجوهري: سحب البيانات من السحابة أولاً لضمان الحصول على أسعار المدير الآخر
+      await _erpRepository.pullDataFromCloud();
+      
       final prices = await _erpRepository.getLatestPrices();
       emit(state.copyWith(status: SettingsStatus.success, currentPrices: prices));
     } catch (e) {
-      emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
+      // في حال فشل الإنترنت، نعرض البيانات المحلية الموجودة أصلاً
+      final prices = await _erpRepository.getLatestPrices();
+      emit(state.copyWith(
+        status: SettingsStatus.success, 
+        currentPrices: prices,
+        errorMessage: "تعذر التحديث من السحابة، يتم عرض البيانات المحلية."
+      ));
     }
   }
 
-  /// إضافة تسعيرة جديدة إلى السجل (6 بنود مدمجة)
+  /// إضافة تسعيرة جديدة
   Future<void> updatePrices({
     required double iron,
     required double cement,
@@ -32,9 +40,12 @@ class SettingsCubit extends Cubit<SettingsState> {
     required double aggregates,
     required double worker,
   }) async {
-    // 🌟 التعديل الثاني: إرسال حالة التحميل أثناء الحفظ لكي لا يشعر المستخدم بتأخير
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
+      // 🌟 التعديل الثاني: الحصول على userId الحقيقي
+      final String? userId = _erpRepository.currentUserId;
+      if (userId == null) throw Exception('يجب تسجيل الدخول لتحديث الأسعار.');
+
       final newPrices = MaterialPricesHistoryCompanion.insert(
         ironPrice: iron,
         cementPrice: cement,
@@ -43,17 +54,20 @@ class SettingsCubit extends Cubit<SettingsState> {
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
         effectiveDate: Value(DateTime.now()), 
-        userId: '', 
-        isDeleted: const Value(false), // 🌟 أضف هذا السطر هنا!
+        userId: userId, // 🚨 تم وضع المعرف الحقيقي هنا
+        isDeleted: const Value(false),
       );
       
+      // حفظ محلياً + مزامنة سحابية (تأكد أن Repository.savePrices تستدعي syncPendingData)
       await _erpRepository.savePrices(newPrices);
-      // بعد الحفظ، نقوم بجلب البيانات من جديد (والتي بدورها سترسل Success)
+      
+      // 🌟 إجبار المزامنة لرفع الأسعار الجديدة فوراً
+      await _erpRepository.forceSyncWithCloud();
+
+      // إعادة الجلب للتأكد من حالة النجاح
       await fetchPrices(); 
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
-
-
   }
 }

@@ -249,10 +249,10 @@ class AppDatabase extends _$AppDatabase {
   // --- استعلامات سجل أسعار المواد ---
   // ==========================================
   
-  // جلب أحدث سعر
+  // جلب أحدث سعر (النسخة المحسنة المضادة لتضارب المزامنة)
   Future<MaterialPricesHistoryData?> getLatestPrices() {
     return (select(materialPricesHistory)
-          ..where((t) => t.isDeleted.equals(false)) 
+          // 🚨 تم إزالة شرط (isDeleted == false) لأننا نريد الأحدث زمنياً دائماً
           ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
           ..limit(1))
         .getSingleOrNull();

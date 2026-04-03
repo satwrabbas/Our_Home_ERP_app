@@ -91,25 +91,26 @@ class ErpRepository {
         await _localApi.syncContract(contract);
       }
 
-      // 3. سحب أسعار المواد
+      // 3. سحب أسعار المواد (المعدل ليتوافق مع snake_case)
       final cloudPrices = await _cloudApi.getMaterialPrices();
       for (var p in cloudPrices) {
         final price = MaterialPricesHistoryCompanion.insert(
           id: drift.Value(p['id'].toString()), 
-          ironPrice: double.tryParse(p['ironPrice']?.toString() ?? '0') ?? 0.0, 
-          cementPrice: double.tryParse(p['cementPrice']?.toString() ?? '0') ?? 0.0,
-          block15Price: double.tryParse(p['block15Price']?.toString() ?? '0') ?? 0.0, 
-          formworkAndPouringWages: double.tryParse(p['formworkAndPouringWages']?.toString() ?? '0') ?? 0.0,
-          aggregateMaterialsPrice: double.tryParse(p['aggregateMaterialsPrice']?.toString() ?? '0') ?? 0.0, 
-          ordinaryWorkerWage: double.tryParse(p['ordinaryWorkerWage']?.toString() ?? '0') ?? 0.0,
-          effectiveDate: drift.Value(DateTime.tryParse(p['effectiveDate']?.toString() ?? '') ?? DateTime.now()),
-          userId: p['userId']?.toString() ?? '',
-          isDeleted: drift.Value(p['isDeleted'] == true),
+          ironPrice: double.tryParse(p['iron_price']?.toString() ?? '0') ?? 0.0, 
+          cementPrice: double.tryParse(p['cement_price']?.toString() ?? '0') ?? 0.0,
+          block15Price: double.tryParse(p['block15_price']?.toString() ?? '0') ?? 0.0, 
+          formworkAndPouringWages: double.tryParse(p['formwork_and_pouring_wages']?.toString() ?? '0') ?? 0.0,
+          aggregateMaterialsPrice: double.tryParse(p['aggregate_materials_price']?.toString() ?? '0') ?? 0.0, 
+          ordinaryWorkerWage: double.tryParse(p['ordinary_worker_wage']?.toString() ?? '0') ?? 0.0,
+          effectiveDate: drift.Value(DateTime.tryParse(p['effective_date']?.toString() ?? '') ?? DateTime.now()),
+          userId: p['user_id']?.toString() ?? '',
+          isDeleted: drift.Value(p['is_deleted'] == true),
           isSynced: const drift.Value(true),
         );
-        // التغيير هنا: استخدم syncPrice
-        await _localApi.syncPrice(price);
+        // استخدام syncPrice بدلاً من savePrices لمنع تكرار الـ ID
+        await _localApi.syncPrice(price); 
       }
+
 
       // 4. سحب جدول الاستحقاقات
       final cloudSchedules = await _cloudApi.getSchedules();
@@ -225,22 +226,22 @@ class ErpRepository {
       }
     } catch (e) { print('Sync Payments Failed: $e'); }
     
-    // 5. مزامنة أسعار المواد (كانت معطلة بسبب خطأ الدفعات السابق) 🟢
+    // 5. مزامنة أسعار المواد (المعدل ليتوافق مع SQL)
     try {
       final pendingPrices = await (db.select(db.materialPricesHistory)..where((t) => t.isSynced.equals(false))).get();
       for (var p in pendingPrices) {
         await _cloudApi.upsertMaterialPrices({
           'id': p.id, 
-          'effectiveDate': p.effectiveDate.toIso8601String(), 
-          'ironPrice': _safeNum(p.ironPrice), 
-          'cementPrice': _safeNum(p.cementPrice), 
-          'block15Price': _safeNum(p.block15Price), 
-          'formworkAndPouringWages': _safeNum(p.formworkAndPouringWages), 
-          'aggregateMaterialsPrice': _safeNum(p.aggregateMaterialsPrice), 
-          'ordinaryWorkerWage': _safeNum(p.ordinaryWorkerWage), 
-          'userId': p.userId, 
-          'isDeleted': p.isDeleted
-          // تأكد من أن جدولك في Supabase لا يشترط حقل updatedAt هنا، وإلا أضفه!
+          'effective_date': p.effectiveDate.toIso8601String(), 
+          'iron_price': _safeNum(p.ironPrice), 
+          'cement_price': _safeNum(p.cementPrice), 
+          'block15_price': _safeNum(p.block15Price), 
+          'formwork_and_pouring_wages': _safeNum(p.formworkAndPouringWages), 
+          'aggregate_materials_price': _safeNum(p.aggregateMaterialsPrice), 
+          'ordinary_worker_wage': _safeNum(p.ordinaryWorkerWage), 
+          'user_id': p.userId, 
+          'is_deleted': p.isDeleted,
+          'updated_at': DateTime.now().toIso8601String(), // حقل الوقت الضروري
         });
         await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
       }
@@ -268,7 +269,7 @@ class ErpRepository {
 
   // ==========================================
   // 📄 العقود والتوليد الآلي للاستحقاقات
-  // ==========ب================================
+  // ==========================================
   Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
@@ -337,22 +338,21 @@ class ErpRepository {
   Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
 
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
-    // 🌟 1. وضعنا معرّف وهمي في حال كنت تختبر التطبيق ولم تقم بتسجيل الدخول بعد
-    final String safeUserId = currentUserId ?? 'test_offline_user';
+    final String? safeUserId = currentUserId;
+    if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً');
 
-    // 🌟 2. توليد ID فريد للسطر الجديد (هذا هو الذي كان يمنع الحفظ!)
     final String newId = const Uuid().v4();
 
-    // 🌟 3. دمج الـ ID والـ UserId مع البيانات القادمة من الـ Cubit
     final companionReadyToSave = pricesCompanion.copyWith(
       id: drift.Value(newId),
       userId: drift.Value(safeUserId),
+      isSynced: const drift.Value(false),
     );
 
-    // 4. الحفظ في قاعدة البيانات المحلية
+    // 1. الحفظ المحلي
     await _localApi.savePrices(companionReadyToSave);
     
-    // 5. المزامنة مع السحابة
-    syncPendingData(); 
+    // 2. المزامنة والانتظار 🚨
+    await syncPendingData(); 
   }
 }
