@@ -1,3 +1,4 @@
+//database.dart
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -328,15 +329,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(clients).go();
     });
   }
-
-  // ==========================================
-  // ☁️ دوال الحقن السحابي (Cloud Sync Upserts)
-  // ==========================================
-  Future<void> syncClient(ClientsCompanion entity) => into(clients).insertOnConflictUpdate(entity);
-  Future<void> syncContract(ContractsCompanion entity) => into(contracts).insertOnConflictUpdate(entity);
-  Future<void> syncMaterialPrice(MaterialPricesHistoryCompanion entity) => into(materialPricesHistory).insertOnConflictUpdate(entity);
-  Future<void> syncSchedule(InstallmentsScheduleCompanion entity) => into(installmentsSchedule).insertOnConflictUpdate(entity);
-  Future<void> syncPayment(PaymentsLedgerCompanion entity) => into(paymentsLedger).insertOnConflictUpdate(entity);
+  
 }
 
 LazyDatabase _openConnection() {

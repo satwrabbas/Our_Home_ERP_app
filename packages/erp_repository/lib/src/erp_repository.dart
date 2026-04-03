@@ -155,27 +155,41 @@ class ErpRepository {
   }
 
   // ==========================================
-  // 📤 محرك الرفع الشبحي (Push to Cloud)
+  // 📤 محرك الرفع الشبحي (Push to Cloud) - نسخة محمية ومحسنة 🛡️
   // ==========================================
   Future<void> syncPendingData() async {
     if (_isSyncing || currentUserId == null) return;
     _isSyncing = true;
     
-    try {
-      final db = _localApi.database;
+    final db = _localApi.database;
 
+    // 🛡️ دالة مساعدة لمنع خطأ الـ Infinity في تحويل الـ JSON
+    double _safeNum(double? val) {
+      if (val == null) return 0.0;
+      if (val.isInfinite || val.isNaN) return 0.0;
+      return val;
+    }
+
+    // 1. مزامنة العملاء
+    try {
       final pendingClients = await (db.select(db.clients)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingClients) {
         await _cloudApi.upsertClient({'id': c.id, 'name': c.name, 'phone': c.phone, 'nationalId': c.nationalId, 'userId': c.userId, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
         await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(const ClientsCompanion(isSynced: drift.Value(true)));
       }
+    } catch (e) { print('Sync Clients Failed: $e'); }
 
+    // 2. مزامنة العقود
+    try {
       final pendingContracts = await (db.select(db.contracts)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingContracts) {
-        await _cloudApi.upsertContract({'id': c.id, 'clientId': c.clientId, 'contractType': c.contractType, 'apartmentDetails': c.apartmentDetails, 'totalArea': c.totalArea, 'baseMeterPriceAtSigning': c.baseMeterPriceAtSigning, 'installmentsCount': c.installmentsCount, 'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(), 'userId': c.userId, 'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
+        await _cloudApi.upsertContract({'id': c.id, 'clientId': c.clientId, 'contractType': c.contractType, 'apartmentDetails': c.apartmentDetails, 'totalArea': _safeNum(c.totalArea), 'baseMeterPriceAtSigning': _safeNum(c.baseMeterPriceAtSigning), 'installmentsCount': c.installmentsCount, 'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(), 'userId': c.userId, 'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
         await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const ContractsCompanion(isSynced: drift.Value(true)));
       }
+    } catch (e) { print('Sync Contracts Failed: $e'); }
 
+    // 3. مزامنة جدول الاستحقاقات
+    try {
       final pendingSchedules = await (db.select(db.installmentsSchedule)..where((t) => t.isSynced.equals(false))).get();
       if (pendingSchedules.isNotEmpty) {
         final cloudSchedules = pendingSchedules.map((s) => {'id': s.id, 'contractId': s.contractId, 'installmentNumber': s.installmentNumber, 'dueDate': s.dueDate.toIso8601String(), 'status': s.status, 'userId': s.userId, 'isDeleted': s.isDeleted, 'updatedAt': s.updatedAt.toIso8601String()}).toList();
@@ -184,24 +198,52 @@ class ErpRepository {
           await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(const InstallmentsScheduleCompanion(isSynced: drift.Value(true)));
         }
       }
+    } catch (e) { print('Sync Schedules Failed: $e'); }
 
+    // 4. مزامنة الدفعات (هنا كان يحدث خطأ الـ Infinity) 🚨
+    try {
       final pendingPayments = await (db.select(db.paymentsLedger)..where((t) => t.isSynced.equals(false))).get();
       for (var p in pendingPayments) {
-        await _cloudApi.upsertPayment({'id': p.id, 'contractId': p.contractId, 'scheduleId': p.scheduleId, 'paymentDate': p.paymentDate.toIso8601String(), 'amountPaid': p.amountPaid, 'meterPriceAtPayment': p.meterPriceAtPayment, 'convertedMeters': p.convertedMeters, 'fees': p.fees, 'isWhatsAppSent': p.isWhatsAppSent, 'userId': p.userId, 'isDeleted': p.isDeleted, 'updatedAt': p.updatedAt.toIso8601String()});
+        await _cloudApi.upsertPayment({
+          'id': p.id, 
+          'contractId': p.contractId, 
+          'scheduleId': p.scheduleId, 
+          'paymentDate': p.paymentDate.toIso8601String(), 
+          'amountPaid': _safeNum(p.amountPaid), 
+          'meterPriceAtPayment': _safeNum(p.meterPriceAtPayment), 
+          'convertedMeters': _safeNum(p.convertedMeters), // 🟢 تنظيف الـ Infinity هنا
+          'fees': _safeNum(p.fees), 
+          'isWhatsAppSent': p.isWhatsAppSent, 
+          'userId': p.userId, 
+          'isDeleted': p.isDeleted, 
+          'updatedAt': p.updatedAt.toIso8601String()
+        });
         await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(const PaymentsLedgerCompanion(isSynced: drift.Value(true)));
       }
-      
+    } catch (e) { print('Sync Payments Failed: $e'); }
+    
+    // 5. مزامنة أسعار المواد (كانت معطلة بسبب خطأ الدفعات السابق) 🟢
+    try {
       final pendingPrices = await (db.select(db.materialPricesHistory)..where((t) => t.isSynced.equals(false))).get();
       for (var p in pendingPrices) {
-      await _cloudApi.upsertMaterialPrices({'id': p.id, 'effectiveDate': p.effectiveDate.toIso8601String(), 'ironPrice': p.ironPrice, 'cementPrice': p.cementPrice, 'block15Price': p.block15Price, 'formworkAndPouringWages': p.formworkAndPouringWages, 'aggregateMaterialsPrice': p.aggregateMaterialsPrice, 'ordinaryWorkerWage': p.ordinaryWorkerWage, 'userId': p.userId, 'isDeleted': p.isDeleted});
-      await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
+        await _cloudApi.upsertMaterialPrices({
+          'id': p.id, 
+          'effectiveDate': p.effectiveDate.toIso8601String(), 
+          'ironPrice': _safeNum(p.ironPrice), 
+          'cementPrice': _safeNum(p.cementPrice), 
+          'block15Price': _safeNum(p.block15Price), 
+          'formworkAndPouringWages': _safeNum(p.formworkAndPouringWages), 
+          'aggregateMaterialsPrice': _safeNum(p.aggregateMaterialsPrice), 
+          'ordinaryWorkerWage': _safeNum(p.ordinaryWorkerWage), 
+          'userId': p.userId, 
+          'isDeleted': p.isDeleted
+          // تأكد من أن جدولك في Supabase لا يشترط حقل updatedAt هنا، وإلا أضفه!
+        });
+        await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
       }
+    } catch (e) { print('Sync Prices Failed: $e'); }
 
-    } catch (e) {
-      print('Background Sync Failed (Silently): $e');
-    } finally {
-      _isSyncing = false; 
-    }
+    _isSyncing = false; 
   }
 
   // ==========================================

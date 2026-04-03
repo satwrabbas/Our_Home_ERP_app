@@ -1,3 +1,4 @@
+//local_storage_api.dart
 import 'database.dart';
 
 class LocalStorageApi {
@@ -40,4 +41,13 @@ class LocalStorageApi {
 
   // فرمتة القاعدة
   Future<void> formatDatabase() => _db.clearAllData();
+
+  // ==========================================
+  // ☁️ دوال الحقن السحابي (Cloud Sync Upserts)
+  // ==========================================
+  Future<void> syncClient(ClientsCompanion c) => _db.into(_db.clients).insertOnConflictUpdate(c);
+  Future<void> syncContract(ContractsCompanion c) => _db.into(_db.contracts).insertOnConflictUpdate(c);
+  Future<void> syncPrice(MaterialPricesHistoryCompanion c) => _db.into(_db.materialPricesHistory).insertOnConflictUpdate(c);
+  Future<void> syncSchedule(InstallmentsScheduleCompanion c) => _db.into(_db.installmentsSchedule).insertOnConflictUpdate(c);
+  Future<void> syncPayment(PaymentsLedgerCompanion c) => _db.into(_db.paymentsLedger).insertOnConflictUpdate(c);
 }
