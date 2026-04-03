@@ -1,3 +1,4 @@
+//payments_state.dart
 part of 'payments_cubit.dart';
 
 enum PaymentsStatus { initial, loading, success, failure }

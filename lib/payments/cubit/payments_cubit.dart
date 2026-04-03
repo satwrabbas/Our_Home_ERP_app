@@ -41,7 +41,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  /// 3. 🌟 جوهر النظام المالي: إضافة دفعة وتحديث جدول المراقبة آلياً (الخوارزمية الذكية)
+  /// 🌟 النسخة المحسنة للمزامنة والرفع للسحابة
   Future<void> addLedgerEntry({
     required String contractId, 
     required double amountPaid,
@@ -50,40 +50,39 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   }) async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
-      // 🌟 حماية ضد العقود المفقودة
+      // 1. التحقق من وجود العقد
       final contractIndex = state.contracts.indexWhere((c) => c.id == contractId);
-      if (contractIndex == -1) {
-        throw Exception('هذا العقد غير موجود أو تم حذفه.');
-      }
+      if (contractIndex == -1) throw Exception('هذا العقد غير موجود.');
       final contract = state.contracts[contractIndex];
 
+      // 2. التحقق من الأسعار الحالية
       final currentPrices = await _erpRepository.getLatestPrices();
       if (currentPrices == null) {
-        throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً لحساب سعر المتر اليوم.');
+        throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً.');
       }
 
+      // 3. التحقق من تسجيل الدخول (للحصول على الـ userId)
+      final String? userId = _erpRepository.currentUserId;
+      if (userId == null) throw Exception('يجب تسجيل الدخول لضمان مزامنة البيانات.');
+
+      // 4. الحسابات المالية
       Map<String, double> contractCoefficients = {};
       try {
         if (contract.coefficients.isNotEmpty && contract.coefficients != '{}') {
           final Map<String, dynamic> decoded = jsonDecode(contract.coefficients);
           contractCoefficients = decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
         }
-      } catch (e) {
-        print('تحذير: حدث خطأ أثناء قراءة نسب العقد: $e');
-      }
+      } catch (_) {}
 
-      // حساب سعر المتر بناءً على السوق اليوم ومعاملات العقد
       final calculations = CalculatorHelper.calculateContractValues(
         area: contract.totalArea,
         currentPrices: currentPrices,
         coefficients: contractCoefficients,
       );
       final double meterPriceToday = calculations['pricePerSqm']!;
-
-      // حساب عدد الأمتار لهذه الدفعة
       final double convertedMeters = amountPaid / meterPriceToday;
 
-      // 1. حفظ الدفعة في دفتر الأستاذ
+      // 5. حفظ الدفعة في قاعدة البيانات (محلياً ثم رفعها)
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
@@ -92,36 +91,39 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         meterPriceAtPayment: meterPriceToday, 
         convertedMeters: convertedMeters,     
         fees: Value(fees),
-        userId: '', 
+        userId: userId, // 🚨 تم التعديل: إرسال الـ userId الحقيقي بدلاً من الفراغ
       );
+      
+      // نستخدم await للتأكد من انتهاء الحفظ والمزامنة الأولية
       await _erpRepository.addLedgerEntry(newEntry);
 
-      // 2. تحديث جدول المراقبة آلياً
+      // 6. تحديث جدول المراقبة (الأقساط)
       final allEntries = await _erpRepository.getContractLedger(contractId);
-      double totalConvertedMetersAccumulated = 0;
-      for (var entry in allEntries) {
-        totalConvertedMetersAccumulated += entry.convertedMeters;
-      }
+      double totalConvertedMetersAccumulated = allEntries.fold(0, (sum, item) => sum + item.convertedMeters);
 
       final int monthsCount = contract.installmentsCount > 0 ? contract.installmentsCount : 48;
       final double requiredMetersPerMonth = contract.totalArea / monthsCount;
       final int fullyPaidMonths = (totalConvertedMetersAccumulated / requiredMetersPerMonth).floor();
+      
       final schedules = await _erpRepository.getContractSchedule(contractId);
 
+      // تحديث حالات الأقساط محلياً
       for (var schedule in schedules) {
-        if (schedule.installmentNumber <= fullyPaidMonths) {
-          if (schedule.status != 'paid') {
-            await _erpRepository.updateScheduleStatus(schedule.id, 'paid');
-          }
-        } else {
-          if (schedule.status != 'pending') {
-            await _erpRepository.updateScheduleStatus(schedule.id, 'pending');
-          }
+        String targetStatus = (schedule.installmentNumber <= fullyPaidMonths) ? 'paid' : 'pending';
+        if (schedule.status != targetStatus) {
+          // نقوم بالتحديث والانتظار لضمان عدم حدوث تضارب في المزامنة
+          await _erpRepository.updateScheduleStatus(schedule.id, targetStatus);
         }
       }
 
+      // 7. 🚀 الضربة القاضية: إجبار النظام على مزامنة كل شيء مع السحابة الآن
+      await _erpRepository.forceSyncWithCloud();
+
+      // 8. تحديث واجهة المستخدم
       await selectContract(contractId);
+      
     } catch (e) {
+      print('خطأ في إضافة الدفعة: $e');
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
@@ -129,6 +131,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   Future<void> markAsSent(String entryId, String contractId) async {
     try {
       await _erpRepository.markWhatsAppAsSent(entryId);
+      // بعد تحديث حالة الواتساب، نرفع التحديث للسحابة
+      await _erpRepository.syncPendingData(); 
       await selectContract(contractId);
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: 'فشل في تحديث حالة الواتساب: $e'));

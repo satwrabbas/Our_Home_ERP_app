@@ -300,16 +300,14 @@ class ErpRepository {
   // ==========================================
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
 
-  Future<void> updateScheduleStatus(String scheduleId, String status) async {
-    await _localApi.updateScheduleStatus(scheduleId, status);
-    syncPendingData();
-  }
+  
 
   // ==========================================
   // 💰 دفتر الأستاذ (Payments Ledger)
   // ==========================================
   Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _localApi.getContractLedger(contractId);
 
+  // داخل ErpRepository
   Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
     final companionWithUser = entryCompanion.copyWith(userId: drift.Value(currentUserId!));
@@ -318,7 +316,14 @@ class ErpRepository {
     if (entryCompanion.scheduleId.present && entryCompanion.scheduleId.value != null) {
       await _localApi.updateScheduleStatus(entryCompanion.scheduleId.value!, 'paid');
     }
-    syncPendingData();
+    // أضف await هنا 🚨
+    await syncPendingData(); 
+  }
+
+  // وتأكد من إضافة await في updateScheduleStatus أيضاً
+  Future<void> updateScheduleStatus(String scheduleId, String status) async {
+    await _localApi.updateScheduleStatus(scheduleId, status);
+    await syncPendingData(); // أضف await هنا 🚨
   }
 
   Future<void> markWhatsAppAsSent(String entryId) async { 
