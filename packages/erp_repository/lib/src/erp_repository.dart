@@ -1,5 +1,7 @@
+//erp_repository.dart
 import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart'; 
 /// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية ثنائية الاتجاه (Push & Pull)
@@ -8,8 +10,29 @@ class ErpRepository {
     required LocalStorageApi localStorageApi,
     required CloudStorageClient cloudStorageClient,
   })  : _localApi = localStorageApi,
-        _cloudApi = cloudStorageClient;
+        _cloudApi = cloudStorageClient {
+    // 🌟 السحر هنا: بمجرد بناء الـ Repository عند فتح التطبيق
+    // نتحقق إذا كان المستخدم مسجلاً للدخول مسبقاً، نشغل الاستماع للسحابة فوراً!
+    if (currentUserId != null) {
+      _startCloudListener();
+    }
+  }
 
+
+  // 🌟 فصلنا كود تشغيل المستمع في دالة خاصة لترتيب الكود
+  void _startCloudListener() {
+    _cloudApi.startListeningToCloudChanges(
+      onDataChanged: () {
+        print('🔄 جاري سحب الأسعار الجديدة من السحابة بسبب تحديث حي...');
+        pullDataFromCloud(); 
+      },
+    );
+  }
+
+  RealtimeChannel? _pricesChannel;
+
+  
+  
   final LocalStorageApi _localApi;
   final CloudStorageClient _cloudApi;
 
@@ -22,8 +45,11 @@ class ErpRepository {
 
   Future<void> signIn({required String email, required String password}) async {
     await _cloudApi.signIn(email: email, password: password);
-    // 🌟 السحر: سحب كل بيانات الشركة فور تسجيل الدخول بنجاح!
+     // 1. سحب كل بيانات الشركة فور تسجيل الدخول بنجاح!
     await pullDataFromCloud();
+    
+    // تشغيل المستمع بعد تسجيل الدخول لأول مرة
+    _startCloudListener(); 
   }
 
   Future<void> signOut() async {
@@ -336,7 +362,7 @@ class ErpRepository {
   // ⚙️ الإعدادات (Material Prices)
   // ==========================================
   Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
-
+  Stream<MaterialPricesHistoryData?> watchLatestPrices() => _localApi.watchLatestPrices();
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
     final String? safeUserId = currentUserId;
     if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً');
@@ -354,5 +380,29 @@ class ErpRepository {
     
     // 2. المزامنة والانتظار 🚨
     await syncPendingData(); 
+  }
+
+  // ==========================================
+  // 📡 محرك الاستماع السحابي الحي (Realtime Sync)
+  // ==========================================
+  void startListeningToCloudChanges() {
+    // نغلق أي قناة سابقة احتياطاً
+    _pricesChannel?.unsubscribe();
+
+    // نفتح قناة استماع لجدول الأسعار
+    _pricesChannel = Supabase.instance.client
+        .channel('public:material_prices')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all, // استمع للإضافة، التعديل، والحذف
+          schema: 'public',
+          table: 'material_prices',
+          callback: (payload) {
+            print('🔥 السحابة تقول: تم تغيير الأسعار! جاري التحديث التلقائي...');
+            // بمجرد حدوث تغيير في السحابة، نسحب البيانات الجديدة
+            // وبما أن Cubit يستمع للقاعدة المحلية عبر Stream، ستتحدث الشاشة فوراً!
+            pullDataFromCloud(); 
+          },
+        )
+        .subscribe();
   }
 }

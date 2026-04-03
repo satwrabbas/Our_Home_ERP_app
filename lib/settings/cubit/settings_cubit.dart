@@ -1,3 +1,5 @@
+//settings_cubit.dart
+import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
@@ -7,26 +9,42 @@ import 'package:drift/drift.dart' show Value;
 part 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
-  SettingsCubit(this._erpRepository) : super(const SettingsState());
+  SettingsCubit(this._erpRepository) : super(const SettingsState()) {
+    _startWatchingPrices(); // بدء المراقبة بمجرد فتح الشاشة
+  }
 
   final ErpRepository _erpRepository;
+  StreamSubscription<MaterialPricesHistoryData?>? _pricesSubscription;
 
-  /// جلب أحدث تسعيرة (مع محاولة سحب التحديثات من الإنترنت أولاً)
+  /// 🌟 الاستماع الحي للقاعدة المحلية
+  void _startWatchingPrices() {
+    // نشترك في بث قاعدة البيانات المحلية
+    _pricesSubscription = _erpRepository.watchLatestPrices().listen(
+      (prices) {
+        emit(state.copyWith(
+          status: SettingsStatus.success, 
+          currentPrices: prices,
+        ));
+      },
+      onError: (error) {
+        emit(state.copyWith(status: SettingsStatus.failure, errorMessage: error.toString()));
+      },
+    );
+  }
+
+  /// 🌟 أعدنا هذه الدالة لكي لا يظهر خطأ في الـ UI (Dashboard & Settings Pages)
+  /// وظيفتها الآن هي فقط الطلب من السحابة جلب البيانات، 
+  /// والـ Stream بالأعلى سيتولى تحديث الشاشة تلقائياً
   Future<void> fetchPrices() async {
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
-      // 🌟 التعديل الجوهري: سحب البيانات من السحابة أولاً لضمان الحصول على أسعار المدير الآخر
       await _erpRepository.pullDataFromCloud();
-      
-      final prices = await _erpRepository.getLatestPrices();
-      emit(state.copyWith(status: SettingsStatus.success, currentPrices: prices));
+      // لا داعي لعمل emit هنا للنجاح، لأن الـ Stream سيشعر بالبيانات ويحدث الـ UI
     } catch (e) {
-      // في حال فشل الإنترنت، نعرض البيانات المحلية الموجودة أصلاً
-      final prices = await _erpRepository.getLatestPrices();
+      // في حال انقطاع الإنترنت (كما ظهر في الخطأ عندك)
       emit(state.copyWith(
         status: SettingsStatus.success, 
-        currentPrices: prices,
-        errorMessage: "تعذر التحديث من السحابة، يتم عرض البيانات المحلية."
+        errorMessage: "تعذر الاتصال بالسحابة (أنت تعمل الآن Offline).",
       ));
     }
   }
@@ -42,7 +60,6 @@ class SettingsCubit extends Cubit<SettingsState> {
   }) async {
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
-      // 🌟 التعديل الثاني: الحصول على userId الحقيقي
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول لتحديث الأسعار.');
 
@@ -54,20 +71,25 @@ class SettingsCubit extends Cubit<SettingsState> {
         aggregateMaterialsPrice: aggregates,
         ordinaryWorkerWage: worker,
         effectiveDate: Value(DateTime.now()), 
-        userId: userId, // 🚨 تم وضع المعرف الحقيقي هنا
+        userId: userId, 
         isDeleted: const Value(false),
       );
       
-      // حفظ محلياً + مزامنة سحابية (تأكد أن Repository.savePrices تستدعي syncPendingData)
+      // حفظ محلياً + مزامنة سحابية
       await _erpRepository.savePrices(newPrices);
       
-      // 🌟 إجبار المزامنة لرفع الأسعار الجديدة فوراً
-      await _erpRepository.forceSyncWithCloud();
+      // بمجرد الحفظ المحلي، الـ Stream سيحدث الشاشة.
+      // نطلب مزامنة السحابة في الخلفية
+      _erpRepository.forceSyncWithCloud();
 
-      // إعادة الجلب للتأكد من حالة النجاح
-      await fetchPrices(); 
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _pricesSubscription?.cancel(); // إغلاق الاشتراك لمنع تسريب الذاكرة
+    return super.close();
   }
 }

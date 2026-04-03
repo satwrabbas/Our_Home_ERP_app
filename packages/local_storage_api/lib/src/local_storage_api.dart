@@ -50,4 +50,9 @@ class LocalStorageApi {
   Future<void> syncPrice(MaterialPricesHistoryCompanion c) => _db.into(_db.materialPricesHistory).insertOnConflictUpdate(c);
   Future<void> syncSchedule(InstallmentsScheduleCompanion c) => _db.into(_db.installmentsSchedule).insertOnConflictUpdate(c);
   Future<void> syncPayment(PaymentsLedgerCompanion c) => _db.into(_db.paymentsLedger).insertOnConflictUpdate(c);
+
+
+  // دالة ال  realtime
+  Stream<MaterialPricesHistoryData?> watchLatestPrices() => _db.watchLatestPrices();
+  
 }

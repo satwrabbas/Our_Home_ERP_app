@@ -1,4 +1,3 @@
-//settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
@@ -51,8 +50,13 @@ class _SettingsViewState extends State<SettingsView> {
         backgroundColor: Colors.blueGrey,
       ),
       body: BlocConsumer<SettingsCubit, SettingsState>(
-        listenWhen: (previous, current) => previous.status != current.status,
+        // 🌟 التعديل الأول: الشاشة تستمع إذا تغيرت الحالة أو إذا تغيرت البيانات القادمة من القاعدة المحلية!
+        listenWhen: (previous, current) => 
+            previous.status != current.status || 
+            previous.currentPrices != current.currentPrices,
+            
         listener: (context, state) {
+          // 1. تحديث حقول النصوص إذا جاءت بيانات جديدة
           if (state.status == SettingsStatus.success && state.currentPrices != null) {
             ironController.text = state.currentPrices!.ironPrice.toStringAsFixed(0);
             cementController.text = state.currentPrices!.cementPrice.toStringAsFixed(0);
@@ -60,14 +64,17 @@ class _SettingsViewState extends State<SettingsView> {
             formworkController.text = state.currentPrices!.formworkAndPouringWages.toStringAsFixed(0);
             aggregatesController.text = state.currentPrices!.aggregateMaterialsPrice.toStringAsFixed(0);
             workerController.text = state.currentPrices!.ordinaryWorkerWage.toStringAsFixed(0);
-            
-            // 🌟 السحر هنا: نعرض رسالة النجاح فقط إذا تأكدنا من حفظها!
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('تم الحفظ وجلب أحدث الأسعار بنجاح! ✅'), backgroundColor: Colors.green),
-            );
+          }
 
-          } else if (state.status == SettingsStatus.failure) {
-            // 🌟 إظهار الخطأ الحقيقي إذا حدث
+          // 2. 🌟 إظهار رسالة النجاح فقط إذا كنا في حالة تحميل (الضغط على الزر) ثم أصبحنا نجاح
+          // لكي لا تظهر الرسالة المزعجة عندما تتحدث البيانات تلقائياً في الخلفية بسبب الـ Realtime
+          if (state.status == SettingsStatus.success && state.currentPrices != null) {
+             // يمكننا الاعتماد على الوقت لعدم عرض الرسالة عند أول فتح للشاشة
+             // ولكن للتبسيط، الـ SnackBar الحالي سيعمل بشكل أفضل إذا فصلناه عن الـ UI البث المباشر
+          }
+
+          // 3. إظهار رسالة الخطأ إن وجدت
+          if (state.status == SettingsStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
             );
@@ -113,7 +120,11 @@ class _SettingsViewState extends State<SettingsView> {
                         onPressed: () {
                           FocusScope.of(context).unfocus();
                           
-                          // 🌟 قمنا بإزالة الـ Snackbar الخادع من هنا
+                          // 🌟 إظهار رسالة الحفظ هنا لربطها بحدث الضغط على الزر مباشرة
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('جاري الحفظ والمزامنة...'), backgroundColor: Colors.orange, duration: Duration(seconds: 2)),
+                          );
+
                           context.read<SettingsCubit>().updatePrices(
                             iron: double.tryParse(ironController.text) ?? 0,
                             cement: double.tryParse(cementController.text) ?? 0,

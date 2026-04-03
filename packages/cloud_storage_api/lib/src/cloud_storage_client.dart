@@ -7,6 +7,8 @@ class CloudStorageClient {
 
   final SupabaseClient _supabase;
 
+    // 🌟 هنا تعريف المتغير الذي كان يسبب الخطأ (يجب أن يكون داخل الكلاس)
+  RealtimeChannel? _pricesChannel;
   // ==========================================
   // 🔐 المصادقة (Authentication)
   // ==========================================
@@ -14,10 +16,43 @@ class CloudStorageClient {
 
   Future<void> signIn({required String email, required String password}) async {
     await _supabase.auth.signInWithPassword(email: email, password: password);
+
   }
 
   Future<void> signOut() async {
     await _supabase.auth.signOut();
+    _pricesChannel?.unsubscribe();
+  }
+
+    // ==========================================
+  // 📡 محرك الاستماع السحابي الحي (Realtime Sync)
+  // ==========================================
+  void startListeningToCloudChanges({required Function() onDataChanged}) {
+    print('🎧 جاري بدء الاستماع لقناة Supabase Realtime...');
+    
+    _pricesChannel?.unsubscribe();
+
+    _pricesChannel = _supabase
+        .channel('public:material_prices')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'material_prices',
+          callback: (payload) {
+            print('🔥 السحابة تتحدث! نوع التغيير: ${payload.eventType}');
+            print('📦 البيانات: ${payload.newRecord}');
+            
+            // هنا نبلغ الـ Repository أن هناك تغييراً
+            onDataChanged(); 
+          },
+        )
+        .subscribe((status,[error]) {
+           if (status == 'SUBSCRIBED') {
+             print('✅ تم الاتصال بقناة Supabase بنجاح، التطبيق الآن يستمع للأسعار الحية.');
+           } else {
+             print('⚠️ حالة قناة Supabase: $status | خطأ: $error');
+           }
+        });
   }
 
   // ==========================================

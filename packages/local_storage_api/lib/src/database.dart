@@ -349,6 +349,16 @@ class AppDatabase extends _$AppDatabase {
       
   Future<void> syncPayment(PaymentsLedgerCompanion entity) => 
       into(paymentsLedger).insert(entity, mode: InsertMode.insertOrReplace);
+
+  // ==========================================
+  // --- البث الحي للأسعار (Stream) ---
+  // ==========================================
+  Stream<MaterialPricesHistoryData?> watchLatestPrices() {
+    return (select(materialPricesHistory)
+          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
+          ..limit(1))
+        .watchSingleOrNull(); // 🌟 السحر هنا: watch بدلاً من get
+  }
 }
 
 LazyDatabase _openConnection() {
