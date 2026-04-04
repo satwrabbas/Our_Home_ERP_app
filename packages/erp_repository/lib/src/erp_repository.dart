@@ -1,4 +1,5 @@
 //erp_repository.dart
+import 'dart:io';
 import 'package:local_storage_api/local_storage_api.dart';
 import 'package:cloud_storage_api/cloud_storage_api.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -107,13 +108,17 @@ class ErpRepository {
           installmentsCount: drift.Value(int.tryParse(c['installmentsCount']?.toString() ?? '48') ?? 48),
           coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
           contractDate: DateTime.tryParse(c['contractDate']?.toString() ?? '') ?? DateTime.now(),
+          
+          // 🌟 الحقول الجديدة 🌟
+          guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', // قراءة اسم الكفيل
+          contractFileUrl: drift.Value(c['contract_file_url']?.toString()), // قراءة رابط الملف إن وجد
+          
           userId: c['userId']?.toString() ?? '',
           isCompleted: drift.Value(c['isCompleted'] == true),
           isDeleted: drift.Value(c['isDeleted'] == true),
           updatedAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true),
         );
-        // التغيير هنا: استخدم syncContract
         await _localApi.syncContract(contract);
       }
 
@@ -213,7 +218,26 @@ class ErpRepository {
     try {
       final pendingContracts = await (db.select(db.contracts)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingContracts) {
-        await _cloudApi.upsertContract({'id': c.id, 'clientId': c.clientId, 'contractType': c.contractType, 'apartmentDetails': c.apartmentDetails, 'totalArea': _safeNum(c.totalArea), 'baseMeterPriceAtSigning': _safeNum(c.baseMeterPriceAtSigning), 'installmentsCount': c.installmentsCount, 'coefficients': c.coefficients, 'contractDate': c.contractDate.toIso8601String(), 'userId': c.userId, 'isCompleted': c.isCompleted, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
+        await _cloudApi.upsertContract({
+          'id': c.id, 
+          'clientId': c.clientId, 
+          'contractType': c.contractType, 
+          'apartmentDetails': c.apartmentDetails, 
+          'totalArea': _safeNum(c.totalArea), 
+          'baseMeterPriceAtSigning': _safeNum(c.baseMeterPriceAtSigning), 
+          'installmentsCount': c.installmentsCount, 
+          'coefficients': c.coefficients, 
+          'contractDate': c.contractDate.toIso8601String(), 
+          
+          // 🌟 الحقول الجديدة 🌟
+          'guarantor_name': c.guarantorName,
+          'contract_file_url': c.contractFileUrl,
+
+          'userId': c.userId, 
+          'isCompleted': c.isCompleted, 
+          'isDeleted': c.isDeleted, 
+          'updatedAt': c.updatedAt.toIso8601String()
+        });
         await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const ContractsCompanion(isSynced: drift.Value(true)));
       }
     } catch (e) { print('Sync Contracts Failed: $e'); }
@@ -386,23 +410,45 @@ class ErpRepository {
   // 📡 محرك الاستماع السحابي الحي (Realtime Sync)
   // ==========================================
   void startListeningToCloudChanges() {
-    // نغلق أي قناة سابقة احتياطاً
     _pricesChannel?.unsubscribe();
 
-    // نفتح قناة استماع لجدول الأسعار
     _pricesChannel = Supabase.instance.client
         .channel('public:material_prices')
         .onPostgresChanges(
-          event: PostgresChangeEvent.all, // استمع للإضافة، التعديل، والحذف
+          event: PostgresChangeEvent.all, 
           schema: 'public',
           table: 'material_prices',
           callback: (payload) {
             print('🔥 السحابة تقول: تم تغيير الأسعار! جاري التحديث التلقائي...');
-            // بمجرد حدوث تغيير في السحابة، نسحب البيانات الجديدة
-            // وبما أن Cubit يستمع للقاعدة المحلية عبر Stream، ستتحدث الشاشة فوراً!
             pullDataFromCloud(); 
           },
         )
         .subscribe();
   }
-}
+
+  // ==========================================
+  // 📎 إرفاق ملف Word للعقد (تحديث العقد)
+  // ==========================================
+  Future<void> attachFileToContract(String contractId, File file, String extension) async {
+    // 1. رفع الملف إلى السحابة وجلب الرابط
+    final fileUrl = await _cloudApi.uploadContractFile(
+      contractId: contractId, 
+      file: file, 
+      extension: extension
+    );
+
+    // 2. تحديث العقد محلياً ليحتوي على هذا الرابط
+    final db = _localApi.database;
+    await (db.update(db.contracts)..where((t) => t.id.equals(contractId))).write(
+      ContractsCompanion(
+        contractFileUrl: drift.Value(fileUrl),
+        updatedAt: drift.Value(DateTime.now()),
+        isSynced: const drift.Value(false), // إجبار المزامنة
+      )
+    );
+
+    // 3. دفع التعديل الجديد للسحابة
+    await syncPendingData();
+  }
+
+} 

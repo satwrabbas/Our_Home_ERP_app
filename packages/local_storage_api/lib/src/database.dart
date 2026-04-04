@@ -32,7 +32,7 @@ class Clients extends Table {
 }
 
 // ==========================================
-// 2. جدول العقود (Contracts) - ثابت لحظة التوقيع
+// 2. جدول العقود (Contracts)
 // ==========================================
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -44,8 +44,11 @@ class Contracts extends Table {
   RealColumn get baseMeterPriceAtSigning => real()(); 
   IntColumn get installmentsCount => integer().withDefault(const Constant(48))(); 
   TextColumn get coefficients => text().withDefault(const Constant('{}'))(); 
+
+  // 🌟 الحقول الجديدة التي أضفناها 🌟
+  TextColumn get guarantorName => text()(); // إجباري
+  TextColumn get contractFileUrl => text().nullable()(); // اختياري (nullable)
   
-  // 🌟 من المهندس/المحاسب الذي كتب هذا العقد؟
   TextColumn get userId => text()();
 
   DateTimeColumn get contractDate => dateTime()(); 
@@ -365,7 +368,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
     // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v8_clean.sqlite')); 
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v9_clean.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

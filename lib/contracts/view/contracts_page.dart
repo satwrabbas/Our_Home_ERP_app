@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/utils/calculator_helper.dart';
 import '../../settings/cubit/settings_cubit.dart';
 import '../cubit/contracts_cubit.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ContractsPage extends StatelessWidget {
   const ContractsPage({super.key});
@@ -53,10 +55,10 @@ class ContractsView extends StatelessWidget {
                   DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('نوع العقد', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('المساحة', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('الكفيل', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 عمود جديد
                   DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
+                  DataColumn(label: Text('ملف العقد', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 عمود جديد
                   DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
                 rows: state.contracts.map((contract) {
@@ -67,10 +69,58 @@ class ContractsView extends StatelessWidget {
                     DataCell(Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(contract.contractType, style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold))),
                     DataCell(Text(contract.apartmentDetails)),
-                    DataCell(Text('${contract.totalArea} م2')),
+                    DataCell(Text(contract.guarantorName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))), // 🌟 عرض الكفيل
                     DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green))),
                     DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
-                    DataCell(Text('${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}')),
+                    
+                    // 🌟 خلية ملف العقد (زر إرفاق أو زر فتح)
+                    DataCell(
+                      contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty
+                          ? TextButton.icon(
+                              icon: const Icon(Icons.download, color: Colors.green),
+                              label: const Text('فتح العقد', style: TextStyle(color: Colors.green)),
+                              onPressed: () async {
+                                 final url = Uri.parse(contract.contractFileUrl!);
+                                 if (await canLaunchUrl(url)) {
+                                   await launchUrl(url); 
+                                 }
+                              },
+                            )
+                          : TextButton.icon(
+                              icon: const Icon(Icons.upload_file, color: Colors.orange),
+                              label: const Text('إرفاق ملف', style: TextStyle(color: Colors.orange)),
+                              onPressed: () async {
+                                 FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                   type: FileType.custom,
+                                   allowedExtensions:['doc', 'docx', 'pdf'], 
+                                 );
+
+                                 if (result != null && result.files.single.path != null) {
+                                   final filePath = result.files.single.path!;
+                                   final extension = result.files.single.extension ?? 'docx';
+                                   
+                                   if(context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('جاري رفع الملف للسحابة... ⏳'), backgroundColor: Colors.orange)
+                                      );
+
+                                      await context.read<ContractsCubit>().attachContractFile(
+                                        contractId: contract.id,
+                                        filePath: filePath,
+                                        extension: extension,
+                                      );
+
+                                      if(context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('تم إرفاق العقد بنجاح! ✅'), backgroundColor: Colors.green)
+                                        );
+                                      }
+                                   }
+                                 }
+                              },
+                            ),
+                    ),
+
                     DataCell(
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -120,11 +170,11 @@ class ContractsView extends StatelessWidget {
     final areaController = TextEditingController();
     final priceController = TextEditingController();
     final monthsController = TextEditingController(text: '48'); 
-    
-    // 🌟 الحقل الجديد لمعامل مدة التقسيط (يطبق على كل أنواع العقود)
     final durationCoefficientCtrl = TextEditingController(text: '0'); 
+    
+    // 🌟 حقل جديد للكفيل
+    final guarantorController = TextEditingController(); 
 
-    // حقول المعاملات المكانية (تطبق فقط على الشقق المتخصصة)
     final floorCtrl = TextEditingController(text: '0');
     final directionCtrl = TextEditingController(text: '0');
     final streetCtrl = TextEditingController(text: '0');
@@ -141,10 +191,8 @@ class ContractsView extends StatelessWidget {
         }
       }
       
-      // 🌟 نسبة التقسيط تُطبق دائماً (سواء مخصص أو لاحق التخصص)
       addIfValid('duration', durationCoefficientCtrl.text);
 
-      // النسب المكانية تطبق فقط إذا كان العقد متخصصاً
       if (isAllocated) {
         addIfValid('floor', floorCtrl.text);
         addIfValid('direction', directionCtrl.text);
@@ -180,6 +228,13 @@ class ContractsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       
+                      // 🌟 حقل إدخال اسم الكفيل (إجباري)
+                      TextField(
+                        controller: guarantorController, 
+                        decoration: const InputDecoration(labelText: 'اسم الكفيل الثلاثي (إجباري)', border: OutlineInputBorder())
+                      ),
+                      const SizedBox(height: 16),
+
                       DropdownButtonFormField<String>(
                         value: selectedContractType,
                         decoration: const InputDecoration(labelText: 'نوع العقد', border: OutlineInputBorder()),
@@ -214,7 +269,6 @@ class ContractsView extends StatelessWidget {
                             children:[
                               const Text('معاملات التمييز المكاني (%) - ضع القيمة 0 لتجاهل المعامل:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
                               const SizedBox(height: 16),
-                              
                               Row(
                                 children:[
                                   Expanded(child: TextField(controller: floorCtrl, decoration: const InputDecoration(labelText: 'نسبة الطابق %', border: OutlineInputBorder(), filled: true, fillColor: Colors.white), keyboardType: TextInputType.number)),
@@ -223,7 +277,6 @@ class ContractsView extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              
                               Row(
                                 children:[
                                   Expanded(child: TextField(controller: streetCtrl, decoration: const InputDecoration(labelText: 'نسبة الشارع %', border: OutlineInputBorder(), filled: true, fillColor: Colors.white), keyboardType: TextInputType.number)),
@@ -232,7 +285,6 @@ class ContractsView extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 12),
-
                               Row(
                                 children:[
                                   Expanded(child: TextField(controller: elevatorCtrl, decoration: const InputDecoration(labelText: 'نسبة المصعد %', border: OutlineInputBorder(), filled: true, fillColor: Colors.white), keyboardType: TextInputType.number)),
@@ -251,7 +303,6 @@ class ContractsView extends StatelessWidget {
                         const SizedBox(height: 16),
                       ],
                       
-                      // 🌟 دمجنا المساحة والمدة ومعامل المدة في صف واحد لذكاء واجهة المستخدم
                       Row(
                         children:[
                           Expanded(flex: 2, child: TextField(controller: areaController, decoration: const InputDecoration(labelText: 'المساحة الكلية (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
@@ -274,7 +325,6 @@ class ContractsView extends StatelessWidget {
                             }
                             if (areaController.text.isEmpty) return;
 
-                            // 🌟 استدعاء الدالة المساعدة التي تجمع كل المعاملات (المكانية والزمنية)
                             final Map<String, double> coeffs = buildCoefficientsMap(isAllocated);
 
                             final calculations = CalculatorHelper.calculateContractValues(
@@ -307,9 +357,14 @@ class ContractsView extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     final String finalDetails = needsDetails ? detailsController.text : 'أسهم / لاحق التخصص';
+                    
+                    // 🌟 التأكد من إدخال اسم الكفيل قبل الحفظ
+                    if (guarantorController.text.trim().isEmpty) {
+                       ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يرجى إدخال اسم الكفيل!'), backgroundColor: Colors.red));
+                       return;
+                    }
 
                     if (selectedClientId != null && areaController.text.isNotEmpty && priceController.text.isNotEmpty) {
-                      
                       final Map<String, double> coeffs = buildCoefficientsMap(isAllocated);
 
                       parentContext.read<ContractsCubit>().addContract(
@@ -319,6 +374,7 @@ class ContractsView extends StatelessWidget {
                         area: double.parse(areaController.text),
                         basePrice: double.parse(priceController.text),
                         installmentsCount: int.parse(monthsController.text), 
+                        guarantorName: guarantorController.text.trim(), // 🌟 إرسال اسم الكفيل
                         coefficients: coeffs, 
                       );
                       Navigator.pop(dialogContext);

@@ -659,6 +659,28 @@ class $ContractsTable extends Contracts
     requiredDuringInsert: false,
     defaultValue: const Constant('{}'),
   );
+  static const VerificationMeta _guarantorNameMeta = const VerificationMeta(
+    'guarantorName',
+  );
+  @override
+  late final GeneratedColumn<String> guarantorName = GeneratedColumn<String>(
+    'guarantor_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contractFileUrlMeta = const VerificationMeta(
+    'contractFileUrl',
+  );
+  @override
+  late final GeneratedColumn<String> contractFileUrl = GeneratedColumn<String>(
+    'contract_file_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String> userId = GeneratedColumn<String>(
@@ -758,6 +780,8 @@ class $ContractsTable extends Contracts
     baseMeterPriceAtSigning,
     installmentsCount,
     coefficients,
+    guarantorName,
+    contractFileUrl,
     userId,
     contractDate,
     isCompleted,
@@ -843,6 +867,26 @@ class $ContractsTable extends Contracts
         coefficients.isAcceptableOrUnknown(
           data['coefficients']!,
           _coefficientsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('guarantor_name')) {
+      context.handle(
+        _guarantorNameMeta,
+        guarantorName.isAcceptableOrUnknown(
+          data['guarantor_name']!,
+          _guarantorNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_guarantorNameMeta);
+    }
+    if (data.containsKey('contract_file_url')) {
+      context.handle(
+        _contractFileUrlMeta,
+        contractFileUrl.isAcceptableOrUnknown(
+          data['contract_file_url']!,
+          _contractFileUrlMeta,
         ),
       );
     }
@@ -939,6 +983,14 @@ class $ContractsTable extends Contracts
         DriftSqlType.string,
         data['${effectivePrefix}coefficients'],
       )!,
+      guarantorName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}guarantor_name'],
+      )!,
+      contractFileUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contract_file_url'],
+      ),
       userId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
@@ -985,6 +1037,8 @@ class Contract extends DataClass implements Insertable<Contract> {
   final double baseMeterPriceAtSigning;
   final int installmentsCount;
   final String coefficients;
+  final String guarantorName;
+  final String? contractFileUrl;
   final String userId;
   final DateTime contractDate;
   final bool isCompleted;
@@ -1001,6 +1055,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     required this.baseMeterPriceAtSigning,
     required this.installmentsCount,
     required this.coefficients,
+    required this.guarantorName,
+    this.contractFileUrl,
     required this.userId,
     required this.contractDate,
     required this.isCompleted,
@@ -1022,6 +1078,10 @@ class Contract extends DataClass implements Insertable<Contract> {
     );
     map['installments_count'] = Variable<int>(installmentsCount);
     map['coefficients'] = Variable<String>(coefficients);
+    map['guarantor_name'] = Variable<String>(guarantorName);
+    if (!nullToAbsent || contractFileUrl != null) {
+      map['contract_file_url'] = Variable<String>(contractFileUrl);
+    }
     map['user_id'] = Variable<String>(userId);
     map['contract_date'] = Variable<DateTime>(contractDate);
     map['is_completed'] = Variable<bool>(isCompleted);
@@ -1042,6 +1102,10 @@ class Contract extends DataClass implements Insertable<Contract> {
       baseMeterPriceAtSigning: Value(baseMeterPriceAtSigning),
       installmentsCount: Value(installmentsCount),
       coefficients: Value(coefficients),
+      guarantorName: Value(guarantorName),
+      contractFileUrl: contractFileUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contractFileUrl),
       userId: Value(userId),
       contractDate: Value(contractDate),
       isCompleted: Value(isCompleted),
@@ -1068,6 +1132,8 @@ class Contract extends DataClass implements Insertable<Contract> {
       ),
       installmentsCount: serializer.fromJson<int>(json['installmentsCount']),
       coefficients: serializer.fromJson<String>(json['coefficients']),
+      guarantorName: serializer.fromJson<String>(json['guarantorName']),
+      contractFileUrl: serializer.fromJson<String?>(json['contractFileUrl']),
       userId: serializer.fromJson<String>(json['userId']),
       contractDate: serializer.fromJson<DateTime>(json['contractDate']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
@@ -1091,6 +1157,8 @@ class Contract extends DataClass implements Insertable<Contract> {
       ),
       'installmentsCount': serializer.toJson<int>(installmentsCount),
       'coefficients': serializer.toJson<String>(coefficients),
+      'guarantorName': serializer.toJson<String>(guarantorName),
+      'contractFileUrl': serializer.toJson<String?>(contractFileUrl),
       'userId': serializer.toJson<String>(userId),
       'contractDate': serializer.toJson<DateTime>(contractDate),
       'isCompleted': serializer.toJson<bool>(isCompleted),
@@ -1110,6 +1178,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     double? baseMeterPriceAtSigning,
     int? installmentsCount,
     String? coefficients,
+    String? guarantorName,
+    Value<String?> contractFileUrl = const Value.absent(),
     String? userId,
     DateTime? contractDate,
     bool? isCompleted,
@@ -1127,6 +1197,10 @@ class Contract extends DataClass implements Insertable<Contract> {
         baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
     installmentsCount: installmentsCount ?? this.installmentsCount,
     coefficients: coefficients ?? this.coefficients,
+    guarantorName: guarantorName ?? this.guarantorName,
+    contractFileUrl: contractFileUrl.present
+        ? contractFileUrl.value
+        : this.contractFileUrl,
     userId: userId ?? this.userId,
     contractDate: contractDate ?? this.contractDate,
     isCompleted: isCompleted ?? this.isCompleted,
@@ -1155,6 +1229,12 @@ class Contract extends DataClass implements Insertable<Contract> {
       coefficients: data.coefficients.present
           ? data.coefficients.value
           : this.coefficients,
+      guarantorName: data.guarantorName.present
+          ? data.guarantorName.value
+          : this.guarantorName,
+      contractFileUrl: data.contractFileUrl.present
+          ? data.contractFileUrl.value
+          : this.contractFileUrl,
       userId: data.userId.present ? data.userId.value : this.userId,
       contractDate: data.contractDate.present
           ? data.contractDate.value
@@ -1180,6 +1260,8 @@ class Contract extends DataClass implements Insertable<Contract> {
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
           ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
+          ..write('guarantorName: $guarantorName, ')
+          ..write('contractFileUrl: $contractFileUrl, ')
           ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -1201,6 +1283,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     baseMeterPriceAtSigning,
     installmentsCount,
     coefficients,
+    guarantorName,
+    contractFileUrl,
     userId,
     contractDate,
     isCompleted,
@@ -1221,6 +1305,8 @@ class Contract extends DataClass implements Insertable<Contract> {
           other.baseMeterPriceAtSigning == this.baseMeterPriceAtSigning &&
           other.installmentsCount == this.installmentsCount &&
           other.coefficients == this.coefficients &&
+          other.guarantorName == this.guarantorName &&
+          other.contractFileUrl == this.contractFileUrl &&
           other.userId == this.userId &&
           other.contractDate == this.contractDate &&
           other.isCompleted == this.isCompleted &&
@@ -1239,6 +1325,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<double> baseMeterPriceAtSigning;
   final Value<int> installmentsCount;
   final Value<String> coefficients;
+  final Value<String> guarantorName;
+  final Value<String?> contractFileUrl;
   final Value<String> userId;
   final Value<DateTime> contractDate;
   final Value<bool> isCompleted;
@@ -1256,6 +1344,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.baseMeterPriceAtSigning = const Value.absent(),
     this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
+    this.guarantorName = const Value.absent(),
+    this.contractFileUrl = const Value.absent(),
     this.userId = const Value.absent(),
     this.contractDate = const Value.absent(),
     this.isCompleted = const Value.absent(),
@@ -1274,6 +1364,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     required double baseMeterPriceAtSigning,
     this.installmentsCount = const Value.absent(),
     this.coefficients = const Value.absent(),
+    required String guarantorName,
+    this.contractFileUrl = const Value.absent(),
     required String userId,
     required DateTime contractDate,
     this.isCompleted = const Value.absent(),
@@ -1286,6 +1378,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
        apartmentDetails = Value(apartmentDetails),
        totalArea = Value(totalArea),
        baseMeterPriceAtSigning = Value(baseMeterPriceAtSigning),
+       guarantorName = Value(guarantorName),
        userId = Value(userId),
        contractDate = Value(contractDate);
   static Insertable<Contract> custom({
@@ -1297,6 +1390,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Expression<double>? baseMeterPriceAtSigning,
     Expression<int>? installmentsCount,
     Expression<String>? coefficients,
+    Expression<String>? guarantorName,
+    Expression<String>? contractFileUrl,
     Expression<String>? userId,
     Expression<DateTime>? contractDate,
     Expression<bool>? isCompleted,
@@ -1316,6 +1411,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
         'base_meter_price_at_signing': baseMeterPriceAtSigning,
       if (installmentsCount != null) 'installments_count': installmentsCount,
       if (coefficients != null) 'coefficients': coefficients,
+      if (guarantorName != null) 'guarantor_name': guarantorName,
+      if (contractFileUrl != null) 'contract_file_url': contractFileUrl,
       if (userId != null) 'user_id': userId,
       if (contractDate != null) 'contract_date': contractDate,
       if (isCompleted != null) 'is_completed': isCompleted,
@@ -1336,6 +1433,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Value<double>? baseMeterPriceAtSigning,
     Value<int>? installmentsCount,
     Value<String>? coefficients,
+    Value<String>? guarantorName,
+    Value<String?>? contractFileUrl,
     Value<String>? userId,
     Value<DateTime>? contractDate,
     Value<bool>? isCompleted,
@@ -1355,6 +1454,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           baseMeterPriceAtSigning ?? this.baseMeterPriceAtSigning,
       installmentsCount: installmentsCount ?? this.installmentsCount,
       coefficients: coefficients ?? this.coefficients,
+      guarantorName: guarantorName ?? this.guarantorName,
+      contractFileUrl: contractFileUrl ?? this.contractFileUrl,
       userId: userId ?? this.userId,
       contractDate: contractDate ?? this.contractDate,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -1395,6 +1496,12 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     if (coefficients.present) {
       map['coefficients'] = Variable<String>(coefficients.value);
     }
+    if (guarantorName.present) {
+      map['guarantor_name'] = Variable<String>(guarantorName.value);
+    }
+    if (contractFileUrl.present) {
+      map['contract_file_url'] = Variable<String>(contractFileUrl.value);
+    }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
     }
@@ -1433,6 +1540,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           ..write('baseMeterPriceAtSigning: $baseMeterPriceAtSigning, ')
           ..write('installmentsCount: $installmentsCount, ')
           ..write('coefficients: $coefficients, ')
+          ..write('guarantorName: $guarantorName, ')
+          ..write('contractFileUrl: $contractFileUrl, ')
           ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -4056,6 +4165,8 @@ typedef $$ContractsTableCreateCompanionBuilder =
       required double baseMeterPriceAtSigning,
       Value<int> installmentsCount,
       Value<String> coefficients,
+      required String guarantorName,
+      Value<String?> contractFileUrl,
       required String userId,
       required DateTime contractDate,
       Value<bool> isCompleted,
@@ -4075,6 +4186,8 @@ typedef $$ContractsTableUpdateCompanionBuilder =
       Value<double> baseMeterPriceAtSigning,
       Value<int> installmentsCount,
       Value<String> coefficients,
+      Value<String> guarantorName,
+      Value<String?> contractFileUrl,
       Value<String> userId,
       Value<DateTime> contractDate,
       Value<bool> isCompleted,
@@ -4197,6 +4310,16 @@ class $$ContractsTableFilterComposer
 
   ColumnFilters<String> get coefficients => $composableBuilder(
     column: $table.coefficients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get guarantorName => $composableBuilder(
+    column: $table.guarantorName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contractFileUrl => $composableBuilder(
+    column: $table.contractFileUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4353,6 +4476,16 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get guarantorName => $composableBuilder(
+    column: $table.guarantorName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contractFileUrl => $composableBuilder(
+    column: $table.contractFileUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get userId => $composableBuilder(
     column: $table.userId,
     builder: (column) => ColumnOrderings(column),
@@ -4449,6 +4582,16 @@ class $$ContractsTableAnnotationComposer
 
   GeneratedColumn<String> get coefficients => $composableBuilder(
     column: $table.coefficients,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get guarantorName => $composableBuilder(
+    column: $table.guarantorName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contractFileUrl => $composableBuilder(
+    column: $table.contractFileUrl,
     builder: (column) => column,
   );
 
@@ -4592,6 +4735,8 @@ class $$ContractsTableTableManager
                 Value<double> baseMeterPriceAtSigning = const Value.absent(),
                 Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
+                Value<String> guarantorName = const Value.absent(),
+                Value<String?> contractFileUrl = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<DateTime> contractDate = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
@@ -4609,6 +4754,8 @@ class $$ContractsTableTableManager
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
                 installmentsCount: installmentsCount,
                 coefficients: coefficients,
+                guarantorName: guarantorName,
+                contractFileUrl: contractFileUrl,
                 userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
@@ -4628,6 +4775,8 @@ class $$ContractsTableTableManager
                 required double baseMeterPriceAtSigning,
                 Value<int> installmentsCount = const Value.absent(),
                 Value<String> coefficients = const Value.absent(),
+                required String guarantorName,
+                Value<String?> contractFileUrl = const Value.absent(),
                 required String userId,
                 required DateTime contractDate,
                 Value<bool> isCompleted = const Value.absent(),
@@ -4645,6 +4794,8 @@ class $$ContractsTableTableManager
                 baseMeterPriceAtSigning: baseMeterPriceAtSigning,
                 installmentsCount: installmentsCount,
                 coefficients: coefficients,
+                guarantorName: guarantorName,
+                contractFileUrl: contractFileUrl,
                 userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,

@@ -1,5 +1,6 @@
 //cloud_storage_client.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 
 class CloudStorageClient {
   CloudStorageClient({SupabaseClient? supabaseClient})
@@ -82,4 +83,28 @@ class CloudStorageClient {
   Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async => await _supabase.from('installments_schedule').upsert(scheduleData);
 
   Future<void> upsertMaterialPrices(Map<String, dynamic> pricesData) async => await _supabase.from('material_prices').upsert(pricesData);
+
+
+  // ==========================================
+  // 📂 رفع الملفات إلى Supabase Storage
+  // ==========================================
+  Future<String> uploadContractFile({
+    required String contractId, 
+    required File file, 
+    required String extension
+  }) async {
+    // 1. تحديد اسم الملف (مثلاً: contract_1234.docx)
+    final fileName = 'contract_$contractId.$extension';
+    
+    // 2. رفع الملف إلى مجلد contracts_files
+    await _supabase.storage.from('contracts_files').upload(
+      fileName,
+      file,
+      fileOptions: const FileOptions(upsert: true), // upsert تعني: استبدل الملف إذا كان موجوداً مسبقاً
+    );
+    
+    // 3. الحصول على الرابط العام (Public URL) للملف
+    final publicUrl = _supabase.storage.from('contracts_files').getPublicUrl(fileName);
+    return publicUrl;
+  }
 }
