@@ -430,25 +430,39 @@ class ErpRepository {
   // 📎 إرفاق ملف Word للعقد (تحديث العقد)
   // ==========================================
   Future<void> attachFileToContract(String contractId, File file, String extension) async {
-    // 1. رفع الملف إلى السحابة وجلب الرابط
-    final fileUrl = await _cloudApi.uploadContractFile(
-      contractId: contractId, 
-      file: file, 
-      extension: extension
-    );
+    try {
+      print('🚀 [1] بدأ رفع الملف للعقد: $contractId');
+      
+      // 1. رفع الملف إلى السحابة وجلب الرابط
+      final fileUrl = await _cloudApi.uploadContractFile(
+        contractId: contractId, 
+        file: file, 
+        extension: extension
+      );
+      print('✅ [2] تم رفع الملف بنجاح! الرابط: $fileUrl');
 
-    // 2. تحديث العقد محلياً ليحتوي على هذا الرابط
-    final db = _localApi.database;
-    await (db.update(db.contracts)..where((t) => t.id.equals(contractId))).write(
-      ContractsCompanion(
-        contractFileUrl: drift.Value(fileUrl),
-        updatedAt: drift.Value(DateTime.now()),
-        isSynced: const drift.Value(false), // إجبار المزامنة
-      )
-    );
+      // 2. تحديث العقد محلياً ليحتوي على هذا الرابط
+      final db = _localApi.database;
+      await (db.update(db.contracts)..where((t) => t.id.equals(contractId))).write(
+        ContractsCompanion(
+          contractFileUrl: drift.Value(fileUrl),
+          updatedAt: drift.Value(DateTime.now()),
+          isSynced: const drift.Value(false), // إجبار المزامنة
+        )
+      );
+      print('✅ [3] تم حفظ الرابط في قاعدة البيانات المحلية (Drift).');
 
-    // 3. دفع التعديل الجديد للسحابة
-    await syncPendingData();
+      // 3. دفع التعديل الجديد للسحابة
+      print('⏳ [4] جاري مزامنة التعديل مع جدول Supabase...');
+      await syncPendingData();
+      print('✅ [5] تمت المزامنة بنجاح وانتهت العملية.');
+
+    } catch (e, stacktrace) {
+      // 🚨 هذا سيمسك أي خطأ صامت ويطبعه لك!
+      print('❌❌ خطأ فادح أثناء إرفاق الملف: $e');
+      print('🔍 التفاصيل: $stacktrace');
+      throw Exception('فشل الإرفاق: $e'); // لإجبار الـ UI على إظهار الخطأ
+    }
   }
 
 } 

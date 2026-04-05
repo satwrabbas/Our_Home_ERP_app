@@ -1,6 +1,7 @@
 //cloud_storage_client.dart
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http; // 🌟 استيراد مكتبة HTTP
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CloudStorageClient {
   CloudStorageClient({SupabaseClient? supabaseClient})
@@ -86,25 +87,51 @@ class CloudStorageClient {
 
 
   // ==========================================
-  // 📂 رفع الملفات إلى Supabase Storage
+  // 📂 رفع الملفات إلى Supabase Storage (طريقة التجاوز المباشر HTTP)
   // ==========================================
   Future<String> uploadContractFile({
     required String contractId, 
     required File file, 
     required String extension
   }) async {
-    // 1. تحديد اسم الملف (مثلاً: contract_1234.docx)
+    const bucketName = 'erp_contracts'; // المجلد الناجح
     final fileName = 'contract_$contractId.$extension';
-    
-    // 2. رفع الملف إلى مجلد contracts_files
-    await _supabase.storage.from('contracts_files').upload(
-      fileName,
-      file,
-      fileOptions: const FileOptions(upsert: true), // upsert تعني: استبدل الملف إذا كان موجوداً مسبقاً
+
+    // 1. جلب مفتاح الجلسة الحالي (JWT) للمصادقة
+    final session = _supabase.auth.currentSession;
+    if (session == null) throw Exception('يجب تسجيل الدخول لرفع الملفات.');
+    final jwtToken = session.accessToken;
+
+    // 2. قراءة الملف كبيانات خام (Bytes)
+    final bytes = file.readAsBytesSync();
+
+    // 3. تحديد نوع الملف
+    String contentType = 'application/octet-stream';
+    if (extension == 'pdf') contentType = 'application/pdf';
+    if (extension == 'doc' || extension == 'docx') contentType = 'application/msword';
+
+    // 4. 🌟 استخدام الرابط الثابت الذي نجحنا به في الاختبار
+    const projectId = 'krdfrdzyfdcqjmnuzads';
+    final uploadUrl = Uri.parse('https://$projectId.supabase.co/storage/v1/object/$bucketName/$fileName');
+
+    // 5. إطلاق صاروخ الـ HTTP مباشرة للسيرفر
+    final response = await http.post(
+      uploadUrl,
+      headers: {
+        'Authorization': 'Bearer $jwtToken',
+        'Content-Type': contentType,
+        'x-upsert': 'true', // استبدال الملف لو تم رفعه سابقاً
+      },
+      body: bytes,
     );
-    
-    // 3. الحصول على الرابط العام (Public URL) للملف
-    final publicUrl = _supabase.storage.from('contracts_files').getPublicUrl(fileName);
-    return publicUrl;
+
+    // 6. التحقق من الرد وإرجاع الرابط
+    if (response.statusCode == 200) {
+      final publicUrl = 'https://$projectId.supabase.co/storage/v1/object/public/$bucketName/$fileName';
+      return publicUrl;
+    } else {
+      throw Exception('فشل الرفع من السيرفر: ${response.statusCode} - ${response.body}');
+    }
   }
+
 }
