@@ -133,5 +133,4 @@ class CloudStorageClient {
       throw Exception('فشل الرفع من السيرفر: ${response.statusCode} - ${response.body}');
     }
   }
-
 }
