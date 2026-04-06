@@ -102,7 +102,7 @@ class ErpRepository {
           id: drift.Value(c['id'].toString()), 
           clientId: c['clientId'].toString(), 
           contractType: drift.Value(c['contractType']?.toString() ?? 'لاحق التخصص'),
-          apartmentDetails: c['apartmentDetails'].toString(), 
+          apartmentDetails: drift.Value(c['apartmentDetails'].toString()),
           totalArea: double.tryParse(c['totalArea']?.toString() ?? '0') ?? 0.0,
           baseMeterPriceAtSigning: double.tryParse(c['baseMeterPriceAtSigning']?.toString() ?? '0') ?? 0.0,
           installmentsCount: drift.Value(int.tryParse(c['installmentsCount']?.toString() ?? '48') ?? 48),
@@ -406,6 +406,26 @@ class ErpRepository {
     await syncPendingData(); 
   }
 
+
+  // ==========================================
+  // 🏢 إدارة المحاضر والشقق (Offline Prototype)
+  // ==========================================
+  Future<List<Building>> getBuildings() => _localApi.getBuildings();
+  Future<List<Apartment>> getAllApartments() => _localApi.getAllApartments();
+
+  Future<void> addBuilding(BuildingsCompanion building) async {
+    // استخدمنا 'offline_test' كحماية في حال لم يكن هناك اتصال
+    final companionWithUser = building.copyWith(userId: drift.Value(currentUserId ?? 'offline_test'));
+    await _localApi.addBuilding(companionWithUser);
+    // لن نضع syncPendingData() الآن لكي لا نرفع للسحابة قبل تجهيزها
+  }
+
+  Future<void> addApartment(ApartmentsCompanion apartment) async {
+    final companionWithUser = apartment.copyWith(userId: drift.Value(currentUserId ?? 'offline_test'));
+    await _localApi.addApartment(companionWithUser);
+    // لن نضع syncPendingData() الآن
+  }
+  
   // ==========================================
   // 📡 محرك الاستماع السحابي الحي (Realtime Sync)
   // ==========================================

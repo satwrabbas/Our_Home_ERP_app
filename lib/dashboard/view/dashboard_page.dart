@@ -5,14 +5,16 @@ import 'package:erp_repository/erp_repository.dart';
 // استدعاء الشاشات
 import '../../home/view/home_page.dart';
 import '../../clients/view/clients_page.dart';
+import '../../buildings/view/buildings_page.dart'; // 🌟 1. استدعاء شاشة المشاريع
 import '../../contracts/view/contracts_page.dart';
 import '../../payments/view/payments_page.dart';
 import '../../schedule/view/schedule_page.dart';
 import '../../settings/view/settings_page.dart';
-import '../../login/view/login_page.dart'; // 🌟 شاشة تسجيل الدخول للعودة إليها
+import '../../login/view/login_page.dart';
 
 // استدعاء المتحكمات
 import '../../clients/cubit/clients_cubit.dart';
+import '../../buildings/cubit/buildings_cubit.dart'; // 🌟 2. استدعاء متحكم المشاريع
 import '../../contracts/cubit/contracts_cubit.dart';
 import '../../payments/cubit/payments_cubit.dart';
 import '../../schedule/cubit/schedule_cubit.dart';
@@ -32,6 +34,7 @@ class DashboardPage extends StatelessWidget {
         BlocProvider(create: (_) => DashboardCubit()),
         BlocProvider(create: (_) => HomeCubit(repo)..fetchDashboardData()),
         BlocProvider(create: (_) => ClientsCubit(repo)..fetchClients()),
+        BlocProvider(create: (_) => BuildingsCubit(repo)..loadData()), // 🌟 3. توفير متحكم المشاريع
         BlocProvider(create: (_) => ContractsCubit(repo)..fetchData()),
         BlocProvider(create: (_) => PaymentsCubit(repo)..fetchInitialData()),
         BlocProvider(create: (_) => ScheduleCubit(repo)..fetchInitialData()),
@@ -57,13 +60,14 @@ class DashboardView extends StatelessWidget {
             onDestinationSelected: (index) {
               context.read<DashboardCubit>().changeTab(index);
               
-              // التحديث التلقائي الذكي
+              // التحديث التلقائي الذكي (تم تحديث الأرقام لتناسب التبويب الجديد)
               if (index == 0) context.read<HomeCubit>().fetchDashboardData();
               if (index == 1) context.read<ClientsCubit>().fetchClients();
-              if (index == 2) context.read<ContractsCubit>().fetchData();
-              if (index == 3) context.read<PaymentsCubit>().fetchInitialData();
-              if (index == 4) context.read<ScheduleCubit>().fetchInitialData();
-              if (index == 5) context.read<SettingsCubit>().fetchPrices();
+              if (index == 2) context.read<BuildingsCubit>().loadData(); // 🌟 4. تحديث بيانات المشاريع
+              if (index == 3) context.read<ContractsCubit>().fetchData();
+              if (index == 4) context.read<PaymentsCubit>().fetchInitialData();
+              if (index == 5) context.read<ScheduleCubit>().fetchInitialData();
+              if (index == 6) context.read<SettingsCubit>().fetchPrices();
             },
             labelType: NavigationRailLabelType.all,
             backgroundColor: Colors.blue.shade900,
@@ -72,16 +76,17 @@ class DashboardView extends StatelessWidget {
             selectedIconTheme: const IconThemeData(color: Colors.white, size: 30),
             selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             
+            // 🌟 5. إضافة زر (المشاريع) في القائمة الجانبية
             destinations: const[
               NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('الرئيسية')),
               NavigationRailDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: Text('العملاء')),
+              NavigationRailDestination(icon: Icon(Icons.domain_outlined), selectedIcon: Icon(Icons.domain), label: Text('المشاريع')), // 🏢 التبويب الجديد
               NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('العقود')),
               NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('الأقساط')),
               NavigationRailDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: Text('المراقبة')),
               NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('الإعدادات')),
             ],
             
-            // 🌟 تعديل الـ trailing ليحتوي على زرين (المزامنة + تسجيل الخروج)
             trailing: Expanded(
               child: Align(
                 alignment: Alignment.bottomCenter,
@@ -90,7 +95,6 @@ class DashboardView extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:[
-                      // ☁️ زر المزامنة اليدوية مع السحابة
                       IconButton(
                         icon: const Icon(Icons.sync, color: Colors.greenAccent, size: 28),
                         tooltip: 'مزامنة يدوية مع السحابة (Pull & Push)',
@@ -99,7 +103,6 @@ class DashboardView extends StatelessWidget {
                             const SnackBar(content: Text('جاري المزامنة مع السحابة... ☁️🔄')),
                           );
                           
-                          // استدعاء دالة المزامنة الشاملة المضادة للرصاص
                           final resultMessage = await context.read<ErpRepository>().forceSyncWithCloud();
                           
                           if (context.mounted) {
@@ -110,19 +113,18 @@ class DashboardView extends StatelessWidget {
                               ),
                             );
 
-                            // تحديث الشاشة الحالية فوراً لتعرض البيانات الجديدة المسحوبة
                             if (selectedIndex == 0) context.read<HomeCubit>().fetchDashboardData();
                             if (selectedIndex == 1) context.read<ClientsCubit>().fetchClients();
-                            if (selectedIndex == 2) context.read<ContractsCubit>().fetchData();
-                            if (selectedIndex == 3) context.read<PaymentsCubit>().fetchInitialData();
-                            if (selectedIndex == 4) context.read<ScheduleCubit>().fetchInitialData();
-                            if (selectedIndex == 5) context.read<SettingsCubit>().fetchPrices();
+                            if (selectedIndex == 2) context.read<BuildingsCubit>().loadData(); // 🌟 تحديث المزامنة
+                            if (selectedIndex == 3) context.read<ContractsCubit>().fetchData();
+                            if (selectedIndex == 4) context.read<PaymentsCubit>().fetchInitialData();
+                            if (selectedIndex == 5) context.read<ScheduleCubit>().fetchInitialData();
+                            if (selectedIndex == 6) context.read<SettingsCubit>().fetchPrices();
                           }
                         },
                       ),
                       const SizedBox(height: 16),
                       
-                      // 🌟 زر تسجيل الخروج في أسفل القائمة الجانبية
                       IconButton(
                         icon: const Icon(Icons.logout, color: Colors.redAccent, size: 28),
                         tooltip: 'تسجيل الخروج (وإقفال النظام)',
@@ -137,12 +139,8 @@ class DashboardView extends StatelessWidget {
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                                   onPressed: () async {
-                                    Navigator.pop(ctx); // إغلاق النافذة
-                                    
-                                    // 1. تسجيل الخروج ومسح قاعدة البيانات المحلية
+                                    Navigator.pop(ctx);
                                     await context.read<ErpRepository>().signOut();
-                                    
-                                    // 2. العودة لشاشة تسجيل الدخول وتدمير لوحة التحكم من الذاكرة
                                     if (context.mounted) {
                                       Navigator.of(context).pushReplacement(
                                         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -169,12 +167,13 @@ class DashboardView extends StatelessWidget {
             child: IndexedStack(
               index: selectedIndex,
               children: const[
-                HomePage(),     // Index 0
-                ClientsPage(),  // Index 1
-                ContractsPage(),// Index 2
-                PaymentsPage(), // Index 3
-                SchedulePage(), // Index 4
-                SettingsPage(), // Index 5
+                HomePage(),      // Index 0
+                ClientsPage(),   // Index 1
+                BuildingsPage(), // Index 2 🌟 إظهار شاشة المشاريع
+                ContractsPage(), // Index 3
+                PaymentsPage(),  // Index 4
+                SchedulePage(),  // Index 5
+                SettingsPage(),  // Index 6
               ],
             ),
           ),

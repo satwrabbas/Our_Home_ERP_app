@@ -1,4 +1,3 @@
-//database.dart
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -32,28 +31,81 @@ class Clients extends Table {
 }
 
 // ==========================================
-// 2. جدول العقود (Contracts)
+// 🏢 2. جدول المحاضر (Buildings) - يحتوي على القوالب العامة
+// ==========================================
+class Buildings extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  TextColumn get name => text()(); // مثال: محضر النسيم
+  TextColumn get location => text().nullable()(); // مثال: مشروع الأوقاف
+  
+  // 🌟 قوالب النسب المئوية العامة (تُحفظ كـ JSON)
+  TextColumn get floorCoefficients => text().withDefault(const Constant('{}'))(); 
+  TextColumn get directionCoefficients => text().withDefault(const Constant('{}'))(); 
+  
+  // حقول المزامنة (جاهزة للمستقبل، لكننا لن نستخدمها الآن)
+  TextColumn get userId => text().withDefault(const Constant('offline_test'))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ==========================================
+// 🚪 3. جدول الشقق (Apartments) - يحتوي على الخصائص المحددة
+// ==========================================
+class Apartments extends Table {
+  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  TextColumn get buildingId => text().references(Buildings, #id)(); // 🌟 الارتباط بالمحضر
+  
+  TextColumn get apartmentNumber => text()(); // مثال: 101 أو A1
+  RealColumn get area => real()(); 
+  
+  // 🌟 الخصائص التي ستبحث في قوالب المحضر لمعرفة نسبتها
+  TextColumn get floorName => text()(); // مثال: "الطابق الثاني"
+  TextColumn get directionName => text()(); // مثال: "جنوبي"
+  
+  // 🌟 نسب مئوية خاصة بهذه الشقة فقط (تُحفظ كـ JSON)
+  TextColumn get customCoefficients => text().withDefault(const Constant('{}'))(); 
+  
+  // حالة الشقة: متاحة، مباعة، محجوزة
+  TextColumn get status => text().withDefault(const Constant('available'))(); 
+  
+  // حقول المزامنة
+  TextColumn get userId => text().withDefault(const Constant('offline_test'))();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ==========================================
+// 4. جدول العقود (Contracts)
 // ==========================================
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get clientId => text().references(Clients, #id)(); 
   
+  // 🌟 الارتباط الجديد بالشقة
+  TextColumn get apartmentId => text().nullable().references(Apartments, #id)(); 
+  TextColumn get apartmentDetails => text().withDefault(const Constant('أسهم/غير مخصص'))();
+
   TextColumn get contractType => text().withDefault(const Constant('لاحق التخصص'))(); 
-  TextColumn get apartmentDetails => text()(); 
   RealColumn get totalArea => real()(); 
   RealColumn get baseMeterPriceAtSigning => real()(); 
   IntColumn get installmentsCount => integer().withDefault(const Constant(48))(); 
   TextColumn get coefficients => text().withDefault(const Constant('{}'))(); 
-
-  // 🌟 الحقول الجديدة التي أضفناها 🌟
-  TextColumn get guarantorName => text()(); // إجباري
-  TextColumn get contractFileUrl => text().nullable()(); // اختياري (nullable)
+  TextColumn get guarantorName => text()();
+  TextColumn get contractFileUrl => text().nullable()();
   
   TextColumn get userId => text()();
-
   DateTimeColumn get contractDate => dateTime()(); 
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))(); 
-
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -64,7 +116,7 @@ class Contracts extends Table {
 }
 
 // ==========================================
-// 3. جدول سجل أسعار المواد (Material Prices History)
+// 5. جدول سجل أسعار المواد (Material Prices History)
 // ==========================================
 class MaterialPricesHistory extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -82,6 +134,7 @@ class MaterialPricesHistory extends Table {
   TextColumn get userId => text()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -90,7 +143,7 @@ class MaterialPricesHistory extends Table {
 }
 
 // ==========================================
-// 4. جدول الاستحقاقات (Installments Schedule) - ما يجب دفعه
+// 6. جدول الاستحقاقات (Installments Schedule) - ما يجب دفعه
 // ==========================================
 class InstallmentsSchedule extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -113,7 +166,7 @@ class InstallmentsSchedule extends Table {
 }
 
 // ==========================================
-// 5. دفتر الأستاذ للمدفوعات (Payments Ledger) 🚨 الأهم!
+// 7. دفتر الأستاذ للمدفوعات (Payments Ledger) 🚨 الأهم!
 // ==========================================
 // هذا الجدول يسجل "الأموال الحقيقية" والأمتار التي اشترتها لحظة الدفع
 class PaymentsLedger extends Table {
@@ -143,7 +196,21 @@ class PaymentsLedger extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables:[Clients, Contracts, MaterialPricesHistory, InstallmentsSchedule, PaymentsLedger])
+// ==========================================
+// ==========================================
+// التكوين الرئيسي لقاعدة البيانات
+// ==========================================
+// ==========================================
+
+@DriftDatabase(tables:[
+  Clients, 
+  Contracts, 
+  Buildings,      // 🌟 أضفناه
+  Apartments,     // 🌟 أضفناه
+  MaterialPricesHistory, 
+  InstallmentsSchedule, 
+  PaymentsLedger
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -268,7 +335,6 @@ class AppDatabase extends _$AppDatabase {
       await (update(materialPricesHistory)
             ..where((t) => t.isDeleted.equals(false)))
           .write(
-            // 🌟 تم إزالة كلمة const من هنا
             MaterialPricesHistoryCompanion(
               isDeleted: const Value(true), // وضعناها هنا بشكل صحيح
               isSynced: const Value(false), 
@@ -321,6 +387,56 @@ class AppDatabase extends _$AppDatabase {
   }
   
   // ==========================================
+  // --- البث الحي للأسعار (Stream) ---
+  // ==========================================
+  Stream<MaterialPricesHistoryData?> watchLatestPrices() {
+    return (select(materialPricesHistory)
+          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
+          ..limit(1))
+        .watchSingleOrNull(); // 🌟 السحر هنا: watch بدلاً من get
+  }
+
+  // ==========================================
+  // --- 🏢 استعلامات المحاضر (Buildings) ---
+  // ==========================================
+  Future<List<Building>> getActiveBuildings() => 
+      (select(buildings)..where((t) => t.isDeleted.equals(false))).get();
+  
+  Future<String> insertBuilding(BuildingsCompanion building) async {
+    final row = await into(buildings).insertReturning(building);
+    return row.id;
+  }
+
+  // ==========================================
+  // --- 🚪 استعلامات الشقق (Apartments) ---
+  // ==========================================
+  // جلب كل الشقق المتاحة في النظام
+  Future<List<Apartment>> getAllActiveApartments() => 
+      (select(apartments)..where((t) => t.isDeleted.equals(false))).get();
+
+  // جلب الشقق الخاصة بمحضر معين فقط
+  Future<List<Apartment>> getApartmentsForBuilding(String buildingId) => 
+      (select(apartments)
+        ..where((t) => t.buildingId.equals(buildingId) & t.isDeleted.equals(false))
+      ).get();
+
+  Future<String> insertApartment(ApartmentsCompanion apartment) async {
+    final row = await into(apartments).insertReturning(apartment);
+    return row.id;
+  }
+
+  // 🌟 أهم دالة: تغيير حالة الشقة (مثلاً من available إلى sold عند توقيع العقد)
+  Future<int> updateApartmentStatus(String apartmentId, String newStatus) {
+    return (update(apartments)..where((t) => t.id.equals(apartmentId))).write(
+      ApartmentsCompanion(
+        status: Value(newStatus), 
+        updatedAt: Value(DateTime.now()), 
+        isSynced: const Value(false)
+      )
+    );
+  }
+
+  // ==========================================
   // --- تفريغ القاعدة ---
   // ==========================================
   Future<void> clearAllData() {
@@ -329,6 +445,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(installmentsSchedule).go();
       await delete(materialPricesHistory).go();
       await delete(contracts).go();
+      await delete(apartments).go();
+      await delete(buildings).go();
       await delete(clients).go();
     });
   }
@@ -336,8 +454,6 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // ☁️ دوال الحقن السحابي (Aggressive Cloud Sync Upserts)
   // ==========================================
-  
-  // نستخدم insertOrReplace لضمان مسح السطر المحلي القديم واستبداله بالكامل بنسخة السحابة
   Future<void> syncClient(ClientsCompanion entity) => 
       into(clients).insert(entity, mode: InsertMode.insertOrReplace);
       
@@ -353,21 +469,17 @@ class AppDatabase extends _$AppDatabase {
   Future<void> syncPayment(PaymentsLedgerCompanion entity) => 
       into(paymentsLedger).insert(entity, mode: InsertMode.insertOrReplace);
 
-  // ==========================================
-  // --- البث الحي للأسعار (Stream) ---
-  // ==========================================
-  Stream<MaterialPricesHistoryData?> watchLatestPrices() {
-    return (select(materialPricesHistory)
-          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
-          ..limit(1))
-        .watchSingleOrNull(); // 🌟 السحر هنا: watch بدلاً من get
-  }
+  Future<void> syncBuilding(BuildingsCompanion entity) => 
+      into(buildings).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncApartment(ApartmentsCompanion entity) => 
+      into(apartments).insert(entity, mode: InsertMode.insertOrReplace);
 }
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
-    // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً تحتوي على حقل userId
+    // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً 
     final file = File(p.join(dbFolder.path, 'our_home_erp_v9_clean.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });

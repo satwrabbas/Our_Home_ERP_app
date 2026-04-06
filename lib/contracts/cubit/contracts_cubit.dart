@@ -50,7 +50,7 @@ class ContractsCubit extends Cubit<ContractsState> {
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
         contractType: Value(contractType),
-        apartmentDetails: details,
+        apartmentDetails: Value(details),
         totalArea: area,
         baseMeterPriceAtSigning: basePrice,
         installmentsCount: Value(installmentsCount), 
