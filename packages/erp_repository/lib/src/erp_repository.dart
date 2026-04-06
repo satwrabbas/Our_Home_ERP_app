@@ -413,6 +413,10 @@ class ErpRepository {
   Future<List<Building>> getBuildings() => _localApi.getBuildings();
   Future<List<Apartment>> getAllApartments() => _localApi.getAllApartments();
 
+  // 🌟 دالة تغيير حالة الشقة عند بيعها أو حجزها
+  Future<void> changeApartmentStatus(String apartmentId, String status) async {
+    await _localApi.changeApartmentStatus(apartmentId, status);
+  }
   Future<void> addBuilding(BuildingsCompanion building) async {
     // استخدمنا 'offline_test' كحماية في حال لم يكن هناك اتصال
     final companionWithUser = building.copyWith(userId: drift.Value(currentUserId ?? 'offline_test'));

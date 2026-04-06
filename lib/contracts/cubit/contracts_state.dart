@@ -1,3 +1,4 @@
+//contracts_state.dart
 part of 'contracts_cubit.dart';
 
 enum ContractsStatus { initial, loading, success, failure }

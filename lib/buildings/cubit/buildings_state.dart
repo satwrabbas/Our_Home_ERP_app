@@ -1,3 +1,4 @@
+//buildings_state.dart
 part of 'buildings_cubit.dart';
 
 enum BuildingsStatus { initial, loading, success, failure }

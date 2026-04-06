@@ -1,3 +1,4 @@
+//contracts_cubit.dart
 import 'dart:io';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
@@ -30,39 +31,46 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  /// 🌟 إضافة عقد جديد (يدعم تحديد عدد أشهر التقسيط واسم الكفيل)
+  /// 🌟 إضافة عقد جديد (مربوط بالكتالوج الذكي)
   Future<void> addContract({
     required String clientId, 
     required String contractType, 
     required String details,
+    required String? apartmentId, // 🌟 الحقل الجديد (معرف الشقة)
     required double area,
     required double basePrice,
     required int installmentsCount, 
-    required String guarantorName, // 🌟 الحقل الجديد (اسم الكفيل)
-    Map<String, dynamic> coefficients = const {}, 
+    required String guarantorName, 
+    Map<String, double> coefficients = const {}, 
   }) async {
-    emit(state.copyWith(status: ContractsStatus.loading)); // إظهار التحميل أثناء الحفظ
+    emit(state.copyWith(status: ContractsStatus.loading)); 
     try {
-      // 🚨 تأمين الـ userId لضمان المزامنة السحابية (RLS)
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول أولاً لإنشاء العقود.');
 
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
+        apartmentId: Value(apartmentId), // 🌟 ربط العقد بالشقة رقمياً
         contractType: Value(contractType),
-        apartmentDetails: Value(details),
+        apartmentDetails: Value(details), // حفظنا التفاصيل لكي تعمل فواتير الـ PDF القديمة
         totalArea: area,
         baseMeterPriceAtSigning: basePrice,
         installmentsCount: Value(installmentsCount), 
         coefficients: Value(jsonEncode(coefficients)),
         contractDate: DateTime.now(),
-        guarantorName: guarantorName, // 🌟 حفظ اسم الكفيل
-        userId: userId, // 🌟 تم الإصلاح هنا
-        // contractFileUrl: يُترك فارغاً بشكل افتراضي لأننا سنرفعه لاحقاً عبر الزر
+        guarantorName: guarantorName, 
+        userId: userId, 
       );
       
+      // 1. حفظ العقد
       await _erpRepository.addContract(newContract);
-      await fetchData(); // تحديث الشاشة بعد الحفظ
+      
+      // 2. 🌟 السحر: إذا كانت شقة من الكتالوج، قم بتغيير حالتها إلى "مباعة"
+      if (apartmentId != null && apartmentId.isNotEmpty) {
+        await _erpRepository.changeApartmentStatus(apartmentId, 'sold');
+      }
+
+      await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
