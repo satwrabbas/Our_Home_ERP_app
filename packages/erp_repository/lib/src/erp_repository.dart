@@ -183,6 +183,43 @@ class ErpRepository {
         await _localApi.syncPayment(payment);
       }
 
+      // 6. سحب المحاضر (Buildings)
+      final cloudBuildings = await _cloudApi.getBuildings();
+      for (var b in cloudBuildings) {
+        final building = BuildingsCompanion.insert(
+          id: drift.Value(b['id'].toString()),
+          name: b['name'].toString(),
+          location: drift.Value(b['location']?.toString()),
+          floorCoefficients: drift.Value(b['floor_coefficients']?.toString() ?? '{}'),
+          directionCoefficients: drift.Value(b['direction_coefficients']?.toString() ?? '{}'),
+          userId: drift.Value(b['user_id']?.toString() ?? ''),
+          isDeleted: drift.Value(b['is_deleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(b['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          isSynced: const drift.Value(true),
+        );
+        await _localApi.syncBuilding(building);
+      }
+
+      // 7. سحب الشقق (Apartments)
+      final cloudApartments = await _cloudApi.getApartments();
+      for (var a in cloudApartments) {
+        final apartment = ApartmentsCompanion.insert(
+          id: drift.Value(a['id'].toString()),
+          buildingId: a['building_id'].toString(),
+          apartmentNumber: a['apartment_number'].toString(),
+          area: double.tryParse(a['area']?.toString() ?? '0') ?? 0.0,
+          floorName: a['floor_name'].toString(),
+          directionName: drift.Value(a['direction_name']?.toString()),
+          customCoefficients: drift.Value(a['custom_coefficients']?.toString() ?? '{}'),
+          status: drift.Value(a['status']?.toString() ?? 'available'),
+          userId: drift.Value(a['user_id']?.toString() ?? ''),
+          isDeleted: drift.Value(a['is_deleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(a['updated_at']?.toString() ?? '') ?? DateTime.now()),
+          isSynced: const drift.Value(true),
+        );
+        await _localApi.syncApartment(apartment);
+      }
+
       print('✅ تم تحديث كافة البيانات المحلية من السحابة بنجاح');
     } catch (e) {
       print('❌ Cloud Pull Failed: $e'); 
