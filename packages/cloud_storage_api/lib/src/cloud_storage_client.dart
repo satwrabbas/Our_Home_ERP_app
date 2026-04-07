@@ -133,4 +133,19 @@ class CloudStorageClient {
       throw Exception('فشل الرفع من السيرفر: ${response.statusCode} - ${response.body}');
     }
   }
+
+  // ==========================================
+  // 📥 دوال سحب البيانات (PULL from Cloud)
+  // ==========================================
+  // ... (تحت بقية دوال الجلب أضف هذين السطرين):
+  Future<List<Map<String, dynamic>>> getBuildings() async => await _supabase.from('buildings').select();
+  Future<List<Map<String, dynamic>>> getApartments() async => await _supabase.from('apartments').select();
+
+
+  // ==========================================
+  // 📤 دوال رفع البيانات (PUSH to Cloud)
+  // ==========================================
+  // ... (تحت بقية دوال الرفع أضف هذين السطرين):
+  Future<void> upsertBuilding(Map<String, dynamic> buildingData) async => await _supabase.from('buildings').upsert(buildingData);
+  Future<void> upsertApartment(Map<String, dynamic> apartmentData) async => await _supabase.from('apartments').upsert(apartmentData);
 }
