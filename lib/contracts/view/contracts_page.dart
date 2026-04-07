@@ -298,13 +298,19 @@ class ContractsView extends StatelessWidget {
                                       
                                       areaController.text = apt.area.toString();
                                       
+                                      // 🚀 تفريغ الماب قبل تعبئتها من جديد
                                       autoImportedCoefficients.clear();
+                                      
                                       try {
-                                        final Map<String, dynamic> bldMap = jsonDecode(bld.floorCoefficients);
-                                        bldMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
+                                        // 1. 🌟 سحب المعاملات العامة للمحضر (الموقع، الشارع، المصعد)
+                                        // لقد كنا نسينا هذا السطر سابقاً!
+                                        final Map<String, dynamic> bldGeneralMap = jsonDecode(bld.directionCoefficients);
+                                        bldGeneralMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
                                         
+                                        // 2. 🌟 سحب معاملات الشقة (الربح، الاتجاه، الوجيبة، + نسبة الطابق المحددة)
                                         final Map<String, dynamic> aptMap = jsonDecode(apt.customCoefficients);
                                         aptMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
+                                        
                                       } catch (e) {
                                         print('خطأ في فك تشفير النسب: $e');
                                       }
