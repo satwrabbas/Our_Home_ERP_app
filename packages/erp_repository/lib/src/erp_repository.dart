@@ -101,6 +101,10 @@ class ErpRepository {
         final contract = ContractsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
           clientId: c['clientId'].toString(), 
+          
+          // 🌟 السطر الجديد هنا: سحب معرف الشقة من السحابة 🌟
+          apartmentId: drift.Value(c['apartment_id']?.toString()), 
+          
           contractType: drift.Value(c['contractType']?.toString() ?? 'لاحق التخصص'),
           apartmentDetails: drift.Value(c['apartmentDetails'].toString()),
           totalArea: double.tryParse(c['totalArea']?.toString() ?? '0') ?? 0.0,
@@ -108,11 +112,8 @@ class ErpRepository {
           installmentsCount: drift.Value(int.tryParse(c['installmentsCount']?.toString() ?? '48') ?? 48),
           coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
           contractDate: DateTime.tryParse(c['contractDate']?.toString() ?? '') ?? DateTime.now(),
-          
-          // 🌟 الحقول الجديدة 🌟
-          guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', // قراءة اسم الكفيل
-          contractFileUrl: drift.Value(c['contract_file_url']?.toString()), // قراءة رابط الملف إن وجد
-          
+          guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', 
+          contractFileUrl: drift.Value(c['contract_file_url']?.toString()), 
           userId: c['userId']?.toString() ?? '',
           isCompleted: drift.Value(c['isCompleted'] == true),
           isDeleted: drift.Value(c['isDeleted'] == true),
@@ -261,6 +262,10 @@ class ErpRepository {
         await _cloudApi.upsertContract({
           'id': c.id, 
           'clientId': c.clientId, 
+          
+          // 🌟 السطر الجديد هنا: رفع معرف الشقة للسحابة 🌟
+          'apartment_id': c.apartmentId, 
+          
           'contractType': c.contractType, 
           'apartmentDetails': c.apartmentDetails, 
           'totalArea': _safeNum(c.totalArea), 
@@ -268,11 +273,8 @@ class ErpRepository {
           'installmentsCount': c.installmentsCount, 
           'coefficients': c.coefficients, 
           'contractDate': c.contractDate.toIso8601String(), 
-          
-          // 🌟 الحقول الجديدة 🌟
           'guarantor_name': c.guarantorName,
           'contract_file_url': c.contractFileUrl,
-
           'userId': c.userId, 
           'isCompleted': c.isCompleted, 
           'isDeleted': c.isDeleted, 
