@@ -209,7 +209,10 @@ class ErpRepository {
           apartmentNumber: a['apartment_number'].toString(),
           area: double.tryParse(a['area']?.toString() ?? '0') ?? 0.0,
           floorName: a['floor_name'].toString(),
-          directionName: drift.Value(a['direction_name']?.toString()),
+          
+          // 🌟 تم تصحيح هذا السطر: تمرير String مباشر بدلاً من drift.Value
+          directionName: a['direction_name']?.toString() ?? '-', 
+          
           customCoefficients: drift.Value(a['custom_coefficients']?.toString() ?? '{}'),
           status: drift.Value(a['status']?.toString() ?? 'available'),
           userId: drift.Value(a['user_id']?.toString() ?? ''),
@@ -333,6 +336,46 @@ class ErpRepository {
         await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
       }
     } catch (e) { print('Sync Prices Failed: $e'); }
+    
+    // 6. مزامنة المحاضر
+    try {
+      final pendingBuildings = await (db.select(db.buildings)..where((t) => t.isSynced.equals(false))).get();
+      for (var b in pendingBuildings) {
+        await _cloudApi.upsertBuilding({
+          'id': b.id,
+          'name': b.name,
+          'location': b.location,
+          'floor_coefficients': b.floorCoefficients,
+          'direction_coefficients': b.directionCoefficients,
+          'user_id': b.userId,
+          'is_deleted': b.isDeleted,
+          'updated_at': b.updatedAt.toIso8601String()
+        });
+        await (db.update(db.buildings)..where((t) => t.id.equals(b.id))).write(const BuildingsCompanion(isSynced: drift.Value(true)));
+      }
+    } catch (e) { print('Sync Buildings Failed: $e'); }
+
+    // 7. مزامنة الشقق
+    try {
+      final pendingApartments = await (db.select(db.apartments)..where((t) => t.isSynced.equals(false))).get();
+      for (var a in pendingApartments) {
+        await _cloudApi.upsertApartment({
+          'id': a.id,
+          'building_id': a.buildingId,
+          'apartment_number': a.apartmentNumber,
+          'area': _safeNum(a.area),
+          'floor_name': a.floorName,
+          'direction_name': a.directionName,
+          'custom_coefficients': a.customCoefficients,
+          'status': a.status,
+          'user_id': a.userId,
+          'is_deleted': a.isDeleted,
+          'updated_at': a.updatedAt.toIso8601String()
+        });
+        await (db.update(db.apartments)..where((t) => t.id.equals(a.id))).write(const ApartmentsCompanion(isSynced: drift.Value(true)));
+      }
+    } catch (e) { print('Sync Apartments Failed: $e'); }
+
 
     _isSyncing = false; 
   }
@@ -445,26 +488,28 @@ class ErpRepository {
 
 
   // ==========================================
-  // 🏢 إدارة المحاضر والشقق (Offline Prototype)
+  // 🏢 إدارة المحاضر والشقق
   // ==========================================
   Future<List<Building>> getBuildings() => _localApi.getBuildings();
   Future<List<Apartment>> getAllApartments() => _localApi.getAllApartments();
 
-  // 🌟 دالة تغيير حالة الشقة عند بيعها أو حجزها
   Future<void> changeApartmentStatus(String apartmentId, String status) async {
     await _localApi.changeApartmentStatus(apartmentId, status);
+    await syncPendingData(); // 🌟 تفعيل الرفع السحابي الفوري
   }
+
   Future<void> addBuilding(BuildingsCompanion building) async {
-    // استخدمنا 'offline_test' كحماية في حال لم يكن هناك اتصال
-    final companionWithUser = building.copyWith(userId: drift.Value(currentUserId ?? 'offline_test'));
+    if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
+    final companionWithUser = building.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.addBuilding(companionWithUser);
-    // لن نضع syncPendingData() الآن لكي لا نرفع للسحابة قبل تجهيزها
+    await syncPendingData(); // 🌟 تفعيل الرفع السحابي الفوري
   }
 
   Future<void> addApartment(ApartmentsCompanion apartment) async {
-    final companionWithUser = apartment.copyWith(userId: drift.Value(currentUserId ?? 'offline_test'));
+    if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
+    final companionWithUser = apartment.copyWith(userId: drift.Value(currentUserId!));
     await _localApi.addApartment(companionWithUser);
-    // لن نضع syncPendingData() الآن
+    await syncPendingData(); // 🌟 تفعيل الرفع السحابي الفوري
   }
   
   // ==========================================
