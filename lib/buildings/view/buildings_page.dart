@@ -41,66 +41,113 @@ class BuildingsView extends StatelessWidget {
               final building = state.buildings[index];
               final bldApartments = state.apartments.where((a) => a.buildingId == building.id).toList();
 
+              // 🌟 استخراج أسماء الطوابق المتاحة من المحضر
+              Map<String, dynamic> availableFloors = {};
+              try {
+                availableFloors = jsonDecode(building.floorCoefficients);
+              } catch (e) {}
+
               return Card(
                 elevation: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 child: ExpansionTile(
-                 // 🌟 التعديل هنا: وضعنا الاسم وزر التفاصيل في سطر واحد
+                  initiallyExpanded: true,
                   title: Row(
                     children: [
                       Text('🏢 ${building.name}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.domain_verification, color: Colors.teal),
-                        tooltip: 'عرض تفاصيل ومعاملات المحضر',
+                        tooltip: 'عرض تفاصيل المحضر',
                         onPressed: () => _showBuildingDetailsDialog(context, building),
                       ),
                     ],
                   ),
                   subtitle: Text('الموقع: ${building.location} | إجمالي الشقق: ${bldApartments.length}'),
                   children: [
-                    if (bldApartments.isEmpty)
-                      const Padding(padding: EdgeInsets.all(16.0), child: Text('لم يتم إدخال شقق في هذا المحضر بعد.')),
-                    if (bldApartments.isNotEmpty)
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columns: const [
-                            DataColumn(label: Text('الشقة')),
-                            DataColumn(label: Text('الطابق')),
-                            DataColumn(label: Text('الاتجاه')),
-                            DataColumn(label: Text('المساحة')),
-                            DataColumn(label: Text('الحالة')),
-                            DataColumn(label: Text('إجراءات')), // 🌟 عمود إجراءات
-                          ],
-                          rows: bldApartments.map((apt) => DataRow(cells: [
-                            DataCell(Text(apt.apartmentNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(apt.floorName, style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold))),
-                            DataCell(Text(apt.directionName ?? '-')),
-                            DataCell(Text('${apt.area} م2')),
-                            DataCell(Chip(
-                              label: Text(apt.status == 'available' ? 'متاحة' : 'مباعة', style: const TextStyle(color: Colors.white)),
-                              backgroundColor: apt.status == 'available' ? Colors.green : Colors.red,
-                            )),
-                            DataCell(
-                              IconButton(
-                                icon: const Icon(Icons.info_outline, color: Colors.indigo),
-                                tooltip: 'عرض تفاصيل ومعاملات الشقة',
-                                onPressed: () => _showApartmentDetailsDialog(context, apt),
-                              ),
-                            ),
-                          ])).toList(),
+                    if (availableFloors.isEmpty)
+                      const Padding(padding: EdgeInsets.all(16.0), child: Text('لم يتم إعداد طوابق لهذا المحضر بعد.')),
+                    
+                    // 🌟 عرض الطوابق كقوائم داخلية (Nested ExpansionTiles)
+                    ...availableFloors.keys.map((floorName) {
+                      // شقق هذا الطابق تحديداً
+                      final floorApts = bldApartments.where((a) => a.floorName == floorName).toList();
+                      
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.indigo.shade100),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showAddApartmentDialog(context, building),
-                        icon: const Icon(Icons.add),
-                        label: const Text('إضافة شقة جديدة لهذا المحضر'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo.shade50),
-                      ),
-                    )
+                        child: ExpansionTile(
+                          title: Row(
+                            children: [
+                              Icon(Icons.layers, color: Colors.indigo.shade300, size: 20),
+                              const SizedBox(width: 8),
+                              Text('$floorName ( ${floorApts.length} شقق )', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                            ],
+                          ),
+                          children: [
+                            if (floorApts.isEmpty)
+                              const Padding(padding: EdgeInsets.all(16.0), child: Text('لا توجد شقق في هذا الطابق.', style: TextStyle(color: Colors.grey))),
+                            if (floorApts.isNotEmpty)
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                                  columns: const [
+                                    DataColumn(label: Text('رقم الشقة')),
+                                    DataColumn(label: Text('المساحة')),
+                                    DataColumn(label: Text('الاتجاه')),
+                                    DataColumn(label: Text('الحالة')),
+                                    DataColumn(label: Text('إجراءات')),
+                                  ],
+                                  rows: floorApts.map((apt) => DataRow(cells: [
+                                    DataCell(Text(apt.apartmentNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    DataCell(Text('${apt.area} م2')),
+                                    DataCell(Text(apt.directionName ?? '-')),
+                                    DataCell(Chip(
+                                      label: Text(apt.status == 'available' ? 'متاحة' : 'مباعة', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                      backgroundColor: apt.status == 'available' ? Colors.green : Colors.red,
+                                      padding: EdgeInsets.zero,
+                                    )),
+                                    DataCell(
+                                      IconButton(
+                                        icon: const Icon(Icons.info_outline, color: Colors.indigo),
+                                        onPressed: () => _showApartmentDetailsDialog(context, apt),
+                                      ),
+                                    ),
+                                  ])).toList(),
+                                ),
+                              ),
+                            
+                            // 🌟 أزرار التحكم الخاصة بالطابق
+                            Container(
+                              padding: const EdgeInsets.all(8.0),
+                              color: Colors.grey.shade50,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  TextButton.icon(
+                                    icon: const Icon(Icons.add_home),
+                                    label: const Text('إضافة شقة هنا'),
+                                    onPressed: () => _showAddApartmentDialog(context, building, preSelectedFloor: floorName),
+                                  ),
+                                  // 🌟 زر النسخ (يظهر فقط إذا كان هناك شقق لنسخها)
+                                  if (floorApts.isNotEmpty)
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.copy_all, color: Colors.orange),
+                                      label: const Text('نسخ نموذج الطابق', style: TextStyle(color: Colors.orange)),
+                                      onPressed: () => _showCopyFloorDialog(context, building, floorName, floorApts, availableFloors.keys.toList()),
+                                    ),
+                                ],
+                              ),
+                            )
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 16),
                   ],
                 ),
               );
@@ -343,7 +390,8 @@ class BuildingsView extends StatelessWidget {
   // ===============================================
   // 🚪 نافذة إضافة الشقة (مع نسبة الربح مضافة)
   // ===============================================
-  void _showAddApartmentDialog(BuildContext parentContext, Building building) {
+  void _showAddApartmentDialog(BuildContext parentContext, Building building, {String? preSelectedFloor}) {
+
     final numCtrl = TextEditingController();
     final areaCtrl = TextEditingController();
     final dirNameCtrl = TextEditingController();
@@ -359,7 +407,7 @@ class BuildingsView extends StatelessWidget {
       print('Error decoding floor coeffs: $e');
     }
 
-    String? selectedFloorName = availableFloors.keys.isNotEmpty ? availableFloors.keys.first : null;
+    String? selectedFloorName = preSelectedFloor ?? (availableFloors.keys.isNotEmpty ? availableFloors.keys.first : null);
 
     showDialog(
       context: parentContext,
@@ -526,6 +574,142 @@ class BuildingsView extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إغلاق')),
         ],
+      ),
+    );
+  }
+
+  // ===============================================
+  // 📋 نافذة النسخ الآمن للطوابق (Smart Duplicate)
+  // ===============================================
+  void _showCopyFloorDialog(
+    BuildContext parentContext, 
+    Building building, 
+    String sourceFloorName, 
+    List<Apartment> sourceApartments, 
+    List<String> allFloors
+  ) {
+    // استبعاد الطابق الحالي من قائمة النسخ
+    List<String> targetFloors = allFloors.where((f) => f != sourceFloorName).toList();
+    if (targetFloors.isEmpty) {
+      ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('لا توجد طوابق أخرى للنسخ إليها!')));
+      return;
+    }
+
+    String? selectedTargetFloor = targetFloors.first;
+    
+    // إنشاء متحكمات نصية لأرقام الشقق الجديدة
+    Map<String, TextEditingController> newNumberControllers = {};
+    for (var apt in sourceApartments) {
+      // وضعنا الرقم القديم مع إشارة نجمة كمقترح مبدئي ليعلم المستخدم أي شقة ينسخ
+      newNumberControllers[apt.id] = TextEditingController(text: '${apt.apartmentNumber}*');
+    }
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.copy, color: Colors.orange),
+                const SizedBox(width: 8),
+                Text('استنساخ شقق $sourceFloorName', style: const TextStyle(color: Colors.orange)),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('سيتم نسخ المساحات، الاتجاهات، ومعاملات الربح والوجيبة بدقة تامة.', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedTargetFloor,
+                      decoration: const InputDecoration(labelText: 'اختر الطابق الوجهة (الهدف)', border: OutlineInputBorder(), filled: true, fillColor: Colors.orangeAccent),
+                      items: targetFloors.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                      onChanged: (val) => setState(() => selectedTargetFloor = val),
+                    ),
+                    const Divider(height: 30, thickness: 2),
+                    const Text('يرجى تحديد أرقام الشقق الجديدة لمنع التكرار:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    
+                    // توليد حقول لإدخال أرقام الشقق الجديدة
+                    ...sourceApartments.map((apt) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          children: [
+                            Expanded(child: Text('نسخة من (${apt.apartmentNumber}): \n مساحة ${apt.area}م2', style: const TextStyle(fontSize: 12))),
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: newNumberControllers[apt.id],
+                                decoration: const InputDecoration(labelText: 'رقم الشقة الجديد', border: OutlineInputBorder(), isDense: true),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                onPressed: () async {
+                  // التحقق من أن جميع الأرقام تم تعبئتها
+                  bool hasEmpty = newNumberControllers.values.any((c) => c.text.trim().isEmpty);
+                  if (hasEmpty || selectedTargetFloor == null) {
+                    ScaffoldMessenger.of(dialogCtx).showSnackBar(const SnackBar(content: Text('يرجى تعبئة أرقام جميع الشقق!')));
+                    return;
+                  }
+
+                  // جلب نسبة الطابق الجديد (الهدف) من JSON المحضر
+                  Map<String, dynamic> availableFloors = jsonDecode(building.floorCoefficients);
+                  final targetFloorPercentage = (availableFloors[selectedTargetFloor] as num).toDouble();
+
+                  // عملية النسخ: الدوران على الشقق الأصلية، وإضافة شقق جديدة
+                  final cubit = parentContext.read<BuildingsCubit>();
+                  
+                  for (var apt in sourceApartments) {
+                    // فك تشفير معاملات الشقة القديمة
+                    Map<String, dynamic> copiedCoeffs = jsonDecode(apt.customCoefficients);
+                    
+                    // 🚨 تحديث معامل الطابق بالاسم والنسبة الخاصة بالطابق الجديد!
+                    // يجب إزالة المعامل القديم أولاً إذا كان موجوداً
+                    copiedCoeffs.removeWhere((key, value) => key.startsWith('الطابق'));
+                    if (targetFloorPercentage != 0.0) {
+                      copiedCoeffs['الطابق ($selectedTargetFloor)'] = targetFloorPercentage;
+                    }
+
+                    // تحويلها لـ Map<String, double> لتقبلها دالة الإضافة
+                    Map<String, double> finalCoeffs = {};
+                    copiedCoeffs.forEach((k, v) => finalCoeffs[k] = (v as num).toDouble());
+
+                    // إرسال الشقة الجديدة لقاعدة البيانات
+                    await cubit.addApartment(
+                      buildingId: building.id,
+                      aptNumber: newNumberControllers[apt.id]!.text.trim(), // الرقم الجديد المكتوب باليد
+                      area: apt.area, // نفس المساحة
+                      floorName: selectedTargetFloor!, // الطابق الجديد
+                      directionName: apt.directionName ?? '', // نفس الاتجاه
+                      customCoeffs: finalCoeffs, // نفس المعاملات + تعديل نسبة الطابق
+                    );
+                  }
+
+                  Navigator.pop(dialogCtx);
+                  ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('تم استنساخ الشقق إلى $selectedTargetFloor بنجاح! ✅'), backgroundColor: Colors.green));
+                },
+                child: const Text('حفظ الشقق المستنسخة'),
+              )
+            ],
+          );
+        }
       ),
     );
   }
