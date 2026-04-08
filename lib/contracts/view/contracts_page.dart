@@ -303,11 +303,15 @@ class ContractsView extends StatelessWidget {
                                       
                                       try {
                                         // 1. 🌟 سحب المعاملات العامة للمحضر (الموقع، الشارع، المصعد)
-                                        // لقد كنا نسينا هذا السطر سابقاً!
                                         final Map<String, dynamic> bldGeneralMap = jsonDecode(bld.directionCoefficients);
-                                        bldGeneralMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
+                                        bldGeneralMap.forEach((k, v) {
+                                          // 🚨 الفلترة الذكية: نتجاهل الجهات الخام لأن الشقة ستحضر اتجاهها المدمج!
+                                          if (k != 'شمالي' && k != 'جنوبي' && k != 'شرقي' && k != 'غربي') {
+                                            autoImportedCoefficients[k] = (v as num).toDouble();
+                                          }
+                                        });
                                         
-                                        // 2. 🌟 سحب معاملات الشقة (الربح، الاتجاه، الوجيبة، + نسبة الطابق المحددة)
+                                        // 2. 🌟 سحب معاملات الشقة الخاصة (الطابق، الاتجاه المدمج، الوجيبة، الربح)
                                         final Map<String, dynamic> aptMap = jsonDecode(apt.customCoefficients);
                                         aptMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
                                         
