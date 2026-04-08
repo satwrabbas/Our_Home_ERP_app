@@ -6,7 +6,8 @@ import 'package:erp_repository/erp_repository.dart';
 import 'package:local_storage_api/local_storage_api.dart' show Building, Apartment; // 🌟 تم استيراد Apartment هنا
 import '../cubit/buildings_cubit.dart';
 import 'dialogs/add_building_dialog.dart';
-
+import 'dialogs/add_apartment_dialog.dart';
+import 'dialogs/apartment_details_dialog.dart';
 
 class BuildingsPage extends StatelessWidget {
   const BuildingsPage({super.key});
@@ -116,7 +117,7 @@ class BuildingsView extends StatelessWidget {
                                     DataCell(
                                       IconButton(
                                         icon: const Icon(Icons.info_outline, color: Colors.indigo),
-                                        onPressed: () => _showApartmentDetailsDialog(context, apt),
+                                        onPressed: () => showApartmentDetailsDialog(context, apt),
                                       ),
                                     ),
                                   ])).toList(),
@@ -133,7 +134,7 @@ class BuildingsView extends StatelessWidget {
                                   TextButton.icon(
                                     icon: const Icon(Icons.add_home),
                                     label: const Text('إضافة شقة هنا'),
-                                    onPressed: () => _showAddApartmentDialog(context, building, preSelectedFloor: floorName),
+                                    onPressed: () => showAddApartmentDialog(context, building, preSelectedFloor: floorName),
                                   ),
                                   // 🌟 زر النسخ (يظهر فقط إذا كان هناك شقق لنسخها)
                                   if (floorApts.isNotEmpty)
