@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import 'package:local_storage_api/local_storage_api.dart' show Building, Apartment; // 🌟 تم استيراد Apartment هنا
 import '../cubit/buildings_cubit.dart';
+import 'dialogs/add_building_dialog.dart';
+
 
 class BuildingsPage extends StatelessWidget {
   const BuildingsPage({super.key});
@@ -157,7 +159,7 @@ class BuildingsView extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.indigo,
-        onPressed: () => _showAddBuildingDialog(context),
+        onPressed: () => showAddBuildingDialog(context),
         icon: const Icon(Icons.domain_add, color: Colors.white),
         label: const Text('إضافة محضر جديد', style: TextStyle(color: Colors.white)),
       ),
