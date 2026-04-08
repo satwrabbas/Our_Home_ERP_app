@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/buildings_cubit.dart';
 
-// 🌟 نقلنا دالة توليد أسماء الطوابق إلى هنا لأنها تُستخدم في هذه النافذة
 String _getArabicFloorName(int floorNumber) {
   if (floorNumber == 0) return 'الطابق الأرضي';
   if (floorNumber > 0) {
@@ -16,7 +15,6 @@ String _getArabicFloorName(int floorNumber) {
   }
 }
 
-// 🌟 حولنا الدالة من خاصة (_) إلى عامة لكي نستطيع استدعاءها من الخارج
 void showAddBuildingDialog(BuildContext parentContext) {
   final nameCtrl = TextEditingController();
   final locCtrl = TextEditingController();
@@ -24,6 +22,12 @@ void showAddBuildingDialog(BuildContext parentContext) {
   final locationCoeffCtrl = TextEditingController(text: '0');
   final streetCoeffCtrl = TextEditingController(text: '0');
   final elevatorCoeffCtrl = TextEditingController(text: '0');
+
+  // 🌟 حقول الجهات الأربعة
+  final northCtrl = TextEditingController(text: '0');
+  final southCtrl = TextEditingController(text: '0');
+  final eastCtrl = TextEditingController(text: '0');
+  final westCtrl = TextEditingController(text: '0');
 
   int basementsCount = 0; 
   int floorsCount = 1;    
@@ -62,7 +66,7 @@ void showAddBuildingDialog(BuildContext parentContext) {
         return AlertDialog(
           title: const Text('إضافة محضر جديد (إعداد الهيكل)'),
           content: SizedBox(
-            width: 500,
+            width: 550,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -81,6 +85,26 @@ void showAddBuildingDialog(BuildContext parentContext) {
                       Expanded(child: TextField(controller: streetCoeffCtrl, decoration: const InputDecoration(labelText: 'الشارع %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                       const SizedBox(width: 8),
                       Expanded(child: TextField(controller: elevatorCoeffCtrl, decoration: const InputDecoration(labelText: 'المصعد %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                    ],
+                  ),
+
+                  // 🌟 قسم الجهات الأربعة
+                  const Divider(height: 30, thickness: 2),
+                  const Text('معاملات الجهات الجغرافية للمحضر (%)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: TextField(controller: northCtrl, decoration: const InputDecoration(labelText: 'شمالي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: southCtrl, decoration: const InputDecoration(labelText: 'جنوبي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(child: TextField(controller: eastCtrl, decoration: const InputDecoration(labelText: 'شرقي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      const SizedBox(width: 8),
+                      Expanded(child: TextField(controller: westCtrl, decoration: const InputDecoration(labelText: 'غربي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                     ],
                   ),
 
@@ -135,9 +159,16 @@ void showAddBuildingDialog(BuildContext parentContext) {
                     final parsed = double.tryParse(val);
                     if (parsed != null && parsed != 0.0) finalDirCoeffs[key] = parsed;
                   }
+                  
                   addGeneralVal('الموقع', locationCoeffCtrl.text);
                   addGeneralVal('الشارع', streetCoeffCtrl.text);
                   addGeneralVal('المصعد', elevatorCoeffCtrl.text);
+                  
+                  // 🌟 حفظ قيم الجهات
+                  addGeneralVal('شمالي', northCtrl.text);
+                  addGeneralVal('جنوبي', southCtrl.text);
+                  addGeneralVal('شرقي', eastCtrl.text);
+                  addGeneralVal('غربي', westCtrl.text);
 
                   parentContext.read<BuildingsCubit>().addBuilding(
                     name: nameCtrl.text, 
