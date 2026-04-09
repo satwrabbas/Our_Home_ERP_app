@@ -323,18 +323,22 @@ class ContractsView extends StatelessWidget {
                                       autoImportedCoefficients.clear();
                                       
                                       try {
-                                        // 1. 🌟 سحب المعاملات العامة للمحضر (الموقع، الشارع، المصعد)
+                                        // 1. سحب المعاملات العامة للمحضر (الموقع، الشارع، المصعد)
                                         final Map<String, dynamic> bldGeneralMap = jsonDecode(bld.directionCoefficients);
                                         bldGeneralMap.forEach((k, v) {
-                                          // 🚨 الفلترة الذكية: نتجاهل الجهات الخام لأن الشقة ستحضر اتجاهها المدمج!
                                           if (k != 'شمالي' && k != 'جنوبي' && k != 'شرقي' && k != 'غربي') {
                                             autoImportedCoefficients[k] = (v as num).toDouble();
                                           }
                                         });
                                         
-                                        // 2. 🌟 سحب معاملات الشقة الخاصة (الطابق، الاتجاه المدمج، الوجيبة، الربح)
+                                        // 2. 🌟 سحب معاملات الشقة الخاصة (مع فلترة المساحات الهندسية)
                                         final Map<String, dynamic> aptMap = jsonDecode(apt.customCoefficients);
-                                        aptMap.forEach((k, v) => autoImportedCoefficients[k] = (v as num).toDouble());
+                                        aptMap.forEach((k, v) {
+                                          // 🚨 الفلترة: نتجاهل الحقول التي تبدأ بكلمة "مساحة" لأنها أرقام فيزيائية وليست نسب مالية!
+                                          if (!k.startsWith('مساحة')) {
+                                            autoImportedCoefficients[k] = (v as num).toDouble();
+                                          }
+                                        });
                                         
                                       } catch (e) {
                                         print('خطأ في فك تشفير النسب: $e');

@@ -8,14 +8,18 @@ import '../../cubit/buildings_cubit.dart';
 
 void showAddApartmentDialog(BuildContext parentContext, Building building, {String? preSelectedFloor}) {
   final numCtrl = TextEditingController();
-  final areaCtrl = TextEditingController();
   
-  // أزلنا directionCoeffCtrl اليدوي
-  final yardCoeffCtrl = TextEditingController(text: '0');
+  // 🌟 متحكمات المساحة الهندسية
+  final slabAreaCtrl = TextEditingController(); // مساحة البلاطة (المسقوفة)
+  final terraceAreaCtrl = TextEditingController(text: '0'); // مساحة التراس
+  final physicalYardAreaCtrl = TextEditingController(text: '0'); // مساحة الوجيبة الفيزيائية (بالمتر المربع)
+
+  // متحكمات المعاملات المالية
+  final yardCoeffCtrl = TextEditingController(text: '0'); // نسبة تميز الوجيبة (مالياً)
   final profitCoeffCtrl = TextEditingController(text: '0'); 
 
   Map<String, dynamic> availableFloors = {};
-  Map<String, dynamic> generalCoeffs = {}; // 🌟 لقراءة قيم الجهات من المحضر
+  Map<String, dynamic> generalCoeffs = {}; 
 
   try {
     availableFloors = jsonDecode(building.floorCoefficients);
@@ -26,16 +30,31 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
 
   String? selectedFloorName = preSelectedFloor ?? (availableFloors.keys.isNotEmpty ? availableFloors.keys.first : null);
 
-  // 🌟 متغيرات تتبع الجهات المختارة (Checkboxes)
   final List<String> mainDirections = ['شمالي', 'جنوبي', 'شرقي', 'غربي'];
   Map<String, bool> selectedDirections = {
     'شمالي': false, 'جنوبي': false, 'شرقي': false, 'غربي': false
   };
 
+  // 🌟 متغير لحفظ المساحة البيعية النهائية
+  double calculatedTotalArea = 0.0;
+
   showDialog(
     context: parentContext,
     builder: (dialogCtx) => StatefulBuilder(
       builder: (statefulCtx, setState) {
+        
+        // 🌟 دالة الحساب اللحظي للمساحة
+        void updateCalculatedArea() {
+          double slab = double.tryParse(slabAreaCtrl.text) ?? 0.0;
+          double terrace = double.tryParse(terraceAreaCtrl.text) ?? 0.0;
+          double yard = double.tryParse(physicalYardAreaCtrl.text) ?? 0.0;
+
+          setState(() {
+            // المعادلة: البلاطة + (التراس * 40%) + (الوجيبة / 8)
+            calculatedTotalArea = slab + (terrace * 0.40) + (yard / 8.0);
+          });
+        }
+
         return AlertDialog(
           title: const Text('إضافة شقة للكتالوج'),
           content: SingleChildScrollView(
@@ -47,33 +66,75 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
                   children: [
                     Expanded(child: TextField(controller: numCtrl, decoration: const InputDecoration(labelText: 'رقم الشقة', border: OutlineInputBorder()))),
                     const SizedBox(width: 8),
-                    Expanded(child: TextField(controller: areaCtrl, decoration: const InputDecoration(labelText: 'المساحة (م2)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedFloorName,
+                        decoration: const InputDecoration(labelText: 'اختر الطابق (يحدد النسبة آلياً)', border: OutlineInputBorder()),
+                        items: availableFloors.keys.map((floorName) {
+                          final percentage = availableFloors[floorName];
+                          return DropdownMenuItem(value: floorName, child: Text('$floorName ($percentage%)'));
+                        }).toList(),
+                        onChanged: (val) => setState(() => selectedFloorName = val),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const Divider(height: 30, thickness: 2),
+                const Text('📐 حساب المساحة البيعية (م2):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                const SizedBox(height: 12),
+                
+                // 🌟 حقول المساحات الهندسية
+                TextField(
+                  controller: slabAreaCtrl, 
+                  decoration: const InputDecoration(labelText: 'مساحة البلاطة (المسقوفة) م2', border: OutlineInputBorder(), filled: true, fillColor: Colors.white), 
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => updateCalculatedArea(), // التحديث اللحظي
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: terraceAreaCtrl, 
+                        decoration: const InputDecoration(labelText: 'مساحة التراس م2', border: OutlineInputBorder()), 
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => updateCalculatedArea(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: physicalYardAreaCtrl, 
+                        decoration: const InputDecoration(labelText: 'مساحة الوجيبة م2', border: OutlineInputBorder()), 
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => updateCalculatedArea(),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 
-                DropdownButtonFormField<String>(
-                  value: selectedFloorName,
-                  decoration: const InputDecoration(labelText: 'اختر الطابق (يحدد النسبة آلياً)', border: OutlineInputBorder()),
-                  items: availableFloors.keys.map((floorName) {
-                    final percentage = availableFloors[floorName];
-                    return DropdownMenuItem(value: floorName, child: Text('$floorName (نسبة: $percentage%)'));
-                  }).toList(),
-                  onChanged: (val) => setState(() => selectedFloorName = val),
+                // 🌟 عرض المساحة النهائية المحسوبة
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.indigo.shade200)),
+                  child: Text(
+                    'المساحة البيعية المعتمدة للعقد: ${calculatedTotalArea.toStringAsFixed(2)} م2', 
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
                 
                 const Divider(height: 30, thickness: 2),
-                const Text('اختيار اتجاهات الشقة (يحسب النسبة آلياً):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
+                const Text('🧭 اختيار اتجاهات الشقة:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
                 const SizedBox(height: 8),
-                
-                // 🌟 عرض الجهات كأزرار اختيار (Chips)
                 Wrap(
                   spacing: 8.0,
                   runSpacing: 8.0,
                   children: mainDirections.map((dir) {
-                    // جلب النسبة الخاصة بهذا الاتجاه من المحضر (إن وجدت)
                     final double dirPercentage = (generalCoeffs[dir] as num?)?.toDouble() ?? 0.0;
-                    
                     return FilterChip(
                       label: Text('$dir ($dirPercentage%)'),
                       selected: selectedDirections[dir]!,
@@ -89,21 +150,26 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
                 ),
 
                 const Divider(height: 30, thickness: 2),
-                const Text('معاملات أخرى خاصة بالشقة:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                const Text('💰 المعاملات المالية الخاصة بالشقة:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                 const SizedBox(height: 12),
-                
-                TextField(controller: yardCoeffCtrl, decoration: const InputDecoration(labelText: 'نسبة الوجيبة المستقلة %', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-                const SizedBox(height: 12),
-                
-                TextField(
-                  controller: profitCoeffCtrl, 
-                  decoration: const InputDecoration(
-                    labelText: 'نسبة الربح المستهدفة (هامش الربح) %', 
-                    border: OutlineInputBorder(), 
-                    filled: true, 
-                    fillColor: Color(0xFFE8F5E9)
-                  ), 
-                  keyboardType: TextInputType.number
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: yardCoeffCtrl, 
+                        decoration: const InputDecoration(labelText: 'معامل الوجيبة المالي %', border: OutlineInputBorder()), 
+                        keyboardType: TextInputType.number
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: profitCoeffCtrl, 
+                        decoration: const InputDecoration(labelText: 'هامش الربح %', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFFE8F5E9)), 
+                        keyboardType: TextInputType.number
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -112,47 +178,63 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
             TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
             ElevatedButton(
               onPressed: () {
-                if (numCtrl.text.isNotEmpty && areaCtrl.text.isNotEmpty && selectedFloorName != null) {
+                if (numCtrl.text.isNotEmpty && slabAreaCtrl.text.isNotEmpty && selectedFloorName != null) {
+                  
+                  // تحديث أخير للمساحة للتأكد
+                  updateCalculatedArea();
+                  
+                  if (calculatedTotalArea <= 0) {
+                    ScaffoldMessenger.of(dialogCtx).showSnackBar(const SnackBar(content: Text('المساحة غير صالحة!')));
+                    return;
+                  }
+
                   Map<String, double> aptCoeffs = {};
                   
-                  // 1. نسبة الطابق
+                  // 🌟 1. حفظ تفاصيل المساحة الهندسية في الـ JSON للشفافية
+                  double slab = double.tryParse(slabAreaCtrl.text) ?? 0.0;
+                  double terrace = double.tryParse(terraceAreaCtrl.text) ?? 0.0;
+                  double yard = double.tryParse(physicalYardAreaCtrl.text) ?? 0.0;
+                  
+                  if(slab > 0) aptCoeffs['مساحة البلاطة (م2)'] = slab;
+                  if(terrace > 0) aptCoeffs['مساحة التراس (م2)'] = terrace;
+                  if(yard > 0) aptCoeffs['مساحة الوجيبة (م2)'] = yard;
+
+                  // 2. نسبة الطابق
                   final floorPercentage = (availableFloors[selectedFloorName] as num).toDouble();
                   if (floorPercentage != 0.0) aptCoeffs['الطابق ($selectedFloorName)'] = floorPercentage;
 
-                  // 2. 🌟 تجميع وتوليد الاتجاه آلياً
+                  // 3. تجميع الاتجاه
                   List<String> chosenNames = [];
                   double totalDirPercentage = 0.0;
-                  
                   selectedDirections.forEach((dirName, isSelected) {
                     if (isSelected) {
                       chosenNames.add(dirName);
                       totalDirPercentage += (generalCoeffs[dirName] as num?)?.toDouble() ?? 0.0;
                     }
                   });
-                  
-                  // إنشاء الاسم المدمج (مثال: شمالي - شرقي)
                   String finalDirectionName = chosenNames.isEmpty ? 'غير محدد' : chosenNames.join(' - ');
-                  
-                  // حفظ نسبة الاتجاه الإجمالية داخل معاملات الشقة
                   if (totalDirPercentage != 0.0) {
                     aptCoeffs['الاتجاه ($finalDirectionName)'] = totalDirPercentage;
                   }
 
-                  // 3. إضافة الوجيبة والربح
+                  // 4. إضافة معامل الوجيبة والربح
                   void addVal(String key, String val) {
                     final parsed = double.tryParse(val);
                     if (parsed != null && parsed != 0.0) aptCoeffs[key] = parsed;
                   }
-                  addVal('الوجيبة', yardCoeffCtrl.text);
+                  addVal('معامل التميز للوجيبة', yardCoeffCtrl.text);
                   addVal('هامش الربح', profitCoeffCtrl.text);
 
                   // الإرسال لقاعدة البيانات
                   parentContext.read<BuildingsCubit>().addApartment(
                     buildingId: building.id,
                     aptNumber: numCtrl.text,
-                    area: double.parse(areaCtrl.text),
+                    
+                    // 🌟 نرسل المساحة البيعية النهائية للحفظ الرسمي
+                    area: calculatedTotalArea, 
+                    
                     floorName: selectedFloorName!, 
-                    directionName: finalDirectionName, // 🌟 نحفظ الاسم المدمج ليعرض في الجدول بوضوح
+                    directionName: finalDirectionName,
                     customCoeffs: aptCoeffs, 
                   );
                   Navigator.pop(dialogCtx);
