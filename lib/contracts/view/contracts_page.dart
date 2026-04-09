@@ -184,6 +184,13 @@ class ContractsView extends StatelessWidget {
     final monthsController = TextEditingController(text: '48'); 
     final durationCoefficientCtrl = TextEditingController(text: '0'); 
     final guarantorController = TextEditingController(); 
+    // 🌟 متحكمات التجهيزات المشتركة الجديدة 🌟
+    final blockCoeffCtrl = TextEditingController(text: '0');
+    final coloredPlasterCoeffCtrl = TextEditingController(text: '0');
+    final marbleStairsCoeffCtrl = TextEditingController(text: '0');
+    final marbleFinsCoeffCtrl = TextEditingController(text: '0');
+    final plumbingCoeffCtrl = TextEditingController(text: '0');
+    final chimneysCoeffCtrl = TextEditingController(text: '0');
 
     // 🌟 ماب ستحمل المعاملات التلقائية المستوردة من قاعدة البيانات
     Map<String, double> autoImportedCoefficients = {};
@@ -192,17 +199,31 @@ class ContractsView extends StatelessWidget {
     Map<String, double> buildFinalCoefficientsMap(bool isAllocated) {
       Map<String, double> finalMap = {};
       
-      // 1. إضافة نسبة المدة
+      // 1. إضافة نسبة المدة (تطبق على كل أنواع العقود)
       double? durVal = double.tryParse(durationCoefficientCtrl.text);
       if (durVal != null && durVal != 0.0) {
         finalMap['نسبة التقسيط'] = durVal / 100.0;
       }
 
-      // 2. إذا كان العقد متخصص، أضف المعاملات الآلية
+      // 2. إذا كان العقد متخصص فقط
       if (isAllocated) {
+        // أ. أضف المعاملات الآلية المستوردة من الكتالوج (محضر + شقة)
         autoImportedCoefficients.forEach((key, value) {
           finalMap[key] = value / 100.0;
         });
+
+        // ب. أضف التجهيزات المشتركة
+        void addShared(String key, String val) {
+          double? parsed = double.tryParse(val);
+          if (parsed != null && parsed != 0.0) finalMap[key] = parsed / 100.0;
+        }
+        
+        addShared('تجهيزات (بلوك)', blockCoeffCtrl.text);
+        addShared('تجهيزات (كلسة ملونة)', coloredPlasterCoeffCtrl.text);
+        addShared('تجهيزات (درج رخام)', marbleStairsCoeffCtrl.text);
+        addShared('تجهيزات (سلاحات رخام)', marbleFinsCoeffCtrl.text);
+        addShared('تجهيزات (نوازل صحية)', plumbingCoeffCtrl.text);
+        addShared('تجهيزات (صواعد مداخن)', chimneysCoeffCtrl.text);
       }
       return finalMap;
     }
@@ -383,7 +404,47 @@ class ContractsView extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
+                      if (isAllocated) ...[
+                        // 🌟 قسم التجهيزات المشتركة 🌟
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade50, 
+                            borderRadius: BorderRadius.circular(8), 
+                            border: Border.all(color: Colors.blueGrey.shade200)
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('🛠️ معاملات التجهيزات المشتركة (%)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(child: TextField(controller: blockCoeffCtrl, decoration: const InputDecoration(labelText: 'بلوك %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: TextField(controller: coloredPlasterCoeffCtrl, decoration: const InputDecoration(labelText: 'كلسة ملونة %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: TextField(controller: marbleStairsCoeffCtrl, decoration: const InputDecoration(labelText: 'درج رخام %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(child: TextField(controller: marbleFinsCoeffCtrl, decoration: const InputDecoration(labelText: 'سلاحات رخام %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: TextField(controller: plumbingCoeffCtrl, decoration: const InputDecoration(labelText: 'نوازل صحية %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: TextField(controller: chimneysCoeffCtrl, decoration: const InputDecoration(labelText: 'صواعد مداخن %', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+
                       SizedBox(
                         width: double.infinity,
                         height: 45,
