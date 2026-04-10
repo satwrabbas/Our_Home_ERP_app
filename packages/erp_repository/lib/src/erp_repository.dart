@@ -488,6 +488,7 @@ class ErpRepository {
     // 2. المزامنة والانتظار 🚨
     await syncPendingData(); 
   }
+  Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => _localApi.getAllMaterialPricesHistory();
 
 
   // ==========================================
