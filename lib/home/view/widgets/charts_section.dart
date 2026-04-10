@@ -57,13 +57,15 @@ class ChartsSection extends StatelessWidget {
     );
   }
 
+  
+
   // ===============================================
-  // 1. كرت تحليل الإيرادات (التدفق النقدي)
+  // 1. كرت تحليل الإيرادات (التدفق النقدي) - مع المحاور الديناميكية
   // ===============================================
   Widget _buildRevenueAnalysisCard(String title, Map<String, double> data, Color color) {
     final currencyFormatter = NumberFormat.compact(locale: 'ar_SY');
     
-    // 🧠 التحليل الذكي للبيانات
+    // 🧠 التحليل الذكي للبيانات وحساب سقف المخطط
     String bestPeriod = 'لا يوجد';
     double maxRevenue = 0;
     double totalRevenue = 0;
@@ -78,6 +80,9 @@ class ChartsSection extends StatelessWidget {
       });
     }
 
+    // ترك مسافة 20% فوق أعلى عمود لكي لا يلتصق بالسقف
+    double maxY = maxRevenue == 0 ? 100000 : maxRevenue * 1.2;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -89,9 +94,23 @@ class ChartsSection extends StatelessWidget {
             Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blueGrey)),
             const SizedBox(height: 24),
             SizedBox(
-              height: 220, // تقليل الارتفاع قليلاً لإفساح مجال للتفاصيل
+              height: 220, 
               child: data.isEmpty ? const Center(child: Text('لا بيانات متاحة للفترة المحددة')) : BarChart(
                 BarChartData(
+                  maxY: maxY, // 🌟 تفعيل السقف الديناميكي
+                  alignment: BarChartAlignment.spaceAround,
+                  // 🌟 تفعيل الأرقام عند لمس العمود
+                  barTouchData: BarTouchData(
+                    touchTooltipData: BarTouchTooltipData(
+                      getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                        String period = data.keys.elementAt(group.x.toInt());
+                        return BarTooltipItem(
+                          '$period\n${currencyFormatter.format(rod.toY)} ل.س', 
+                          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                        );
+                      },
+                    ),
+                  ),
                   barGroups: data.entries.toList().asMap().entries.map((e) {
                     return BarChartGroupData(
                       x: e.key,
@@ -99,13 +118,40 @@ class ChartsSection extends StatelessWidget {
                     );
                   }).toList(),
                   titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) => Text(data.keys.elementAt(v.toInt()), style: const TextStyle(fontSize: 10)))),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    // 🌟 المحور السيني (التواريخ المنسقة)
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true, 
+                        reservedSize: 30,
+                        getTitlesWidget: (value, meta) {
+                          if (value.toInt() >= 0 && value.toInt() < data.length) {
+                            String fullDate = data.keys.elementAt(value.toInt());
+                            String shortDate = fullDate.length > 7 ? fullDate.substring(fullDate.length - 5) : fullDate;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(shortDate, style: const TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        }
+                      )
+                    ),
+                    // 🌟 المحور الصادي الأيسر (تفعيل الأرقام المختصرة)
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true, 
+                        reservedSize: 50,
+                        getTitlesWidget: (value, meta) {
+                          if (value == 0) return const SizedBox.shrink();
+                          return Text(currencyFormatter.format(value), style: const TextStyle(fontSize: 10, color: Colors.grey));
+                        }
+                      )
+                    ),
                     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
-                  gridData: const FlGridData(show: false),
+                  gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1)),
                 )
               ),
             ),
@@ -121,7 +167,7 @@ class ChartsSection extends StatelessWidget {
   }
 
   // ===============================================
-  // 2. كرت تحليل تطور الأسعار
+  // 2. كرت تحليل تطور الأسعار - مع المحاور الديناميكية
   // ===============================================
   Widget _buildPriceTrendAnalysisCard(String title, Map<String, double> data) {
     final currencyFormatter = NumberFormat.compact(locale: 'ar_SY');
@@ -129,6 +175,7 @@ class ChartsSection extends StatelessWidget {
     // 🧠 التحليل الذكي
     String highestPricePeriod = 'لا يوجد';
     double maxPrice = 0;
+    double minPrice = double.infinity;
     
     if (data.isNotEmpty) {
       data.forEach((key, value) {
@@ -136,8 +183,15 @@ class ChartsSection extends StatelessWidget {
           maxPrice = value;
           highestPricePeriod = key;
         }
+        if (value < minPrice) {
+          minPrice = value;
+        }
       });
     }
+
+    // توسيع المخطط للأعلى وللأسفل
+    double maxY = maxPrice == 0 ? 100000 : maxPrice * 1.1;
+    double minY = minPrice == double.infinity ? 0 : minPrice * 0.9;
 
     return Card(
       elevation: 4,
@@ -153,23 +207,64 @@ class ChartsSection extends StatelessWidget {
               height: 220,
               child: data.isEmpty ? const Center(child: Text('لا توجد عقود لتتبع أسعارها')) : LineChart(
                 LineChartData(
+                  maxY: maxY, // 🌟 السقف الأعلى
+                  minY: minY, // 🌟 القاع الأدنى
+                  // 🌟 تفعيل الأرقام عند اللمس
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          String period = data.keys.elementAt(spot.x.toInt());
+                          return LineTooltipItem(
+                            '$period\n${currencyFormatter.format(spot.y)} ل.س', 
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                   lineBarsData: [
                     LineChartBarData(
                       spots: data.entries.toList().asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.value)).toList(),
-                      isCurved: true, color: Colors.orange, barWidth: 4, dotData: const FlDotData(show: true),
+                      isCurved: true, color: Colors.orange, barWidth: 4, 
+                      dotData: FlDotData(show: data.length < 20), // إخفاء النقاط لو كانت كثيرة جداً
+                      belowBarData: BarAreaData(show: true, color: Colors.orange.withOpacity(0.1)),
                     )
                   ],
                   titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
-                      if(v.toInt() >= 0 && v.toInt() < data.length) return Text(data.keys.elementAt(v.toInt()), style: const TextStyle(fontSize: 10));
-                      return const SizedBox.shrink();
-                    })),
-                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    // 🌟 المحور السيني
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true, 
+                        reservedSize: 30,
+                        getTitlesWidget: (value, meta) {
+                          if (value.toInt() >= 0 && value.toInt() < data.length) {
+                            String fullDate = data.keys.elementAt(value.toInt());
+                            String shortDate = fullDate.length > 7 ? fullDate.substring(fullDate.length - 5) : fullDate;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(shortDate, style: const TextStyle(fontSize: 10, color: Colors.blueGrey)),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        }
+                      )
+                    ),
+                    // 🌟 المحور الصادي الأيسر
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true, 
+                        reservedSize: 50,
+                        getTitlesWidget: (value, meta) {
+                          return Text(currencyFormatter.format(value), style: const TextStyle(fontSize: 10, color: Colors.grey));
+                        }
+                      )
+                    ),
                     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
-                  gridData: const FlGridData(show: false),
+                  gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1)),
                 )
               ),
             ),
