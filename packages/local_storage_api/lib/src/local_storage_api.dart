@@ -44,7 +44,9 @@ class LocalStorageApi {
   Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _db.getLedgerForContract(contractId);
   Future<String> addLedgerEntry(PaymentsLedgerCompanion entry) => _db.insertLedgerEntry(entry);
   Future<int> updateWhatsAppStatus(String entryId) => _db.markWhatsAppAsSent(entryId);
+  Future<List<PaymentsLedgerData>> getAllPayments() => _db.getAllActivePayments();
 
+  
   // ==========================================
   // ⚙️ الإعدادات والأسعار
   // ==========================================

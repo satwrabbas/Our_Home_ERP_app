@@ -305,6 +305,11 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(t) => OrderingTerm.desc(t.paymentDate)])
       ).get();
       
+  // 🌟 جلب كل الدفعات في النظام (للوحة التحكم)
+  Future<List<PaymentsLedgerData>> getAllActivePayments() => 
+      (select(paymentsLedger)..where((t) => t.isDeleted.equals(false))).get();
+
+
   Future<String> insertLedgerEntry(PaymentsLedgerCompanion entry) async {
     final row = await into(paymentsLedger).insertReturning(entry);
     return row.id;
