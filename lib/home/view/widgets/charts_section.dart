@@ -11,16 +11,60 @@ class ChartsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cubit = context.read<HomeCubit>();
+    
+    // 🌟 دالة مساعدة لتوليد اسم الفترة الحالية لعرضه بين الأسهم
+    String getPeriodLabel() {
+      final ref = state.referenceDate;
+      switch (state.timeFilter) {
+        case TimeFilter.daily:
+          final start = ref.subtract(const Duration(days: 6));
+          return '${DateFormat('MM/dd').format(start)} إلى ${DateFormat('MM/dd').format(ref)}';
+        case TimeFilter.weekly:
+          return 'أسابيع شهر: ${DateFormat('yyyy-MM').format(ref)}';
+        case TimeFilter.monthly:
+          return 'أشهر عام: ${ref.year}';
+        case TimeFilter.yearly:
+          return 'من ${ref.year - 4} إلى ${ref.year}';
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 🌟 شريط التحكم بالفلتر الزمني
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+          children:[
             const Text('التحليلات الاستراتيجية المتقدمة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo)),
+            
+            // 🌟 شريط التنقل بالأسهم (النافذة الزمنية) 🌟
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Row(
+                children:[
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: Colors.indigo), 
+                    tooltip: 'الفترة السابقة',
+                    onPressed: () => cubit.navigatePrevious(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(getPeriodLabel(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left, color: Colors.indigo), 
+                    tooltip: 'الفترة التالية',
+                    onPressed: () => cubit.navigateNext(),
+                  ),
+                ],
+              ),
+            ),
+
             SegmentedButton<TimeFilter>(
-              segments: const [
+              segments: const[
                 ButtonSegment(value: TimeFilter.daily, label: Text('يومي')),
                 ButtonSegment(value: TimeFilter.weekly, label: Text('أسبوعي')),
                 ButtonSegment(value: TimeFilter.monthly, label: Text('شهري')),
@@ -28,12 +72,13 @@ class ChartsSection extends StatelessWidget {
               ],
               selected: {state.timeFilter},
               onSelectionChanged: (Set<TimeFilter> newSelection) {
-                context.read<HomeCubit>().changeTimeFilter(newSelection.first);
+                cubit.changeTimeFilter(newSelection.first);
               },
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
+        // ... باقي الكود كما هو (المخططات والتفاصيل)
 
         // 🌟 المخططات البيانية + التفاصيل التحليلية
         Row(
