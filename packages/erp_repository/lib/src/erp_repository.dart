@@ -439,7 +439,8 @@ class ErpRepository {
   // 💰 دفتر الأستاذ (Payments Ledger)
   // ==========================================
   Future<List<PaymentsLedgerData>> getContractLedger(String contractId) => _localApi.getContractLedger(contractId);
-
+  // 🌟 جلب كل الدفعات لغرفة العمليات (الداشبورد)
+  Future<List<PaymentsLedgerData>> getAllPayments() => _localApi.getAllPayments();
   // داخل ErpRepository
   Future<void> addLedgerEntry(PaymentsLedgerCompanion entryCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
