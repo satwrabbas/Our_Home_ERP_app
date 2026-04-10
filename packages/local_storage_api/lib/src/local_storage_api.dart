@@ -46,14 +46,15 @@ class LocalStorageApi {
   Future<int> updateWhatsAppStatus(String entryId) => _db.markWhatsAppAsSent(entryId);
   Future<List<PaymentsLedgerData>> getAllPayments() => _db.getAllActivePayments();
 
-  
+
   // ==========================================
   // ⚙️ الإعدادات والأسعار
   // ==========================================
   Future<MaterialPricesHistoryData?> getLatestPrices() => _db.getLatestPrices();
   Future<String> savePrices(MaterialPricesHistoryCompanion prices) => _db.insertMaterialPriceRecord(prices);
   Stream<MaterialPricesHistoryData?> watchLatestPrices() => _db.watchLatestPrices();
-
+  Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => _db.getAllMaterialPricesHistory();
+  
   // ==========================================
   // 📅 جدول الاستحقاقات (Installments Schedule)
   // ==========================================

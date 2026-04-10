@@ -324,7 +324,10 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // --- استعلامات سجل أسعار المواد ---
   // ==========================================
-  
+  // 🌟 جلب كل سجلات أسعار المواد للإحصائيات
+  Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => 
+      (select(materialPricesHistory)..where((t) => t.isDeleted.equals(false))).get();
+      
   // جلب أحدث سعر (النسخة المحسنة المضادة لتضارب المزامنة)
   Future<MaterialPricesHistoryData?> getLatestPrices() {
     return (select(materialPricesHistory)
