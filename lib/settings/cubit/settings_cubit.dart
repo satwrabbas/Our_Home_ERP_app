@@ -1,4 +1,4 @@
-//settings_cubit.dart
+//lib\settings\cubit\settings_cubit.dart
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
