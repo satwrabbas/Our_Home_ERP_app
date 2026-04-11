@@ -1,3 +1,4 @@
+//lib\payments\cubit\payments_cubit.dart
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -41,11 +42,11 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  /// 🌟 النسخة المحسنة للمزامنة والرفع للسحابة
+  /// 🌟 النسخة المحسنة للمزامنة والرفع للسحابة مع دعم (الخصم/البونص المئوي)
   Future<void> addLedgerEntry({
     required String contractId, 
     required double amountPaid,
-    double fees = 0,
+    double discountPercentage = 0, // 👈 1. تم الاستبدال بنسبة الخصم بدلاً من الرسوم
     String? scheduleId, 
   }) async {
     emit(state.copyWith(status: PaymentsStatus.loading));
@@ -79,19 +80,30 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         currentPrices: currentPrices,
         coefficients: contractCoefficients,
       );
+      
       final double meterPriceToday = calculations['pricePerSqm']!;
-      final double convertedMeters = amountPaid / meterPriceToday;
+      
+      // 👈 2. حساب المبلغ المعتمد بعد إضافة (أو خصم) النسبة المئوية
+      // مثال: دفع 100,000 وبونص 10% = 110,000 مبلغ معتمد
+      final double effectiveAmount = amountPaid + (amountPaid * (discountPercentage / 100));
+
+      // 👈 3. حساب الأمتار بناءً على المبلغ المعتمد (وليس المدفوع فقط)
+      final double convertedMeters = effectiveAmount / meterPriceToday;
 
       // 5. حفظ الدفعة في قاعدة البيانات (محلياً ثم رفعها)
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
         paymentDate: DateTime.now(),
-        amountPaid: amountPaid,
+        amountPaid: amountPaid, // 👈 نحتفظ بالمبلغ المالي الفعلي المقبوض للتوثيق المالي
         meterPriceAtPayment: meterPriceToday, 
-        convertedMeters: convertedMeters,     
-        fees: Value(fees),
-        userId: userId, // 🚨 تم التعديل: إرسال الـ userId الحقيقي بدلاً من الفراغ
+        convertedMeters: convertedMeters, // 👈 الأمتار المستفيدة من البونص
+        
+        // 👈 4. نقوم بتخزين نسبة الخصم في حقل fees الموجود مسبقاً في قاعدة بياناتك 
+        // لكي لا تضطر لتعديل الجداول وعمل build_runner من جديد
+        fees: Value(discountPercentage), 
+        
+        userId: userId,
       );
       
       // نستخدم await للتأكد من انتهاء الحفظ والمزامنة الأولية

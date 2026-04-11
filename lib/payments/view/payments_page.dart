@@ -1,4 +1,4 @@
-//payments_page.dart
+//lib\payments\view\payments_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
@@ -35,7 +35,6 @@ class PaymentsView extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           
-          // 🌟 حماية مبكرة: إذا لم يكن هناك عملاء أو عقود، نوقف عرض الشاشة ونخبره
           if (state.clients.isEmpty || state.contracts.isEmpty) {
             return const Center(
               child: Text(
@@ -62,7 +61,6 @@ class PaymentsView extends StatelessWidget {
                         value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
                         decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
                         items: state.contracts.map((contract) {
-                          // 🌟 الحماية السحرية: استخدام indexWhere بدلاً من firstWhere
                           final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
                           final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
                           
@@ -88,7 +86,6 @@ class PaymentsView extends StatelessWidget {
                           
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ملف الإكسل...')));
                           
-                          // 🌟 حماية عند التصدير
                           final contractIdx = state.contracts.indexWhere((c) => c.id == state.selectedContractId);
                           if(contractIdx == -1) return;
                           final contract = state.contracts[contractIdx];
@@ -171,16 +168,12 @@ class PaymentsView extends StatelessWidget {
                                           icon: const Icon(Icons.print, color: Colors.blue),
                                           tooltip: 'معاينة وطباعة الفاتورة',
                                           onPressed: () async {
-                                            // 🌟 حماية الطباعة
                                             final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
                                             if(contractIdx == -1) return;
                                             final contract = state.contracts[contractIdx];
 
                                             final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                            if(clientIdx == -1) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن الطباعة. العميل محذوف!'), backgroundColor: Colors.red));
-                                              return;
-                                            }
+                                            if(clientIdx == -1) return;
                                             final client = state.clients[clientIdx];
                                             
                                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
@@ -195,23 +188,18 @@ class PaymentsView extends StatelessWidget {
                                           icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
                                           tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
                                           onPressed: () async {
-                                            // 🌟 حماية الواتساب
                                             final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
                                             if(contractIdx == -1) return;
                                             final contract = state.contracts[contractIdx];
 
                                             final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                            if(clientIdx == -1) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يمكن الإرسال. العميل محذوف!'), backgroundColor: Colors.red));
-                                              return;
-                                            }
+                                            if(clientIdx == -1) return;
                                             final client = state.clients[clientIdx];
                                             
                                             final success = await WhatsAppHelper.sendReceiptMessage(entry: entry, contract: contract, client: client);
 
                                             if (context.mounted && success) {
                                               context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب!'), backgroundColor: Colors.green));
                                             }
                                           },
                                         ),
@@ -230,54 +218,98 @@ class PaymentsView extends StatelessWidget {
     );
   }
 
+  // 🌟 التعديل السحري هنا: تحويل النافذة إلى متفاعلة لتحديث الحسابات فوراً
   void _showAddPaymentDialog(BuildContext parentContext, String contractId) {
-    // الكود الداخلي للنافذة المنبثقة يبقى كما هو...
     final amountController = TextEditingController();
-    final feesController = TextEditingController(text: '0');
+    final discountController = TextEditingController(text: '0'); // حقل الخصم الجديد
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('إدخال دفعة جديدة (دفتر الأستاذ)', style: TextStyle(color: Colors.deepOrange)),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:[
-                const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد (الأسعار الفعالة اليوم).', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: amountController,
-                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number,
+        // نستخدم StatefulBuilder لتحديث النافذة من الداخل أثناء الكتابة
+        return StatefulBuilder(
+          builder: (context, setState) {
+            
+            // قراءة القيم أثناء الكتابة
+            double amount = double.tryParse(amountController.text) ?? 0;
+            double discountPct = double.tryParse(discountController.text) ?? 0;
+            
+            // حساب المبلغ المعتمد بعد الخصم (مثال: الدفعة 100 ألف والخصم 10%، يُعتبر كأنه دفع 110 آلاف)
+            double effectiveAmount = amount + (amount * (discountPct / 100));
+
+            return AlertDialog(
+              title: const Text('إدخال دفعة جديدة (مع خصم / بونص)', style: TextStyle(color: Colors.deepOrange)),
+              content: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد (الأسعار الفعالة اليوم).', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const SizedBox(height: 16),
+                    
+                    TextField(
+                      controller: amountController,
+                      decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder()),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) => setState(() {}), // تحديث الواجهة عند أي تعديل
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    TextField(
+                      controller: discountController,
+                      decoration: const InputDecoration(
+                        labelText: 'نسبة الخصم / البونص المئوية', 
+                        border: OutlineInputBorder(),
+                        suffixText: '%', // وضع علامة % في نهاية الحقل
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) => setState(() {}), // تحديث الواجهة عند أي تعديل
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    // عرض النتيجة الفورية أسفل الحقول
+                    if (amount > 0)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: discountPct > 0 ? Colors.green.shade50 : Colors.orange.shade50, 
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: discountPct > 0 ? Colors.green : Colors.orange.shade200)
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('المبلغ المعتمد للتحويل:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            Text(
+                              '${effectiveAmount.toStringAsFixed(0)} ل.س',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: discountPct > 0 ? Colors.green.shade700 : Colors.deepOrange),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: feesController,
-                  decoration: const InputDecoration(labelText: 'الرسوم الإضافية (إن وجدت)', border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number,
+              ),
+              actions:[
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
+                  onPressed: amount > 0 ? () {
+                    // إرسال البيانات إلى الـ Cubit
+                    parentContext.read<PaymentsCubit>().addLedgerEntry(
+                      contractId: contractId,
+                      amountPaid: amount,
+                      // 👇 تمرير نسبة الخصم (لاحظ الملاحظة بالأسفل)
+                      discountPercentage: discountPct, 
+                    );
+                    Navigator.pop(dialogContext);
+                  } : null, // تعطيل الزر إذا كان المبلغ 0
+                  child: const Text('حفظ الدفعة وحساب الأمتار آلياً'),
                 ),
               ],
-            ),
-          ),
-          actions:[
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
-              onPressed: () {
-                if (amountController.text.isNotEmpty) {
-                  parentContext.read<PaymentsCubit>().addLedgerEntry(
-                    contractId: contractId,
-                    amountPaid: double.parse(amountController.text),
-                    fees: double.parse(feesController.text.isEmpty ? "0" : feesController.text),
-                  );
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('حفظ الدفعة وحساب الأمتار آلياً'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
