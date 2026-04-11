@@ -22,8 +22,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       body: CustomScrollView(
@@ -35,16 +33,53 @@ class _HomePageState extends State<HomePage> {
             pinned: true,
             elevation: 0,
             backgroundColor: const Color(0xFF1A237E),
+            // تم إزالة actions من هنا لكي لا يكون الزر معلقاً في الأعلى بمفرده
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(start: 24, bottom: 16),
-              title: const Text(
-                'لوحة التحكم الاستراتيجية',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
+              expandedTitleScale: 1.0, 
+              
+              // 👈 1. تعديل الحواف لتكون متساوية من اليمين واليسار
+              titlePadding: const EdgeInsetsDirectional.only(
+                start: 24, 
+                end: 24, 
+                bottom: 14,
+              ),
+              
+              // 👈 2. وضع العنوان والزر في نفس السطر (Row)
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // العنوان
+                  const Text(
+                    'لوحة التحكم', // 👈 التعديل هنا: تمت إزالة كلمة "الاستراتيجية"
+                    maxLines: 1, 
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  
+                  // 👈 3. نقلنا زر التحديث ليكون بجانب العنوان مباشرة
+                  Material(
+                    color: Colors.white.withOpacity(0.15), // لون خلفية الزر الشفافة
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.hardEdge,
+                    child: InkWell(
+                      onTap: () => context.read<HomeCubit>().fetchDashboardData(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(6.0),
+                        child: Icon(
+                          Icons.refresh_rounded, 
+                          color: Colors.white, 
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               background: Container(
                 decoration: const BoxDecoration(
@@ -57,21 +92,13 @@ class _HomePageState extends State<HomePage> {
                 child: Opacity(
                   opacity: 0.08,
                   child: Image.asset(
-                    'assets/images/grid_pattern.png', // اختياري - تجاهله إن لم يوجد
+                    'assets/images/grid_pattern.png',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
               ),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
-                tooltip: 'تحديث البيانات',
-                onPressed: () => context.read<HomeCubit>().fetchDashboardData(),
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
 
           // ✅ المحتوى الرئيسي
@@ -110,7 +137,10 @@ class _HomePageState extends State<HomePage> {
                           onPressed: () => context.read<HomeCubit>().fetchDashboardData(),
                           icon: const Icon(Icons.refresh_rounded),
                           label: const Text('إعادة المحاولة'),
-                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1A237E)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A237E),
+                            minimumSize: const Size(160, 48),
+                          ),
                         ),
                       ],
                     ),
