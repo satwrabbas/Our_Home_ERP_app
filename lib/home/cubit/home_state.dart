@@ -8,13 +8,14 @@ class HomeState extends Equatable {
   const HomeState({
     this.status = HomeStatus.initial,
     this.timeFilter = TimeFilter.monthly,
-    required this.referenceDate, // 🌟 التاريخ المرجعي للنافذة الزمنية
+    required this.referenceDate, 
     this.totalRevenue = 0.0,
     this.totalAreaSold = 0.0,
     this.activeContractsCount = 0,
     this.latestPayments = const[],
     this.groupedRevenue = const {},
     this.priceTrend = const {},
+    this.costTrend = const {}, // 🌟 إضافة مسار التكلفة
     this.contractsByType = const {},
     this.errorMessage,
   });
@@ -30,6 +31,7 @@ class HomeState extends Equatable {
   
   final Map<String, double> groupedRevenue; 
   final Map<String, double> priceTrend; 
+  final Map<String, double> costTrend; // 🌟 إضافة مسار التكلفة
   final Map<String, int> contractsByType; 
   
   final String? errorMessage;
@@ -46,6 +48,7 @@ class HomeState extends Equatable {
     List<PaymentsLedgerData>? latestPayments,
     Map<String, double>? groupedRevenue,
     Map<String, double>? priceTrend,
+    Map<String, double>? costTrend, // 🌟 إضافة مسار التكلفة
     Map<String, int>? contractsByType,
     String? errorMessage,
   }) {
@@ -59,6 +62,7 @@ class HomeState extends Equatable {
       latestPayments: latestPayments ?? this.latestPayments,
       groupedRevenue: groupedRevenue ?? this.groupedRevenue,
       priceTrend: priceTrend ?? this.priceTrend,
+      costTrend: costTrend ?? this.costTrend, // 🌟 إضافة مسار التكلفة
       contractsByType: contractsByType ?? this.contractsByType,
       errorMessage: errorMessage ?? this.errorMessage,
     );
@@ -68,6 +72,6 @@ class HomeState extends Equatable {
   List<Object?> get props =>[
         status, timeFilter, referenceDate, totalRevenue, totalAreaSold, 
         activeContractsCount, latestPayments, groupedRevenue, priceTrend, 
-        contractsByType, averageSellPrice,
+        costTrend, contractsByType, averageSellPrice, // 🌟 تأكدنا من الفواصل هنا
       ];
 }

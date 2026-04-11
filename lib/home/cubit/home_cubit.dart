@@ -3,7 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerData, Contract;
+import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerData, Contract, MaterialPricesHistoryData; // 🌟 أضفنا MaterialPricesHistoryData
 
 part 'home_state.dart';
 
@@ -12,32 +12,26 @@ class HomeCubit extends Cubit<HomeState> {
 
   final ErpRepository _erpRepository;
 
-  // 🌟 ذاكرة التخزين المؤقت (Cache) لمنع استدعاء قاعدة البيانات مع كل ضغطة سهم
   List<Contract> _cachedContracts =[];
   List<PaymentsLedgerData> _cachedPayments =[];
+  List<MaterialPricesHistoryData> _cachedPrices =[]; // 🌟 ذاكرة التكلفة
 
-  // =======================================================
-  // 1. جلب البيانات من القاعدة (يُستدعى مرة واحدة فقط عند فتح الصفحة أو المزامنة)
-  // =======================================================
   Future<void> fetchDashboardData() async {
-    emit(state.copyWith(status: HomeStatus.loading)); // هنا فقط نظهر دائرة التحميل
+    emit(state.copyWith(status: HomeStatus.loading)); 
     try {
       _cachedContracts = await _erpRepository.getAllContracts();
       _cachedPayments = await _erpRepository.getAllPayments(); 
+      _cachedPrices = await _erpRepository.getAllMaterialPricesHistory(); // 🌟 جلب الأسعار للخط الأحمر
       
-      // بمجرد جلب البيانات، نقوم بمعالجتها وإرسالها للشاشة
       _processAndEmitData();
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  // =======================================================
-  // 2. دوال التنقل (لا تحتوي على Loading، بل تقوم بالحساب الفوري)
-  // =======================================================
   void changeTimeFilter(TimeFilter newFilter) {
     emit(state.copyWith(timeFilter: newFilter, referenceDate: DateTime.now()));
-    _processAndEmitData(); // 🌟 حساب فوري وبدون إعادة تحميل
+    _processAndEmitData(); 
   }
 
   void navigatePrevious() {
@@ -49,7 +43,7 @@ class HomeCubit extends Cubit<HomeState> {
       case TimeFilter.yearly: newDate = DateTime(newDate.year - 5, newDate.month, 1); break;
     }
     emit(state.copyWith(referenceDate: newDate));
-    _processAndEmitData(); // 🌟 حساب فوري وبدون إعادة تحميل
+    _processAndEmitData(); 
   }
 
   void navigateNext() {
@@ -63,48 +57,40 @@ class HomeCubit extends Cubit<HomeState> {
     if (newDate.isAfter(DateTime.now())) newDate = DateTime.now();
     
     emit(state.copyWith(referenceDate: newDate));
-    _processAndEmitData(); // 🌟 حساب فوري وبدون إعادة تحميل
+    _processAndEmitData(); 
   }
 
-  // =======================================================
-  // 3. المحرك الرياضي (يأخذ البيانات من الذاكرة ويعالجها في ميلي ثانية)
-  // =======================================================
   void _processAndEmitData() {
     double totalRevenue = 0.0;
     double totalAreaSold = 0.0;
     
     Map<String, double> tempGroupedRev = {};
     Map<String, List<double>> tempPriceTrend = {}; 
+    Map<String, List<double>> tempCostTrend = {}; // 🌟 قوالب التكلفة
 
     final refDate = state.referenceDate;
     
-    // 1. تجهيز قالب المحور السيني
     if (state.timeFilter == TimeFilter.daily) {
       for (int i = 6; i >= 0; i--) {
         String key = DateFormat('MM-dd').format(refDate.subtract(Duration(days: i)));
-        tempGroupedRev[key] = 0.0;
-        tempPriceTrend[key] =[];
+        tempGroupedRev[key] = 0.0; tempPriceTrend[key] =[]; tempCostTrend[key] =[];
       }
     } else if (state.timeFilter == TimeFilter.weekly) {
       for (int i = 1; i <= 4; i++) {
-        tempGroupedRev['الأسبوع $i'] = 0.0;
-        tempPriceTrend['الأسبوع $i'] =[];
+        tempGroupedRev['الأسبوع $i'] = 0.0; tempPriceTrend['الأسبوع $i'] =[]; tempCostTrend['الأسبوع $i'] =[];
       }
     } else if (state.timeFilter == TimeFilter.monthly) {
       for (int i = 1; i <= 12; i++) {
         String key = '${refDate.year}-${i.toString().padLeft(2, '0')}';
-        tempGroupedRev[key] = 0.0;
-        tempPriceTrend[key] =[];
+        tempGroupedRev[key] = 0.0; tempPriceTrend[key] =[]; tempCostTrend[key] =[];
       }
     } else if (state.timeFilter == TimeFilter.yearly) {
       for (int i = 4; i >= 0; i--) {
         String key = '${refDate.year - i}';
-        tempGroupedRev[key] = 0.0;
-        tempPriceTrend[key] =[];
+        tempGroupedRev[key] = 0.0; tempPriceTrend[key] =[]; tempCostTrend[key] =[];
       }
     }
 
-    // 2. حساب الإيرادات من الذاكرة المخبأة
     for (var p in _cachedPayments) {
       totalRevenue += p.amountPaid; 
       
@@ -124,7 +110,6 @@ class HomeCubit extends Cubit<HomeState> {
       }
     }
 
-    // 3. حساب العقود والأسعار من الذاكرة المخبأة
     Map<String, int> byType = {};
     for (var c in _cachedContracts) {
       totalAreaSold += c.totalArea;
@@ -145,23 +130,44 @@ class HomeCubit extends Cubit<HomeState> {
         if (tempPriceTrend.containsKey(key)) tempPriceTrend[key]!.add(c.baseMeterPriceAtSigning);
       }
     }
+
+    // 🌟 4. حساب "التكلفة الخام" للمواد من الذاكرة المخبأة
+    for (var price in _cachedPrices) {
+      double baseCost = (price.ironPrice * 30.0) + (price.cementPrice * 4.0) + (price.block15Price * 50.0) + 
+                        (price.formworkAndPouringWages * 1.0) + (price.aggregateMaterialsPrice * 2.0) + (price.ordinaryWorkerWage * 1.0);
+                        
+      if (state.timeFilter == TimeFilter.daily) {
+        String key = DateFormat('MM-dd').format(price.effectiveDate);
+        if (tempCostTrend.containsKey(key)) tempCostTrend[key]!.add(baseCost);
+      } else if (state.timeFilter == TimeFilter.weekly && price.effectiveDate.year == refDate.year && price.effectiveDate.month == refDate.month) {
+        int weekNum = ((price.effectiveDate.day - 1) / 7).floor() + 1;
+        if (weekNum > 4) weekNum = 4;
+        tempCostTrend['الأسبوع $weekNum']!.add(baseCost);
+      } else if (state.timeFilter == TimeFilter.monthly && price.effectiveDate.year == refDate.year) {
+        String key = '${price.effectiveDate.year}-${price.effectiveDate.month.toString().padLeft(2, '0')}';
+        if (tempCostTrend.containsKey(key)) tempCostTrend[key]!.add(baseCost);
+      } else if (state.timeFilter == TimeFilter.yearly) {
+        String key = '${price.effectiveDate.year}';
+        if (tempCostTrend.containsKey(key)) tempCostTrend[key]!.add(baseCost);
+      }
+    }
     
     Map<String, double> finalPriceTrend = {};
     tempPriceTrend.forEach((key, prices) {
-      if (prices.isEmpty) {
-        finalPriceTrend[key] = 0.0;
-      } else {
-        double sum = prices.fold(0, (a, b) => a + b);
-        finalPriceTrend[key] = sum / prices.length;
-      }
+      // 🌟 تم تصحيح الخطأ البرمجي هنا باستخدام 0.0
+      finalPriceTrend[key] = prices.isEmpty ? 0.0 : prices.fold(0.0, (a, b) => a + b) / prices.length;
     });
 
-    // آخر 5 حركات (نأخذ نسخة لنقوم بترتيبها دون التأثير على القائمة الأصلية)
+    Map<String, double> finalCostTrend = {};
+    tempCostTrend.forEach((key, costs) {
+      // 🌟 تم تصحيح الخطأ البرمجي هنا باستخدام 0.0
+      finalCostTrend[key] = costs.isEmpty ? 0.0 : costs.fold(0.0, (a, b) => a + b) / costs.length;
+    });
+
     var sortedPayments = List<PaymentsLedgerData>.from(_cachedPayments);
     sortedPayments.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
     final latestFive = sortedPayments.take(5).toList();
 
-    // 4. إرسال الحالة النهائية للواجهة (ستقوم الواجهة بعمل Animation بدلاً من الوميض)
     emit(state.copyWith(
       status: HomeStatus.success,
       totalRevenue: totalRevenue,
@@ -170,7 +176,16 @@ class HomeCubit extends Cubit<HomeState> {
       latestPayments: latestFive,
       groupedRevenue: tempGroupedRev, 
       priceTrend: finalPriceTrend,
+      costTrend: finalCostTrend, // 🌟
       contractsByType: byType,
     ));
   }
 }
+
+
+
+
+
+
+
+
