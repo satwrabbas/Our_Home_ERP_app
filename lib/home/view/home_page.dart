@@ -26,61 +26,50 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: const Color(0xFFF4F6FA),
       body: CustomScrollView(
         slivers: [
-          // ✅ SliverAppBar بتأثير انكماش احترافي
+          // ✅ شريط علوي أنيق بمساحة أقل
           SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
             pinned: true,
+            floating: false,
             elevation: 0,
+            toolbarHeight: 60, // 👈 1. تقليل ارتفاع الشريط من 75 إلى 60
             backgroundColor: const Color(0xFF1A237E),
-            // تم إزالة actions من هنا لكي لا يكون الزر معلقاً في الأعلى بمفرده
-            flexibleSpace: FlexibleSpaceBar(
-              expandedTitleScale: 1.0, 
-              
-              // 👈 1. تعديل الحواف لتكون متساوية من اليمين واليسار
-              titlePadding: const EdgeInsetsDirectional.only(
-                start: 24, 
-                end: 24, 
-                bottom: 14,
-              ),
-              
-              // 👈 2. وضع العنوان والزر في نفس السطر (Row)
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // العنوان
-                  const Text(
-                    'لوحة التحكم', // 👈 التعديل هنا: تمت إزالة كلمة "الاستراتيجية"
-                    maxLines: 1, 
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
+            
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'لوحة التحكم',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18, // 👈 تصغير بسيط ليتناسب مع الارتفاع الجديد
+                    color: Colors.white,
+                    letterSpacing: 0.5,
                   ),
-                  
-                  // 👈 3. نقلنا زر التحديث ليكون بجانب العنوان مباشرة
-                  Material(
-                    color: Colors.white.withOpacity(0.15), // لون خلفية الزر الشفافة
-                    shape: const CircleBorder(),
-                    clipBehavior: Clip.hardEdge,
-                    child: InkWell(
-                      onTap: () => context.read<HomeCubit>().fetchDashboardData(),
-                      child: const Padding(
-                        padding: EdgeInsets.all(6.0),
-                        child: Icon(
-                          Icons.refresh_rounded, 
-                          color: Colors.white, 
-                          size: 18,
-                        ),
+                ),
+                
+                Material(
+                  color: Colors.white.withOpacity(0.15),
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.hardEdge,
+                  child: InkWell(
+                    onTap: () => context.read<HomeCubit>().fetchDashboardData(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6.0), // 👈 تقليل مساحة الزر قليلاً
+                      child: Icon(
+                        Icons.refresh_rounded, 
+                        color: Colors.white, 
+                        size: 20,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+            
+            flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -149,14 +138,15 @@ class _HomePageState extends State<HomePage> {
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+                // 👈 2. تقليل المساحة العلوية لتصبح 16 والسفلية لتصبح 24
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // ✅ قسم مؤشرات الأداء
                     KpiSection(state: state),
-                    const SizedBox(height: 28),
-
-                    // ✅ قسم المخططات
+                    
+                    // 👈 3. تقليل المساحة الفاصلة بين المؤشرات والمخططات من 28 إلى 20
+                    const SizedBox(height: 20), 
+                    
                     ChartsSection(state: state),
                   ]),
                 ),
