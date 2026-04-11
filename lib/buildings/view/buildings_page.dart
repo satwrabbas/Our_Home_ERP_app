@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart' show Building, Apartment; // 🌟 تم استيراد Apartment هنا
+import 'package:local_storage_api/local_storage_api.dart' show Building, Apartment;
 import '../cubit/buildings_cubit.dart';
 import 'dialogs/add_building_dialog.dart';
 import 'dialogs/add_apartment_dialog.dart';
@@ -56,7 +56,9 @@ class BuildingsView extends StatelessWidget {
                 elevation: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 child: ExpansionTile(
-                  initiallyExpanded: true,
+                  // 👈 التعديل هنا: جعلناها false لكي تبقى الجوارير مقفلة عند فتح الصفحة
+                  initiallyExpanded: false, 
+                  
                   title: Row(
                     children: [
                       Text('🏢 ${building.name}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
