@@ -337,23 +337,12 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
   
-  // 🌟 (الفكرة العبقرية) إلغاء القديم قبل إضافة الجديد
+  // 🌟 (النسخة المعدلة) إضافة التسعيرة الجديدة فقط دون لمس السجل القديم
   Future<String> insertMaterialPriceRecord(MaterialPricesHistoryCompanion prices) async {
-    return transaction(() async {
-      // 1. ضربة استباقية: تحويل كل الأسعار القديمة إلى محذوفة
-      await (update(materialPricesHistory)
-            ..where((t) => t.isDeleted.equals(false)))
-          .write(
-            MaterialPricesHistoryCompanion(
-              isDeleted: const Value(true), // وضعناها هنا بشكل صحيح
-              isSynced: const Value(false), 
-            ),
-          );
-
-      // 2. إدخال التسعيرة الجديدة
-      final row = await into(materialPricesHistory).insertReturning(prices);
-      return row.id;
-    });
+    // تم حذف الـ transaction والكود الذي يقوم بحذف الأسعار القديمة
+    // الآن سيتم إضافة التسعيرة الجديدة فقط كسجل تاريخي جديد
+    final row = await into(materialPricesHistory).insertReturning(prices);
+    return row.id;
   }
 
   // ==========================================
