@@ -23,11 +23,13 @@ class PriceHistoryDialog extends StatelessWidget {
               return const Center(child: Text('لا يوجد سجل أسعار محفوظ بعد.'));
             }
 
-            // 🌟 الحل هنا: إضافة Scroller خارجي للتمرير العمودي
+            // 🌟 1. هنا السحر: نأخذ نسخة من القائمة ونرتبها من الأحدث للأقدم
+            final sortedHistory = List.of(state.priceHistory)..sort((a, b) {
+              return b.effectiveDate.compareTo(a.effectiveDate); // الترتيب التنازلي
+            });
+
             return SingleChildScrollView(
-              // هذا هو المسؤول عن التمرير للأسفل والأعلى
               child: SingleChildScrollView(
-                // وهذا هو المسؤول عن التمرير لليمين واليسار
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
@@ -41,11 +43,17 @@ class PriceHistoryDialog extends StatelessWidget {
                     DataColumn(label: Text('عامل (يوم)', style: TextStyle(fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
-                  rows: state.priceHistory.map((price) {
-                    final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}";
+                  // 🌟 2. استخدمنا (sortedHistory) المرتبة بدلاً من الأصلية
+                  rows: sortedHistory.map((price) {
+                    
+                    // 🌟 3. أضفنا الساعات والدقائق للتمييز بين الأسعار في نفس اليوم
+                    final hour = price.effectiveDate.hour;
+                    final minute = price.effectiveDate.minute.toString().padLeft(2, '0');
+                    final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}  ($hour:$minute)";
+
                     return DataRow(
                       cells:[
-                        DataCell(Text(date)),
+                        DataCell(Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))), // ميزنا التاريخ بلون
                         DataCell(Text(price.ironPrice.toStringAsFixed(0))),
                         DataCell(Text(price.cementPrice.toStringAsFixed(0))),
                         DataCell(Text(price.block15Price.toStringAsFixed(0))),
