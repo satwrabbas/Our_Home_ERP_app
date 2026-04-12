@@ -61,7 +61,7 @@ class PriceHistoryDialog extends StatelessWidget {
                         DataCell(Text(price.aggregateMaterialsPrice.toStringAsFixed(0))),
                         DataCell(Text(price.ordinaryWorkerWage.toStringAsFixed(0))),
                         DataCell(
-                          IconButton(
+                          IconButt\on(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             tooltip: 'حذف هذه التسعيرة',
                             onPressed: () {
