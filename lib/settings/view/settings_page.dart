@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
+import 'price_history_dialog.dart';
 import '../cubit/settings_cubit.dart'; 
 
 class SettingsPage extends StatelessWidget {
@@ -93,6 +94,37 @@ class _SettingsViewState extends State<SettingsView> {
                       const Text('النظام سيضرب هذه الأرقام بالكميات الثابتة لحساب سعر المتر', style: TextStyle(color: Colors.grey)),
                       const SizedBox(height: 24),
                       
+
+                      // استبدل كود الزر في settings_page.dart بهذا الكود:
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            // 1. نحتفظ بنسخة من الـ Cubit الحالي قبل فتح النافذة
+                            final settingsCubit = context.read<SettingsCubit>();
+                            
+                            // 2. نطلب جلب البيانات
+                            settingsCubit.fetchPriceHistory();
+                            
+                            // 3. نفتح النافذة الجديدة ونمرر لها الـ Cubit كـ "قيمة"
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => BlocProvider.value(
+                                value: settingsCubit, // 🌟 هنا السحر: مررنا الكيوبت يدوياً للنافذة
+                                child: const PriceHistoryDialog(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.history),
+                          label: const Text('سجل تغيير الأسعار (للاطلاع والحذف)'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       // 🌟 التعديل الثاني: إضافة textInputAction: TextInputAction.next لكل الحقول
                       TextField(
                         controller: ironController, 
@@ -184,3 +216,5 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 }
+
+

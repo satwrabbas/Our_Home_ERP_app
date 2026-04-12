@@ -1,4 +1,3 @@
-//lib\settings\cubit\settings_cubit.dart
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -10,15 +9,13 @@ part 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit(this._erpRepository) : super(const SettingsState()) {
-    _startWatchingPrices(); // بدء المراقبة بمجرد فتح الشاشة
+    _startWatchingPrices(); 
   }
 
   final ErpRepository _erpRepository;
   StreamSubscription<MaterialPricesHistoryData?>? _pricesSubscription;
 
-  /// 🌟 الاستماع الحي للقاعدة المحلية
   void _startWatchingPrices() {
-    // نشترك في بث قاعدة البيانات المحلية
     _pricesSubscription = _erpRepository.watchLatestPrices().listen(
       (prices) {
         emit(state.copyWith(
@@ -32,16 +29,11 @@ class SettingsCubit extends Cubit<SettingsState> {
     );
   }
 
-  /// 🌟 أعدنا هذه الدالة لكي لا يظهر خطأ في الـ UI (Dashboard & Settings Pages)
-  /// وظيفتها الآن هي فقط الطلب من السحابة جلب البيانات، 
-  /// والـ Stream بالأعلى سيتولى تحديث الشاشة تلقائياً
   Future<void> fetchPrices() async {
     emit(state.copyWith(status: SettingsStatus.loading));
     try {
       await _erpRepository.pullDataFromCloud();
-      // لا داعي لعمل emit هنا للنجاح، لأن الـ Stream سيشعر بالبيانات ويحدث الـ UI
     } catch (e) {
-      // في حال انقطاع الإنترنت (كما ظهر في الخطأ عندك)
       emit(state.copyWith(
         status: SettingsStatus.success, 
         errorMessage: "تعذر الاتصال بالسحابة (أنت تعمل الآن Offline).",
@@ -49,7 +41,6 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
-  /// إضافة تسعيرة جديدة
   Future<void> updatePrices({
     required double iron,
     required double cement,
@@ -75,11 +66,7 @@ class SettingsCubit extends Cubit<SettingsState> {
         isDeleted: const Value(false),
       );
       
-      // حفظ محلياً + مزامنة سحابية
       await _erpRepository.savePrices(newPrices);
-      
-      // بمجرد الحفظ المحلي، الـ Stream سيحدث الشاشة.
-      // نطلب مزامنة السحابة في الخلفية
       _erpRepository.forceSyncWithCloud();
 
     } catch (e) {
@@ -87,9 +74,32 @@ class SettingsCubit extends Cubit<SettingsState> {
     }
   }
 
+  /// 🌟 جلب السجل التاريخي للأسعار
+  Future<void> fetchPriceHistory() async {
+    try {
+      final history = await _erpRepository.getAllMaterialPricesHistory();
+      // نستبعد الأسعار المحذوفة من العرض
+      final activeHistory = history.where((p) => p.isDeleted == false).toList();
+      emit(state.copyWith(priceHistory: activeHistory));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: "تعذر جلب السجل: $e"));
+    }
+  }
+
+  /// 🌟 حذف تسعيرة من السجل
+  Future<void> deleteHistoricalPrice(String id) async {
+    try {
+      await _erpRepository.softDeleteMaterialPrice(id);
+      // بعد الحذف، نحدث القائمة مرة أخرى ليتحدث الجدول فوراً
+      await fetchPriceHistory();
+    } catch (e) {
+      emit(state.copyWith(errorMessage: "حدث خطأ أثناء الحذف: $e"));
+    }
+  }
+
   @override
   Future<void> close() {
-    _pricesSubscription?.cancel(); // إغلاق الاشتراك لمنع تسريب الذاكرة
+    _pricesSubscription?.cancel();
     return super.close();
   }
 }

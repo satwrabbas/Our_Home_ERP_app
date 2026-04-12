@@ -489,7 +489,20 @@ class ErpRepository {
     await syncPendingData(); 
   }
   Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => _localApi.getAllMaterialPricesHistory();
-
+  // أضف هذه الدالة في قسم الإعدادات داخل ErpRepository
+  Future<void> softDeleteMaterialPrice(String priceId) async {
+    final db = _localApi.database;
+    // 1. نقوم بتحديث السطر ليصبح محذوفاً محلياً، ونجعله غير متزامن ليتم رفعه للسحابة
+    await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(priceId))).write(
+      const MaterialPricesHistoryCompanion(
+        isDeleted: drift.Value(true),
+        isSynced: drift.Value(false), // إجبار محرك المزامنة على رفعه
+      )
+    );
+    
+    // 2. تفعيل محرك المزامنة لرفع التعديل للسحابة
+    await syncPendingData();
+  }
 
   // ==========================================
   // 🏢 إدارة المحاضر والشقق
