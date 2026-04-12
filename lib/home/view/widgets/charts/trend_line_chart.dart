@@ -1,4 +1,4 @@
-//lib\home\view\widgets\charts\trend_line_chart.dart
+// lib/home/view/widgets/charts/trend_line_chart.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -7,6 +7,7 @@ import 'chart_shared_widgets.dart';
 
 class TrendLineChart extends StatelessWidget {
   final String title;
+  final String description; // 🌟 1. أضفنا الشرح
   final Map<String, double> data;
   final Color color;
   final IconData icon;
@@ -16,6 +17,7 @@ class TrendLineChart extends StatelessWidget {
   const TrendLineChart({
     super.key,
     required this.title,
+    required this.description, // 🌟 2. أضفناه للمشيد
     required this.data,
     required this.color,
     required this.icon,
@@ -51,6 +53,7 @@ class TrendLineChart extends StatelessWidget {
 
     return ChartCard(
       title: title,
+      description: description, // 🌟 3. مررنا الشرح إلى كرت العرض المشترك
       titleIcon: icon,
       iconColor: color,
       chart: SizedBox(

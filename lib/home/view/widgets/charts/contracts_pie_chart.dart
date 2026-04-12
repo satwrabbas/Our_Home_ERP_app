@@ -1,4 +1,4 @@
-//lib\home\view\widgets\charts\contracts_pie_chart.dart
+// lib/home/view/widgets/charts/contracts_pie_chart.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'chart_colors.dart';
@@ -6,9 +6,15 @@ import 'chart_shared_widgets.dart';
 
 class ContractsPieChart extends StatelessWidget {
   final String title;
+  final String description; // 🌟 1. أضفنا الشرح
   final Map<String, int> data;
 
-  const ContractsPieChart({super.key, required this.title, required this.data});
+  const ContractsPieChart({
+    super.key, 
+    required this.title, 
+    required this.description, // 🌟 2. أضفناه للمشيد
+    required this.data,
+  });
 
   static const _colors =[
     Color(0xFF1A237E), Color(0xFF00897B),
@@ -31,6 +37,7 @@ class ContractsPieChart extends StatelessWidget {
 
     return ChartCard(
       title: title,
+      description: description, // 🌟 3. مررنا الشرح إلى كرت العرض المشترك
       titleIcon: Icons.donut_large_rounded,
       iconColor: ChartColors.primary,
       chart: data.isEmpty

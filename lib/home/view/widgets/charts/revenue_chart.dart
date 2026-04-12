@@ -1,4 +1,4 @@
-//lib\home\view\widgets\charts\revenue_chart.dart
+// lib/home/view/widgets/charts/revenue_chart.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -7,9 +7,15 @@ import 'chart_shared_widgets.dart';
 
 class RevenueChart extends StatelessWidget {
   final String title;
+  final String description; // 🌟 1. أضفنا متغير الشرح
   final Map<String, double> data;
 
-  const RevenueChart({super.key, required this.title, required this.data});
+  const RevenueChart({
+    super.key, 
+    required this.title, 
+    required this.description, // 🌟 2. طلبناه في المشيد (Constructor)
+    required this.data,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +39,7 @@ class RevenueChart extends StatelessWidget {
 
     return ChartCard(
       title: title,
+      description: description, // 🌟 3. مررنا الشرح إلى كرت العرض المشترك
       titleIcon: Icons.account_balance_wallet_rounded,
       iconColor: ChartColors.teal,
       chart: SizedBox(
@@ -69,7 +76,7 @@ class RevenueChart extends StatelessWidget {
                           width: 14,
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                           gradient: LinearGradient(
-                            colors: [ChartColors.teal.withOpacity(0.7), ChartColors.teal],
+                            colors:[ChartColors.teal.withOpacity(0.7), ChartColors.teal],
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                           ),
@@ -120,7 +127,7 @@ class RevenueChart extends StatelessWidget {
                     getDrawingHorizontalLine: (_) => const FlLine(color: ChartColors.gridLine, strokeWidth: 1),
                   ),
                 ),
-                duration: Duration.zero, // 👈 تم إلغاء الأنميشن
+                duration: Duration.zero, 
               ),
       ),
       footerRows:[

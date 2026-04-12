@@ -1,8 +1,10 @@
+// lib/home/view/widgets/charts/chart_shared_widgets.dart
 import 'package:flutter/material.dart';
 import 'chart_colors.dart';
 
 class ChartCard extends StatelessWidget {
   final String title;
+  final String description; // 🌟 1. المتغير الجديد للشرح
   final IconData titleIcon;
   final Color iconColor;
   final Widget chart;
@@ -11,47 +13,47 @@ class ChartCard extends StatelessWidget {
   const ChartCard({
     super.key,
     required this.title,
+    required this.description, // 🌟 2. أصبح مطلوباً لبناء الكرت
     required this.titleIcon,
     required this.iconColor,
     required this.chart,
     this.footerRows = const[],
   });
 
-  @override
-
-  void showChartInfoDialog(BuildContext context, String title, String description) {
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children:[
-          const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'عن المخطط: $title', 
-              style: const TextStyle(color: Colors.blueGrey, fontSize: 18, fontWeight: FontWeight.bold)
-            )
+  // 🌟 3. دالة إظهار النافذة المنبثقة
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children:[
+            const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'عن المخطط: $title', 
+                style: const TextStyle(color: Colors.blueGrey, fontSize: 16, fontWeight: FontWeight.bold)
+              )
+            ),
+          ],
+        ),
+        content: Text(
+          description, 
+          style: const TextStyle(height: 1.6, fontSize: 14, color: Colors.black87)
+        ),
+        actions:[
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx), 
+            child: const Text('حسناً، فهمت')
           ),
         ],
       ),
-      content: Text(
-        description, 
-        style: const TextStyle(height: 1.6, fontSize: 15, color: Colors.black87)
-      ),
-      actions:[
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-          onPressed: () => Navigator.pop(ctx), 
-          child: const Text('حسناً، فهمت')
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
-
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -90,6 +92,15 @@ class ChartCard extends StatelessWidget {
                       color: ChartColors.titleColor,
                     ),
                   ),
+                ),
+                // 🌟 4. زر المعلومات الجديد
+                IconButton(
+                  icon: const Icon(Icons.info_outline, color: Colors.grey, size: 22),
+                  tooltip: 'شرح المخطط',
+                  splashRadius: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _showInfoDialog(context),
                 ),
               ],
             ),
