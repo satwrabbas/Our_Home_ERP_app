@@ -328,11 +328,14 @@ class AppDatabase extends _$AppDatabase {
   Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => 
       (select(materialPricesHistory)..where((t) => t.isDeleted.equals(false))).get();
       
-  // جلب أحدث سعر (النسخة المحسنة المضادة لتضارب المزامنة)
+  // جلب أحدث سعر فعّال
   Future<MaterialPricesHistoryData?> getLatestPrices() {
     return (select(materialPricesHistory)
-          // 🚨 تم إزالة شرط (isDeleted == false) لأننا نريد الأحدث زمنياً دائماً
-          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
+          ..where((t) => t.isDeleted.equals(false)) // 🌟 1. أعدنا شرط تجاهل المحذوف
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.effectiveDate), // 🌟 2. الترتيب الأول حسب تاريخ السريان
+            (t) => OrderingTerm.desc(t.createdAt),     // 🌟 3. كاسر التعادل: الترتيب الثاني حسب وقت الإضافة بالثانية
+          ])
           ..limit(1))
         .getSingleOrNull();
   }
@@ -389,9 +392,13 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   Stream<MaterialPricesHistoryData?> watchLatestPrices() {
     return (select(materialPricesHistory)
-          ..orderBy([(t) => OrderingTerm.desc(t.effectiveDate)])
+          ..where((t) => t.isDeleted.equals(false)) // 🌟 نفس التعديل هنا مهم جداً للداشبورد
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.effectiveDate),
+            (t) => OrderingTerm.desc(t.createdAt), 
+          ])
           ..limit(1))
-        .watchSingleOrNull(); // 🌟 السحر هنا: watch بدلاً من get
+        .watchSingleOrNull();
   }
 
   // ==========================================
