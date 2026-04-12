@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../cubit/settings_cubit.dart'; // تأكد من صحة مسار الـ Cubit
+import '../cubit/settings_cubit.dart';
 
 class PriceHistoryDialog extends StatelessWidget {
   const PriceHistoryDialog({super.key});
@@ -15,7 +15,7 @@ class PriceHistoryDialog extends StatelessWidget {
         style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)
       ),
       content: SizedBox(
-        width: 800, // عرض النافذة للكمبيوتر
+        width: MediaQuery.of(context).size.width * 0.8, 
         height: 400,
         child: BlocBuilder<SettingsCubit, SettingsState>(
           builder: (context, state) {
@@ -23,37 +23,48 @@ class PriceHistoryDialog extends StatelessWidget {
               return const Center(child: Text('لا يوجد سجل أسعار محفوظ بعد.'));
             }
 
+            // 🌟 الحل هنا: إضافة Scroller خارجي للتمرير العمودي
             return SingleChildScrollView(
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
-                columns: const[
-                  DataColumn(label: Text('تاريخ التسعيرة', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('حديد', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('اسمنت', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('عامل', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold))),
-                ],
-                rows: state.priceHistory.map((price) {
-                  final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}";
-                  return DataRow(
-                    cells:[
-                      DataCell(Text(date)),
-                      DataCell(Text(price.ironPrice.toStringAsFixed(0))),
-                      DataCell(Text(price.cementPrice.toStringAsFixed(0))),
-                      DataCell(Text(price.ordinaryWorkerWage.toStringAsFixed(0))),
-                      DataCell(
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          tooltip: 'حذف هذه التسعيرة',
-                          onPressed: () {
-                            // طلب الحذف
-                            context.read<SettingsCubit>().deleteHistoricalPrice(price.id);
-                          },
+              // هذا هو المسؤول عن التمرير للأسفل والأعلى
+              child: SingleChildScrollView(
+                // وهذا هو المسؤول عن التمرير لليمين واليسار
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
+                  columns: const[
+                    DataColumn(label: Text('تاريخ التسعيرة', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('حديد (كغ)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('اسمنت (كيس)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('بلوك 15', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('كوفراج وصب (م³)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('حصويات (م³)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('عامل (يوم)', style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: state.priceHistory.map((price) {
+                    final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}";
+                    return DataRow(
+                      cells:[
+                        DataCell(Text(date)),
+                        DataCell(Text(price.ironPrice.toStringAsFixed(0))),
+                        DataCell(Text(price.cementPrice.toStringAsFixed(0))),
+                        DataCell(Text(price.block15Price.toStringAsFixed(0))),
+                        DataCell(Text(price.formworkAndPouringWages.toStringAsFixed(0))),
+                        DataCell(Text(price.aggregateMaterialsPrice.toStringAsFixed(0))),
+                        DataCell(Text(price.ordinaryWorkerWage.toStringAsFixed(0))),
+                        DataCell(
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'حذف هذه التسعيرة',
+                            onPressed: () {
+                              context.read<SettingsCubit>().deleteHistoricalPrice(price.id);
+                            },
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                }).toList(),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
             );
           },
