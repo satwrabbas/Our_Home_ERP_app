@@ -67,6 +67,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       );
       
       await _erpRepository.savePrices(newPrices);
+      _erpRepository.forceSyncWithCloud();
 
     } catch (e) {
       emit(state.copyWith(status: SettingsStatus.failure, errorMessage: e.toString()));

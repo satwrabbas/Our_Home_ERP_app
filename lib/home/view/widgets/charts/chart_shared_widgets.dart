@@ -18,6 +18,40 @@ class ChartCard extends StatelessWidget {
   });
 
   @override
+
+  void showChartInfoDialog(BuildContext context, String title, String description) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children:[
+          const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'عن المخطط: $title', 
+              style: const TextStyle(color: Colors.blueGrey, fontSize: 18, fontWeight: FontWeight.bold)
+            )
+          ),
+        ],
+      ),
+      content: Text(
+        description, 
+        style: const TextStyle(height: 1.6, fontSize: 15, color: Colors.black87)
+      ),
+      actions:[
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+          onPressed: () => Navigator.pop(ctx), 
+          child: const Text('حسناً، فهمت')
+        ),
+      ],
+    ),
+  );
+}
+
+
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
