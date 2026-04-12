@@ -324,7 +324,7 @@ class ErpRepository {
       for (var p in pendingPrices) {
         await _cloudApi.upsertMaterialPrices({
           'id': p.id, 
-          'effective_date': p.effectiveDate.toIso8601String(), 
+          'effective_date': p.effectiveDate.toUtc().toIso8601String(),
           'iron_price': _safeNum(p.ironPrice), 
           'cement_price': _safeNum(p.cementPrice), 
           'block15_price': _safeNum(p.block15Price), 
