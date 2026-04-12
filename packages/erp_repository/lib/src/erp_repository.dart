@@ -134,7 +134,7 @@ class ErpRepository {
           formworkAndPouringWages: double.tryParse(p['formwork_and_pouring_wages']?.toString() ?? '0') ?? 0.0,
           aggregateMaterialsPrice: double.tryParse(p['aggregate_materials_price']?.toString() ?? '0') ?? 0.0, 
           ordinaryWorkerWage: double.tryParse(p['ordinary_worker_wage']?.toString() ?? '0') ?? 0.0,
-          effectiveDate: drift.Value(DateTime.tryParse(p['effective_date']?.toString() ?? '') ?? DateTime.now()),
+          effectiveDate: drift.Value(DateTime.tryParse(p['effective_date']?.toString() ?? '')?.toLocal() ?? DateTime.now()),
           userId: p['user_id']?.toString() ?? '',
           isDeleted: drift.Value(p['is_deleted'] == true),
           isSynced: const drift.Value(true),
@@ -333,7 +333,7 @@ class ErpRepository {
           'ordinary_worker_wage': _safeNum(p.ordinaryWorkerWage), 
           'user_id': p.userId, 
           'is_deleted': p.isDeleted,
-          'updated_at': DateTime.now().toIso8601String(), // حقل الوقت الضروري
+          'updated_at': DateTime.now().toUtc().toIso8601String(),  // حقل الوقت الضروري
         });
         await (db.update(db.materialPricesHistory)..where((t) => t.id.equals(p.id))).write(const MaterialPricesHistoryCompanion(isSynced: drift.Value(true)));
       }
