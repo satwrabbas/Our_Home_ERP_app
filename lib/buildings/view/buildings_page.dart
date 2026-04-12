@@ -100,109 +100,56 @@ class BuildingsView extends StatelessWidget {
                             if (floorApts.isNotEmpty)
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
-                                physics: const BouncingScrollPhysics(), // حركة سكرول ناعمة
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.indigo.shade50, width: 1.5),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.indigo.withOpacity(0.04),
-                                        blurRadius: 10,
-                                        spreadRadius: 2,
-                                        offset: const Offset(0, 4),
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                                  columns: const [
+                                    DataColumn(label: Text('رقم الشقة')),
+                                    DataColumn(label: Text('المساحة')),
+                                    DataColumn(label: Text('الاتجاه')),
+                                    DataColumn(label: Text('الحالة')),
+                                    DataColumn(label: Text('إجراءات')),
+                                  ],
+                                  rows: floorApts.map((apt) => DataRow(cells: [
+                                    DataCell(Text(apt.apartmentNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                    DataCell(Text('${apt.area} م2')),
+                                    DataCell(Text(apt.directionName ?? '-')),
+                                    DataCell(Chip(
+                                      label: Text(apt.status == 'available' ? 'متاحة' : 'مباعة', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                      backgroundColor: apt.status == 'available' ? Colors.green : Colors.red,
+                                      padding: EdgeInsets.zero,
+                                    )),
+                                    DataCell(
+                                      IconButton(
+                                        icon: const Icon(Icons.info_outline, color: Colors.indigo),
+                                        onPressed: () => showApartmentDetailsDialog(context, apt),
                                       ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: DataTable(
-                                      headingRowHeight: 54, // ارتفاع صف العناوين
-                                      dataRowMinHeight: 60, // ارتفاع صفوف البيانات
-                                      dataRowMaxHeight: 60,
-                                      horizontalMargin: 24, // المساحة الجانبية للجدول
-                                      columnSpacing: 40,    // المسافة بين الأعمدة
-                                      dividerThickness: 0.5, // سماكة الخط الفاصل أرق وأجمل
-                                      headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)), // لون رمادي مزرق فاتح جداً للعناوين
-                                      headingTextStyle: const TextStyle(
-                                        fontWeight: FontWeight.bold, 
-                                        color: Color(0xFF475569), // لون العناوين رمادي احترافي
-                                        fontSize: 14,
-                                      ),
-                                      columns: const [
-                                        DataColumn(label: Text('رقم الشقة')),
-                                        DataColumn(label: Text('المساحة')),
-                                        DataColumn(label: Text('الاتجاه')),
-                                        DataColumn(label: Text('الحالة')),
-                                        DataColumn(label: Text('إجراءات')),
-                                      ],
-                                      rows: floorApts.map((apt) {
-                                        final isAvailable = apt.status == 'available';
-                                        return DataRow(
-                                          cells: [
-                                            // رقم الشقة
-                                            DataCell(
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.door_front_door_outlined, size: 18, color: Colors.indigo.shade300),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    apt.apartmentNumber, 
-                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.indigo),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            // المساحة
-                                            DataCell(Text('${apt.area} م²', style: const TextStyle(fontWeight: FontWeight.w500))),
-                                            // الاتجاه
-                                            DataCell(Text(apt.directionName ?? '-', style: TextStyle(color: Colors.grey.shade700))),
-                                            // الحالة (تصميم Badge حديث)
-                                            DataCell(
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                                decoration: BoxDecoration(
-                                                  color: isAvailable ? Colors.green.shade50 : Colors.red.shade50,
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: isAvailable ? Colors.green.shade200 : Colors.red.shade200,
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  isAvailable ? 'متاحة' : 'مباعة', 
-                                                  style: TextStyle(
-                                                    color: isAvailable ? Colors.green.shade700 : Colors.red.shade700, 
-                                                    fontWeight: FontWeight.bold, 
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            // إجراءات
-                                            DataCell(
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.indigo.shade50,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: IconButton(
-                                                  icon: const Icon(Icons.remove_red_eye_rounded, size: 20, color: Colors.indigo),
-                                                  tooltip: 'عرض التفاصيل',
-                                                  onPressed: () => showApartmentDetailsDialog(context, apt),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
                                     ),
-                                  ),
+                                  ])).toList(),
                                 ),
                               ),
+                            
+                            // 🌟 أزرار التحكم الخاصة بالطابق
+                            Container(
+                              padding: const EdgeInsets.all(8.0),
+                              color: Colors.grey.shade50,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  TextButton.icon(
+                                    icon: const Icon(Icons.add_home),
+                                    label: const Text('إضافة شقة هنا'),
+                                    onPressed: () => showAddApartmentDialog(context, building, preSelectedFloor: floorName),
+                                  ),
+                                  // 🌟 زر النسخ (يظهر فقط إذا كان هناك شقق لنسخها)
+                                  if (floorApts.isNotEmpty)
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.copy_all, color: Colors.orange),
+                                      label: const Text('نسخ نموذج الطابق', style: TextStyle(color: Colors.orange)),
+                                      onPressed: () => showCopyFloorDialog(context, building, floorName, floorApts, availableFloors.keys.toList()),
+                                    ),
+                                ],
+                              ),
+                            )
                           ],
                         ),
                       );
