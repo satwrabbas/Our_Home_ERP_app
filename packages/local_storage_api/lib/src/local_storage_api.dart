@@ -1,4 +1,4 @@
-//local_storage_api.dart
+//packages\local_storage_api\lib\src\local_storage_api.dart
 import 'database.dart';
 export 'database.dart';
 
