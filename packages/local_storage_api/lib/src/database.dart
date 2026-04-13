@@ -63,6 +63,9 @@ class Buildings extends Table {
 // ==========================================
 // 🚪 3. جدول الشقق (Apartments) - يحتوي على الخصائص المحددة
 // ==========================================
+@TableIndex(name: 'idx_apartments_sync', columns: {#isDeleted, #updatedAt, #buildingId})
+class Apartments extends Table { ... }
+
 class Apartments extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get buildingId => text().references(Buildings, #id)(); // 🌟 الارتباط بالمحضر
