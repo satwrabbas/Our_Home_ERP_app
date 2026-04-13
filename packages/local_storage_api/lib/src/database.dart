@@ -37,6 +37,9 @@ class Clients extends Table {
 // ==========================================
 // 🏢 2. جدول المحاضر (Buildings) - يحتوي على القوالب العامة
 // ==========================================
+@TableIndex(name: 'idx_buildings_sync', columns: {#isDeleted, #updatedAt})
+class Buildings extends Table { ... }
+
 class Buildings extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get name => text()(); // مثال: محضر النسيم
