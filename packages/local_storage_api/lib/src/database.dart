@@ -12,7 +12,10 @@ const _uuid = Uuid();
 
 // ==========================================
 // 1. جدول العملاء (الفريق الثاني)
-// ==========================================
+// =========================================
+@TableIndex(name: 'idx_clients_sync', columns: {#isDeleted, #updatedAt})
+class Clients extends Table { ... }
+
 class Clients extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get name => text().withLength(min: 2, max: 100)();
@@ -88,6 +91,9 @@ class Apartments extends Table {
 // ==========================================
 // 4. جدول العقود (Contracts)
 // ==========================================
+@TableIndex(name: 'idx_contracts_sync', columns: {#isDeleted, #updatedAt, #clientId})
+class Contracts extends Table { ... }
+
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get clientId => text().references(Clients, #id)(); 
@@ -146,6 +152,9 @@ class MaterialPricesHistory extends Table {
 // ==========================================
 // 6. جدول الاستحقاقات (Installments Schedule) - ما يجب دفعه
 // ==========================================
+@TableIndex(name: 'idx_schedules_sync', columns: {#isDeleted, #updatedAt, #contractId})
+class InstallmentsSchedule extends Table { ... }
+
 class InstallmentsSchedule extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get contractId => text().references(Contracts, #id)(); 
@@ -170,6 +179,10 @@ class InstallmentsSchedule extends Table {
 // 7. دفتر الأستاذ للمدفوعات (Payments Ledger) 🚨 الأهم!
 // ==========================================
 // هذا الجدول يسجل "الأموال الحقيقية" والأمتار التي اشترتها لحظة الدفع
+@TableIndex(name: 'idx_payments_sync', columns: {#isDeleted, #updatedAt, #contractId})
+class PaymentsLedger extends Table { ... }
+
+
 class PaymentsLedger extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get contractId => text().references(Contracts, #id)(); 
