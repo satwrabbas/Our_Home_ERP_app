@@ -131,6 +131,9 @@ class Contracts extends Table {
 // ==========================================
 // 5. جدول سجل أسعار المواد (Material Prices History)
 // ==========================================
+@TableIndex(name: 'idx_prices_sync', columns: {#isDeleted, #updatedAt, #effectiveDate})
+class MaterialPricesHistory extends Table { ... }
+
 class MaterialPricesHistory extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   
