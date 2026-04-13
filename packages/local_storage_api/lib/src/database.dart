@@ -14,7 +14,6 @@ const _uuid = Uuid();
 // 1. جدول العملاء (الفريق الثاني)
 // =========================================
 @TableIndex(name: 'idx_clients_sync', columns: {#isDeleted, #updatedAt})
-class Clients extends Table { ... }
 
 class Clients extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -38,7 +37,6 @@ class Clients extends Table {
 // 🏢 2. جدول المحاضر (Buildings) - يحتوي على القوالب العامة
 // ==========================================
 @TableIndex(name: 'idx_buildings_sync', columns: {#isDeleted, #updatedAt})
-class Buildings extends Table { ... }
 
 class Buildings extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -64,8 +62,6 @@ class Buildings extends Table {
 // 🚪 3. جدول الشقق (Apartments) - يحتوي على الخصائص المحددة
 // ==========================================
 @TableIndex(name: 'idx_apartments_sync', columns: {#isDeleted, #updatedAt, #buildingId})
-class Apartments extends Table { ... }
-
 class Apartments extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get buildingId => text().references(Buildings, #id)(); // 🌟 الارتباط بالمحضر
@@ -98,8 +94,6 @@ class Apartments extends Table {
 // 4. جدول العقود (Contracts)
 // ==========================================
 @TableIndex(name: 'idx_contracts_sync', columns: {#isDeleted, #updatedAt, #clientId})
-class Contracts extends Table { ... }
-
 class Contracts extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get clientId => text().references(Clients, #id)(); 
@@ -132,8 +126,6 @@ class Contracts extends Table {
 // 5. جدول سجل أسعار المواد (Material Prices History)
 // ==========================================
 @TableIndex(name: 'idx_prices_sync', columns: {#isDeleted, #updatedAt, #effectiveDate})
-class MaterialPricesHistory extends Table { ... }
-
 class MaterialPricesHistory extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   
@@ -162,7 +154,6 @@ class MaterialPricesHistory extends Table {
 // 6. جدول الاستحقاقات (Installments Schedule) - ما يجب دفعه
 // ==========================================
 @TableIndex(name: 'idx_schedules_sync', columns: {#isDeleted, #updatedAt, #contractId})
-class InstallmentsSchedule extends Table { ... }
 
 class InstallmentsSchedule extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
@@ -189,8 +180,6 @@ class InstallmentsSchedule extends Table {
 // ==========================================
 // هذا الجدول يسجل "الأموال الحقيقية" والأمتار التي اشترتها لحظة الدفع
 @TableIndex(name: 'idx_payments_sync', columns: {#isDeleted, #updatedAt, #contractId})
-class PaymentsLedger extends Table { ... }
-
 
 class PaymentsLedger extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
