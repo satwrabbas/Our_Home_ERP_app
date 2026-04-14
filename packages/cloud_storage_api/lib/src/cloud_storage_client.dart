@@ -64,8 +64,16 @@ class CloudStorageClient {
   
   Future<List<Map<String, dynamic>>> getContracts() async => await _supabase.from('contracts').select();
   
-  Future<List<Map<String, dynamic>>> getPayments() async => await _supabase.from('payments').select();
-  
+  // 📥 جلب الدفعات (تزايدي)
+  Future<List<Map<String, dynamic>>> getPayments({DateTime? lastSync}) async {
+    var query = _supabase.from('payments').select(); // تأكد من اسم الجدول في سوبابيس
+    if (lastSync != null) {
+      query = query.gte('updated_at', lastSync.toIso8601String()); // استخدام snake_case
+    }
+    return await query;
+  }
+
+
   // 🌟 (جديد) جلب جدول الاستحقاقات
   Future<List<Map<String, dynamic>>> getSchedules() async => await _supabase.from('installments_schedule').select();
   
@@ -79,7 +87,9 @@ class CloudStorageClient {
 
   Future<void> upsertContract(Map<String, dynamic> contractData) async => await _supabase.from('contracts').upsert(contractData);
 
-  Future<void> upsertPayment(Map<String, dynamic> paymentData) async => await _supabase.from('payments').upsert(paymentData);
+  // 📤 رفع الدفعات (Push)
+  Future<void> upsertPayment(Map<String, dynamic> paymentData) async => 
+    await _supabase.from('payments').upsert(paymentData);
 
   Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async => await _supabase.from('installments_schedule').upsert(scheduleData);
 

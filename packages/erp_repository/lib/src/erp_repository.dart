@@ -162,25 +162,24 @@ class ErpRepository {
         await _localApi.syncSchedule(schedule);
       }
 
-      // 5. سحب دفتر الأستاذ (الدفعات)
-      final cloudPayments = await _cloudApi.getPayments();
+      //5 سحب دفتر الأستاذ (الدفعات)
+      final cloudPayments = await _cloudApi.getPayments(lastSync: lastSyncTime);
       for (var p in cloudPayments) {
         final payment = PaymentsLedgerCompanion.insert(
           id: drift.Value(p['id'].toString()), 
-          contractId: p['contractId'].toString(), 
-          scheduleId: drift.Value(p['scheduleId']?.toString()),
-          paymentDate: DateTime.tryParse(p['paymentDate']?.toString() ?? '') ?? DateTime.now(), 
-          amountPaid: double.tryParse(p['amountPaid']?.toString() ?? '0') ?? 0.0, 
-          meterPriceAtPayment: double.tryParse(p['meterPriceAtPayment']?.toString() ?? '0') ?? 0.0,
-          convertedMeters: double.tryParse(p['convertedMeters']?.toString() ?? '0') ?? 0.0, 
+          contractId: p['contract_id'].toString(), // تم التعديل لـ snake_case
+          scheduleId: drift.Value(p['schedule_id']?.toString()), // تم التعديل
+          paymentDate: DateTime.tryParse(p['payment_date']?.toString() ?? '') ?? DateTime.now(), 
+          amountPaid: double.tryParse(p['amount_paid']?.toString() ?? '0') ?? 0.0, 
+          meterPriceAtPayment: double.tryParse(p['meter_price_at_payment']?.toString() ?? '0') ?? 0.0,
+          convertedMeters: double.tryParse(p['converted_meters']?.toString() ?? '0') ?? 0.0, 
           fees: drift.Value(double.tryParse(p['fees']?.toString() ?? '0') ?? 0.0),
-          isWhatsAppSent: drift.Value(p['isWhatsAppSent'] == true),
-          userId: p['userId']?.toString() ?? '',
-          isDeleted: drift.Value(p['isDeleted'] == true),
-          updatedAt: drift.Value(DateTime.tryParse(p['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          isWhatsAppSent: drift.Value(p['is_whatsapp_sent'] == true), // تم التعديل
+          userId: p['user_id']?.toString() ?? '', // تم التعديل
+          isDeleted: drift.Value(p['is_deleted'] == true), // تم التعديل
+          updatedAt: drift.Value(DateTime.tryParse(p['updated_at']?.toString() ?? '') ?? DateTime.now()), // تم التعديل
           isSynced: const drift.Value(true),
         );
-        // التغيير هنا: استخدم syncPayment
         await _localApi.syncPayment(payment);
       }
 
@@ -302,19 +301,22 @@ class ErpRepository {
       for (var p in pendingPayments) {
         await _cloudApi.upsertPayment({
           'id': p.id, 
-          'contractId': p.contractId, 
-          'scheduleId': p.scheduleId, 
-          'paymentDate': p.paymentDate.toIso8601String(), 
-          'amountPaid': _safeNum(p.amountPaid), 
-          'meterPriceAtPayment': _safeNum(p.meterPriceAtPayment), 
-          'convertedMeters': _safeNum(p.convertedMeters), // 🟢 تنظيف الـ Infinity هنا
+          'contract_id': p.contractId, // استخدام snake_case للرفع
+          'schedule_id': p.scheduleId, 
+          'payment_date': p.paymentDate.toIso8601String(), 
+          'amount_paid': _safeNum(p.amountPaid), 
+          'meter_price_at_payment': _safeNum(p.meterPriceAtPayment), 
+          'converted_meters': _safeNum(p.convertedMeters), 
           'fees': _safeNum(p.fees), 
-          'isWhatsAppSent': p.isWhatsAppSent, 
-          'userId': p.userId, 
-          'isDeleted': p.isDeleted, 
-          'updatedAt': p.updatedAt.toIso8601String()
+          'is_whatsapp_sent': p.isWhatsAppSent, 
+          'user_id': p.userId, 
+          'is_deleted': p.isDeleted, 
+          'updated_at': p.updatedAt.toUtc().toIso8601String()
         });
-        await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(const PaymentsLedgerCompanion(isSynced: drift.Value(true)));
+        // تحديث الحالة محلياً بأنها زومنت بنجاح
+        await (db.update(db.paymentsLedger)..where((t) => t.id.equals(p.id))).write(
+          const PaymentsLedgerCompanion(isSynced: drift.Value(true))
+        );
       }
     } catch (e) { print('Sync Payments Failed: $e'); }
     
