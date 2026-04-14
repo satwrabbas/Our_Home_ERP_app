@@ -406,21 +406,19 @@ class ErpRepository {
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
-    final companionWithUser = contractCompanion.copyWith(userId: drift.Value(currentUserId!));
-    final localId = await _localApi.addContract(companionWithUser);
     
+    // 1. إضافة الـ User ID
+    final companionWithUser = contractCompanion.copyWith(userId: drift.Value(currentUserId!));
+    
+    // 2. استخراج عدد الأشهر وتاريخ البداية
     final int months = contractCompanion.installmentsCount.present ? contractCompanion.installmentsCount.value : 48;
     final DateTime startDate = contractCompanion.contractDate.present ? contractCompanion.contractDate.value : DateTime.now();
     
-    for (int i = 1; i <= months; i++) {
-      final dueDate = DateTime(startDate.year, startDate.month + i, startDate.day);
-      final entry = InstallmentsScheduleCompanion.insert(
-        contractId: localId, installmentNumber: i, dueDate: dueDate,
-        status: const drift.Value('pending'), userId: currentUserId!, 
-      );
-      await _localApi.addScheduleEntry(entry);
-    }
-    syncPendingData();
+    // 3. 🌟 تنفيذ العملية المعقدة بأمان تام (Transaction)
+    await _localApi.addContractWithSchedules(companionWithUser, months, startDate, currentUserId!);
+    
+    // 4. رفع البيانات للسحابة
+    await syncPendingData();
   }
 
   Future<void> deleteContract(String contractId) async {

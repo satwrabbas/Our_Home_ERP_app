@@ -37,6 +37,8 @@ class LocalStorageApi {
   Future<List<Contract>> getAllContracts() => _db.getActiveContracts();
   Future<String> addContract(ContractsCompanion contract) => _db.insertContract(contract);
   Future<void> deleteContract(String id) => _db.softDeleteContract(id);
+   Future<void> addContractWithSchedules(ContractsCompanion contract, int count, DateTime start, String userId) => 
+      _db.insertContractWithSchedules(contract, count, start, userId);
 
   // ==========================================
   // 💰 دفتر الأستاذ

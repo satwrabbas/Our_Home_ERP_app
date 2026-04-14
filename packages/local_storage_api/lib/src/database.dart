@@ -279,6 +279,36 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // --- استعلامات العقود ---
   // ==========================================
+  // ==========================================
+  // --- إضافة عقد مع أقساطه كعملية واحدة (Atomic Transaction) ---
+  // ==========================================
+  Future<void> insertContractWithSchedules(
+    ContractsCompanion contract, 
+    int installmentsCount, 
+    DateTime startDate, 
+    String userId
+  ) async {
+    return transaction(() async {
+      // 1. إضافة العقد والحصول على الـ ID الخاص به
+      final contractRow = await into(contracts).insertReturning(contract);
+      final String newContractId = contractRow.id;
+
+      // 2. توليد الأقساط وإضافتها فوراً داخل نفس العملية
+      for (int i = 1; i <= installmentsCount; i++) {
+        // (Dart ذكية جداً: إذا كان الشهر 12 وزدنا عليه 1، ستقوم تلقائياً بتحويله لشهر 1 السنة القادمة)
+        final dueDate = DateTime(startDate.year, startDate.month + i, startDate.day);
+        
+        final entry = InstallmentsScheduleCompanion.insert(
+          contractId: newContractId, 
+          installmentNumber: i, 
+          dueDate: dueDate,
+          status: const Value('pending'), 
+          userId: userId, 
+        );
+        await into(installmentsSchedule).insert(entry);
+      }
+    });
+  }
   Future<List<Contract>> getActiveContracts() => 
       (select(contracts)..where((t) => t.isDeleted.equals(false))).get();
   
