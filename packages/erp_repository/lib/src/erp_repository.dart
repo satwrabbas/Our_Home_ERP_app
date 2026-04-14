@@ -5,6 +5,7 @@ import 'package:cloud_storage_api/cloud_storage_api.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 /// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية ثنائية الاتجاه (Push & Pull)
 class ErpRepository {
   ErpRepository({
@@ -77,6 +78,19 @@ class ErpRepository {
   // ==========================================
   Future<void> pullDataFromCloud() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // 1. 🌟 السطر الأهم: تعريف المتغير وجلب القيمة من الإعدادات
+      final String? lastSyncStr = prefs.getString('last_pull_timestamp');
+      DateTime? lastSyncTime; // تعريف المتغير هنا
+      
+      if (lastSyncStr != null) {
+        lastSyncTime = DateTime.parse(lastSyncStr);
+        print('⏳ جاري سحب التعديلات فقط منذ: $lastSyncTime');
+      } else {
+        print('⏳ أول مرة مزامنة: جاري سحب كامل البيانات...');
+      }
+
       // 1. سحب العملاء
       final cloudClients = await _cloudApi.getClients();
       for (var c in cloudClients) {
@@ -96,28 +110,25 @@ class ErpRepository {
       }
 
       // 2. سحب العقود
-      final cloudContracts = await _cloudApi.getContracts();
+      final cloudContracts = await _cloudApi.getContracts(lastSync: lastSyncTime);
       for (var c in cloudContracts) {
         final contract = ContractsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
-          clientId: c['clientId'].toString(), 
-          
-          // 🌟 السطر الجديد هنا: سحب معرف الشقة من السحابة 🌟
-          apartmentId: drift.Value(c['apartment_id']?.toString()), 
-          
-          contractType: drift.Value(c['contractType']?.toString() ?? 'لاحق التخصص'),
-          apartmentDetails: drift.Value(c['apartmentDetails'].toString()),
-          totalArea: double.tryParse(c['totalArea']?.toString() ?? '0') ?? 0.0,
-          baseMeterPriceAtSigning: double.tryParse(c['baseMeterPriceAtSigning']?.toString() ?? '0') ?? 0.0,
-          installmentsCount: drift.Value(int.tryParse(c['installmentsCount']?.toString() ?? '48') ?? 48),
+          clientId: c['client_id'].toString(), // تم التوحيد
+          apartmentId: drift.Value(c['apartment_id']?.toString()), // تم التوحيد
+          contractType: drift.Value(c['contract_type']?.toString() ?? 'لاحق التخصص'),
+          apartmentDetails: drift.Value(c['apartment_details']?.toString() ?? ''),
+          totalArea: double.tryParse(c['total_area']?.toString() ?? '0') ?? 0.0,
+          baseMeterPriceAtSigning: double.tryParse(c['base_meter_price_at_signing']?.toString() ?? '0') ?? 0.0,
+          installmentsCount: drift.Value(int.tryParse(c['installments_count']?.toString() ?? '48') ?? 48),
           coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
-          contractDate: DateTime.tryParse(c['contractDate']?.toString() ?? '') ?? DateTime.now(),
+          contractDate: DateTime.tryParse(c['contract_date']?.toString() ?? '') ?? DateTime.now(),
           guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', 
           contractFileUrl: drift.Value(c['contract_file_url']?.toString()), 
-          userId: c['userId']?.toString() ?? '',
-          isCompleted: drift.Value(c['isCompleted'] == true),
-          isDeleted: drift.Value(c['isDeleted'] == true),
-          updatedAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          userId: c['user_id']?.toString() ?? '',
+          isCompleted: drift.Value(c['is_completed'] == true),
+          isDeleted: drift.Value(c['is_deleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(c['updated_at']?.toString() ?? '') ?? DateTime.now()),
           isSynced: const drift.Value(true),
         );
         await _localApi.syncContract(contract);
@@ -256,32 +267,31 @@ class ErpRepository {
 
     // 2. مزامنة العقود
     try {
-      final pendingContracts = await (db.select(db.contracts)..where((t) => t.isSynced.equals(false))).get();
-      for (var c in pendingContracts) {
-        await _cloudApi.upsertContract({
-          'id': c.id, 
-          'clientId': c.clientId, 
-          
-          // 🌟 السطر الجديد هنا: رفع معرف الشقة للسحابة 🌟
-          'apartment_id': c.apartmentId, 
-          
-          'contractType': c.contractType, 
-          'apartmentDetails': c.apartmentDetails, 
-          'totalArea': _safeNum(c.totalArea), 
-          'baseMeterPriceAtSigning': _safeNum(c.baseMeterPriceAtSigning), 
-          'installmentsCount': c.installmentsCount, 
-          'coefficients': c.coefficients, 
-          'contractDate': c.contractDate.toIso8601String(), 
-          'guarantor_name': c.guarantorName,
-          'contract_file_url': c.contractFileUrl,
-          'userId': c.userId, 
-          'isCompleted': c.isCompleted, 
-          'isDeleted': c.isDeleted, 
-          'updatedAt': c.updatedAt.toIso8601String()
-        });
-        await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(const ContractsCompanion(isSynced: drift.Value(true)));
-      }
-    } catch (e) { print('Sync Contracts Failed: $e'); }
+    final pendingContracts = await (db.select(db.contracts)..where((t) => t.isSynced.equals(false))).get();
+    for (var c in pendingContracts) {
+      await _cloudApi.upsertContract({
+        'id': c.id, 
+        'client_id': c.clientId, // تم التوحيد
+        'apartment_id': c.apartmentId, 
+        'contract_type': c.contractType, 
+        'apartment_details': c.apartmentDetails, 
+        'total_area': _safeNum(c.totalArea), 
+        'base_meter_price_at_signing': _safeNum(c.baseMeterPriceAtSigning), 
+        'installments_count': c.installmentsCount, 
+        'coefficients': c.coefficients, 
+        'contract_date': c.contractDate.toIso8601String(), 
+        'guarantor_name': c.guarantorName,
+        'contract_file_url': c.contractFileUrl,
+        'user_id': c.userId, 
+        'is_completed': c.isCompleted, 
+        'is_deleted': c.isDeleted, 
+        'updated_at': c.updatedAt.toUtc().toIso8601String()
+      });
+      await (db.update(db.contracts)..where((t) => t.id.equals(c.id))).write(
+        const ContractsCompanion(isSynced: drift.Value(true))
+      );
+    }
+  } catch (e) { print('Sync Contracts Failed: $e'); }
 
     // 3. مزامنة جدول الاستحقاقات
     try {
