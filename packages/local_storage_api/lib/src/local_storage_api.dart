@@ -35,7 +35,6 @@ class LocalStorageApi {
   // 📄 العقود
   // ==========================================
   Future<List<Contract>> getAllContracts() => _db.getActiveContracts();
-  Future<String> addContract(ContractsCompanion contract) => _db.insertContract(contract);
   Future<void> deleteContract(String id) => _db.softDeleteContract(id);
    Future<void> addContractWithSchedules(ContractsCompanion contract, int count, DateTime start, String userId) => 
       _db.insertContractWithSchedules(contract, count, start, userId);
@@ -61,7 +60,6 @@ class LocalStorageApi {
   // 📅 جدول الاستحقاقات (Installments Schedule)
   // ==========================================
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _db.getScheduleForContract(contractId);
-  Future<String> addScheduleEntry(InstallmentsScheduleCompanion entry) => _db.insertScheduleEntry(entry);
   Future<int> updateScheduleStatus(String id, String status) => _db.updateScheduleStatus(id, status);
   Future<int> deleteScheduleEntry(String id) => _db.softDeleteScheduleEntry(id);
 

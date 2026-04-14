@@ -312,10 +312,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Contract>> getActiveContracts() => 
       (select(contracts)..where((t) => t.isDeleted.equals(false))).get();
   
-  Future<String> insertContract(ContractsCompanion contract) async {
-    final row = await into(contracts).insertReturning(contract);
-    return row.id;
-  }
+  
   
   /// حذف عقد (يحذف معه آلياً: أقساطه ومدفوعاته)
   Future<void> softDeleteContract(String contractId) async {
@@ -400,11 +397,7 @@ class AppDatabase extends _$AppDatabase {
         ..orderBy([(t) => OrderingTerm.asc(t.dueDate)])
       ).get();
 
-  // إضافة قسط جديد للجدول
-  Future<String> insertScheduleEntry(InstallmentsScheduleCompanion entry) async {
-    final row = await into(installmentsSchedule).insertReturning(entry);
-    return row.id;
-  }
+  
 
   // تحديث حالة القسط (مثلاً من pending إلى paid)
   Future<int> updateScheduleStatus(String id, String status) {
