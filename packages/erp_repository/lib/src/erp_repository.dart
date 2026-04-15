@@ -156,20 +156,19 @@ class ErpRepository {
 
 
       // 4. سحب جدول الاستحقاقات
-      final cloudSchedules = await _cloudApi.getSchedules();
+      final cloudSchedules = await _cloudApi.getSchedules(lastSync: lastSyncTime);
       for (var s in cloudSchedules) {
         final schedule = InstallmentsScheduleCompanion.insert(
           id: drift.Value(s['id'].toString()), 
-          contractId: s['contractId'].toString(), 
-          installmentNumber: int.tryParse(s['installmentNumber']?.toString() ?? '1') ?? 1,
-          dueDate: DateTime.tryParse(s['dueDate']?.toString() ?? '') ?? DateTime.now(), 
+          contractId: s['contract_id'].toString(), // تم التوحيد
+          installmentNumber: int.tryParse(s['installment_number']?.toString() ?? '1') ?? 1, // تم التوحيد
+          dueDate: DateTime.tryParse(s['due_date']?.toString() ?? '') ?? DateTime.now(), // تم التوحيد
           status: drift.Value(s['status']?.toString() ?? 'pending'),
-          userId: s['userId']?.toString() ?? '',
-          isDeleted: drift.Value(s['isDeleted'] == true),
-          updatedAt: drift.Value(DateTime.tryParse(s['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          userId: s['user_id']?.toString() ?? '', // تم التوحيد
+          isDeleted: drift.Value(s['is_deleted'] == true), // تم التوحيد
+          updatedAt: drift.Value(DateTime.tryParse(s['updated_at']?.toString() ?? '') ?? DateTime.now()), // تم التوحيد
           isSynced: const drift.Value(true),
         );
-        // التغيير هنا: استخدم syncSchedule
         await _localApi.syncSchedule(schedule);
       }
 
@@ -297,10 +296,25 @@ class ErpRepository {
     try {
       final pendingSchedules = await (db.select(db.installmentsSchedule)..where((t) => t.isSynced.equals(false))).get();
       if (pendingSchedules.isNotEmpty) {
-        final cloudSchedules = pendingSchedules.map((s) => {'id': s.id, 'contractId': s.contractId, 'installmentNumber': s.installmentNumber, 'dueDate': s.dueDate.toIso8601String(), 'status': s.status, 'userId': s.userId, 'isDeleted': s.isDeleted, 'updatedAt': s.updatedAt.toIso8601String()}).toList();
+        // تجهيز البيانات بصيغة snake_case للرفع للسحابة
+        final cloudSchedules = pendingSchedules.map((s) => {
+          'id': s.id, 
+          'contract_id': s.contractId, 
+          'installment_number': s.installmentNumber, 
+          'due_date': s.dueDate.toIso8601String(), 
+          'status': s.status, 
+          'user_id': s.userId, 
+          'is_deleted': s.isDeleted, 
+          'updated_at': s.updatedAt.toUtc().toIso8601String()
+        }).toList();
+        
         await _cloudApi.upsertSchedule(cloudSchedules); 
+        
+        // تحديث الحالة محلياً
         for (var s in pendingSchedules) {
-          await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(const InstallmentsScheduleCompanion(isSynced: drift.Value(true)));
+          await (db.update(db.installmentsSchedule)..where((t) => t.id.equals(s.id))).write(
+            const InstallmentsScheduleCompanion(isSynced: drift.Value(true))
+          );
         }
       }
     } catch (e) { print('Sync Schedules Failed: $e'); }

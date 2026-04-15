@@ -81,8 +81,15 @@ class CloudStorageClient {
   }
 
 
-  // 🌟 (جديد) جلب جدول الاستحقاقات
-  Future<List<Map<String, dynamic>>> getSchedules() async => await _supabase.from('installments_schedule').select();
+  // 📥 جلب جدول الاستحقاقات (تزايدي)
+  Future<List<Map<String, dynamic>>> getSchedules({DateTime? lastSync}) async {
+    var query = _supabase.from('installments_schedule').select();
+    if (lastSync != null) {
+      query = query.gte('updated_at', lastSync.toIso8601String()); // توحيد لـ snake_case
+    }
+    return await query;
+  }
+
   
   // 🌟 (جديد) جلب سجل أسعار المواد
   Future<List<Map<String, dynamic>>> getMaterialPrices() async => await _supabase.from('material_prices').select();
@@ -99,8 +106,9 @@ class CloudStorageClient {
   Future<void> upsertPayment(Map<String, dynamic> paymentData) async => 
     await _supabase.from('payments').upsert(paymentData);
 
-  Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async => await _supabase.from('installments_schedule').upsert(scheduleData);
-
+  // 📤 رفع جدول الاستحقاقات
+  Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async =>  await _supabase.from('installments_schedule').upsert(scheduleData);
+  
   Future<void> upsertMaterialPrices(Map<String, dynamic> pricesData) async => await _supabase.from('material_prices').upsert(pricesData);
 
 
