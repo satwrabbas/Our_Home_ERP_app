@@ -1,3 +1,4 @@
+//lib\settings\cubit\settings_cubit.dart
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -95,6 +96,21 @@ class SettingsCubit extends Cubit<SettingsState> {
     } catch (e) {
       emit(state.copyWith(errorMessage: "حدث خطأ أثناء الحذف: $e"));
     }
+  }
+
+
+  // ==========================================
+  // 🛡️ قسم النسخ الاحتياطي والاستعادة
+  // ==========================================
+  
+  Future<String> createManualBackup() async {
+    // نمرر الطلب للـ Repository ونعيد النص للواجهة
+    return await erpRepository.backupDatabaseManually();
+  }
+
+  Future<String> restoreDatabase() async {
+    // نمرر الطلب للـ Repository ونعيد النص للواجهة
+    return await erpRepository.restoreDatabase();
   }
 
   @override

@@ -1,3 +1,4 @@
+//lib\settings\cubit\settings_state.dart
 part of 'settings_cubit.dart';
 
 enum SettingsStatus { initial, loading, success, failure }
