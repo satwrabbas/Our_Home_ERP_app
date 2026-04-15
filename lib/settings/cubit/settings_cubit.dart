@@ -105,12 +105,12 @@ class SettingsCubit extends Cubit<SettingsState> {
   
   Future<String> createManualBackup() async {
     // نمرر الطلب للـ Repository ونعيد النص للواجهة
-    return await erpRepository.backupDatabaseManually();
+    return await _erpRepository.backupDatabaseManually();
   }
 
   Future<String> restoreDatabase() async {
     // نمرر الطلب للـ Repository ونعيد النص للواجهة
-    return await erpRepository.restoreDatabase();
+    return await _erpRepository.restoreDatabase();
   }
 
   @override
