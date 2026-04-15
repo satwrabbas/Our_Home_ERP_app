@@ -152,17 +152,45 @@ class HomeCubit extends Cubit<HomeState> {
       }
     }
     
+    // --- 1. حساب المتوسطات المبدئية مع ترك الصفر دلالة على عدم وجود بيانات ---
     Map<String, double> finalPriceTrend = {};
     tempPriceTrend.forEach((key, prices) {
-      // 🌟 تم تصحيح الخطأ البرمجي هنا باستخدام 0.0
       finalPriceTrend[key] = prices.isEmpty ? 0.0 : prices.fold(0.0, (a, b) => a + b) / prices.length;
     });
 
     Map<String, double> finalCostTrend = {};
     tempCostTrend.forEach((key, costs) {
-      // 🌟 تم تصحيح الخطأ البرمجي هنا باستخدام 0.0
       finalCostTrend[key] = costs.isEmpty ? 0.0 : costs.fold(0.0, (a, b) => a + b) / costs.length;
     });
+
+    // --- 2. تطبيق خوارزمية التعبئة الأمامية (Forward Fill - LOCF) ---
+    // هذه الخوارزمية ستبحث عن آخر قيمة غير صفرية وتنسخها للأيام/الأشهر التي تليها والتي لا تحتوي على بيانات
+    
+    // دالة مساعدة لتطبيق الخوارزمية على أي Map مرتب زمنيًا
+    void applyForwardFill(Map<String, double> trendData) {
+      double lastKnownValue = 0.0;
+      
+      // أولاً: البحث عن أول قيمة حقيقية (غير صفرية) لتكون هي نقطة الانطلاق (في حال كانت أول الفترات فارغة)
+      for (var value in trendData.values) {
+        if (value > 0) {
+          lastKnownValue = value;
+          break;
+        }
+      }
+
+      // ثانياً: المرور على البيانات وملء الفراغات
+      for (var key in trendData.keys) {
+        if (trendData[key] == 0.0) {
+          trendData[key] = lastKnownValue; // ملء الفراغ بآخر قيمة معروفة
+        } else {
+          lastKnownValue = trendData[key]!; // تحديث آخر قيمة معروفة
+        }
+      }
+    }
+
+    // تطبيق الخوارزمية على مخطط السعر ومخطط التكلفة
+    applyForwardFill(finalPriceTrend);
+    applyForwardFill(finalCostTrend);
 
     var sortedPayments = List<PaymentsLedgerData>.from(_cachedPayments);
     sortedPayments.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
