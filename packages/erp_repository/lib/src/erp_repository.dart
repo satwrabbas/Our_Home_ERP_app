@@ -92,20 +92,18 @@ class ErpRepository {
       }
 
       // 1. سحب العملاء
-      final cloudClients = await _cloudApi.getClients();
+      final cloudClients = await _cloudApi.getClients(lastSync: lastSyncTime);
       for (var c in cloudClients) {
         final client = ClientsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
           name: c['name'].toString(), 
           phone: c['phone'].toString(), 
-          nationalId: drift.Value(c['nationalId']?.toString()), 
-          userId: c['userId']?.toString() ?? '',
-          isDeleted: drift.Value(c['isDeleted'] == true), 
-          // تأكد من استخدام updatedAt القادم من السحابة
-          updatedAt: drift.Value(DateTime.tryParse(c['updatedAt']?.toString() ?? '') ?? DateTime.now()),
+          nationalId: drift.Value(c['national_id']?.toString()), // تم التوحيد
+          userId: c['user_id']?.toString() ?? '', // تم التوحيد
+          isDeleted: drift.Value(c['is_deleted'] == true), // تم التوحيد
+          updatedAt: drift.Value(DateTime.tryParse(c['updated_at']?.toString() ?? '') ?? DateTime.now()), // تم التوحيد
           isSynced: const drift.Value(true), 
         );
-        // التغيير هنا: استخدم syncClient بدلاً من addClient
         await _localApi.syncClient(client); 
       }
 
@@ -259,8 +257,19 @@ class ErpRepository {
     try {
       final pendingClients = await (db.select(db.clients)..where((t) => t.isSynced.equals(false))).get();
       for (var c in pendingClients) {
-        await _cloudApi.upsertClient({'id': c.id, 'name': c.name, 'phone': c.phone, 'nationalId': c.nationalId, 'userId': c.userId, 'isDeleted': c.isDeleted, 'updatedAt': c.updatedAt.toIso8601String()});
-        await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(const ClientsCompanion(isSynced: drift.Value(true)));
+        await _cloudApi.upsertClient({
+          'id': c.id, 
+          'name': c.name, 
+          'phone': c.phone, 
+          'national_id': c.nationalId, // تم التوحيد
+          'user_id': c.userId, // تم التوحيد
+          'is_deleted': c.isDeleted, // تم التوحيد
+          'updated_at': c.updatedAt.toUtc().toIso8601String() // تم التوحيد
+        });
+        // تحديث الحالة محلياً
+        await (db.update(db.clients)..where((t) => t.id.equals(c.id))).write(
+          const ClientsCompanion(isSynced: drift.Value(true))
+        );
       }
     } catch (e) { print('Sync Clients Failed: $e'); }
 
