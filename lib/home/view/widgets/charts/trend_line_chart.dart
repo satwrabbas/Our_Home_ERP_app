@@ -7,7 +7,7 @@ import 'chart_shared_widgets.dart';
 
 class TrendLineChart extends StatelessWidget {
   final String title;
-  final String description; // 🌟 1. أضفنا الشرح
+  final String description; 
   final Map<String, double> data;
   final Color color;
   final IconData icon;
@@ -17,7 +17,7 @@ class TrendLineChart extends StatelessWidget {
   const TrendLineChart({
     super.key,
     required this.title,
-    required this.description, // 🌟 2. أضفناه للمشيد
+    required this.description, 
     required this.data,
     required this.color,
     required this.icon,
@@ -46,6 +46,13 @@ class TrendLineChart extends StatelessWidget {
     final range = maxY - minY;
     final yInterval = range <= 0 ? 1000.0 : range / 4;
 
+    // 🌟 تحسين 1: حساب فواصل المحور الأفقي (X-axis) ديناميكياً
+    // لمنع تداخل النصوص إذا كانت البيانات كثيرة جداً (أكثر من 15 فترة)
+    double xInterval = 1;
+    if (data.length > 15) {
+      xInterval = (data.length / 8).ceilToDouble(); // إظهار حوالي 8 تسميات فقط كحد أقصى لتجنب الزحام
+    }
+
     final spots = data.entries.toList().asMap().entries.map((e) {
       if (e.value.value == 0) return FlSpot.nullSpot;
       return FlSpot(e.key.toDouble(), e.value.value);
@@ -53,7 +60,7 @@ class TrendLineChart extends StatelessWidget {
 
     return ChartCard(
       title: title,
-      description: description, // 🌟 3. مررنا الشرح إلى كرت العرض المشترك
+      description: description,
       titleIcon: icon,
       iconColor: color,
       chart: SizedBox(
@@ -109,9 +116,18 @@ class TrendLineChart extends StatelessWidget {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 32,
+                        // 🌟 التعديل 2: تحديد مسافة القفز للمحور الأفقي
+                        interval: xInterval, 
                         getTitlesWidget: (value, _) {
+                          // 🌟 التعديل 3: منع المكتبة من رسم نصوص للقيم العشرية (الفواصل)
+                          // هذا هو السطر السحري الذي يمنع تكرار التواريخ
+                          if (value != value.toInt()) {
+                            return const SizedBox.shrink();
+                          }
+
                           final i = value.toInt();
                           if (i < 0 || i >= data.length) return const SizedBox.shrink();
+                          
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -147,7 +163,7 @@ class TrendLineChart extends StatelessWidget {
                     getDrawingHorizontalLine: (_) => const FlLine(color: ChartColors.gridLine, strokeWidth: 1),
                   ),
                 ),
-                duration: Duration.zero, // 👈 تم إلغاء الأنميشن
+                duration: Duration.zero,
               ),
       ),
       footerRows:[
