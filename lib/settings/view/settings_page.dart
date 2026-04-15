@@ -82,9 +82,13 @@ class _SettingsViewState extends State<SettingsView> {
           return Center(
             child: Container(
               width: 600, 
-              padding: const EdgeInsets.all(24.0),
-              child: SingleChildScrollView(
-                child: FocusTraversalGroup(
+              // 1. أزلنا الـ padding من الـ Container
+              child: Scrollbar(
+                // 2. غلفنا المحتوى بـ Scrollbar ليظهر بشكل أجمل على الويندوز
+                child: SingleChildScrollView(
+                  // 3. 🌟 وضعنا الـ padding هنا! هذا سيبعد الشريط عن المحتوى
+                  padding: const EdgeInsets.all(24.0), 
+                  child: FocusTraversalGroup(
                   policy: WidgetOrderTraversalPolicy(), 
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -229,6 +233,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(height: 20), // مساحة سفلية
                     ],
                   ),
+                ),
                 ),
               ),
             ),
