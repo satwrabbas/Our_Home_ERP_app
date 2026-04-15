@@ -1,3 +1,4 @@
+//lib\home\view\widgets\charts\section_header.dart
 import 'package:flutter/material.dart';
 import '../../../cubit/home_cubit.dart'; // تأكد من مسار الكيوبت
 import 'chart_colors.dart';
