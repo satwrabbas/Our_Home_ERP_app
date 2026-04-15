@@ -5,9 +5,15 @@ import 'package:cloud_storage_api/cloud_storage_api.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart'; 
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 /// المدير الذكي بنظام (Offline-First) والمزامنة الشبحية ثنائية الاتجاه (Push & Pull)
 class ErpRepository {
+  // ==========================================
+  // 🏗️ الدالة البانية (Constructor)
+  // ==========================================
   ErpRepository({
     required LocalStorageApi localStorageApi,
     required CloudStorageClient cloudStorageClient,
@@ -17,6 +23,9 @@ class ErpRepository {
     // نتحقق إذا كان المستخدم مسجلاً للدخول مسبقاً، نشغل الاستماع للسحابة فوراً!
     if (currentUserId != null) {
       _startCloudListener();
+
+      // 2. 🌟 نشغل النسخ الاحتياطي التلقائي الصامت
+      autoBackupSilent();
     }
   }
 
@@ -621,4 +630,105 @@ class ErpRepository {
     }
   }
 
+
+  // ==========================================
+  // 🛡️ قسم النسخ الاحتياطي والاستعادة (Backup & Restore)
+  // ==========================================
+  
+  // اسم ملف قاعدة البيانات المعتمد في نظامنا
+  final String _dbFileName = 'our_home_erp_v9_clean.sqlite';
+
+  /// 1. النسخ الاحتياطي التلقائي (الصامت) - يعمل مرة واحدة كل يوم
+  Future<void> autoBackupSilent() async {
+    try {
+      // 1. تحديد مسار قاعدة البيانات الحالية المخبأة
+      final supportDir = await getApplicationSupportDirectory();
+      final dbFile = File(p.join(supportDir.path, _dbFileName));
+
+      if (!await dbFile.exists()) return; // إذا لم تكن موجودة، فلا نفعل شيئاً
+
+      // 2. إنشاء مجلد النسخ التلقائي في "المستندات" (Documents) ليكون آمناً
+      final docsDir = await getApplicationDocumentsDirectory();
+      final backupFolder = Directory(p.join(docsDir.path, 'OurHomeERP_AutoBackups'));
+      
+      if (!await backupFolder.exists()) {
+        await backupFolder.create(recursive: true);
+      }
+
+      // 3. توليد اسم الملف بناءً على اليوم فقط (مثال: AutoBackup_2023-11-05.sqlite)
+      // اقتطاع الوقت، والاحتفاظ بالتاريخ فقط
+      final String dateOnly = DateTime.now().toIso8601String().split('T')[0];
+      final String backupPath = p.join(backupFolder.path, 'AutoBackup_$dateOnly.sqlite');
+
+      // 4. النسخ (إذا كان الملف موجوداً من قبل في نفس اليوم، سيتم استبداله تلقائياً)
+      await dbFile.copy(backupPath);
+      print('🛡️ [Auto-Backup]: تم أخذ نسخة احتياطية بنجاح ليوم $dateOnly');
+      
+    } catch (e) {
+      print('⚠️ [Auto-Backup] فشل النسخ التلقائي: $e');
+    }
+  }
+
+  /// 2. النسخ الاحتياطي اليدوي (يختاره المستخدم)
+  Future<String> backupDatabaseManually() async {
+    try {
+      final supportDir = await getApplicationSupportDirectory();
+      final dbFile = File(p.join(supportDir.path, _dbFileName));
+
+      if (!await dbFile.exists()) {
+        return '❌ لا توجد قاعدة بيانات لنسخها بعد.';
+      }
+
+      // فتح نافذة منبثقة للمستخدم لاختيار مكان الحفظ (مثل فلاش USB)
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'اختر مجلداً لحفظ النسخة الاحتياطية',
+      );
+
+      if (selectedDirectory == null) {
+        return '⚠️ تم إلغاء العملية.';
+      }
+
+      // توليد اسم يشمل التاريخ والوقت لتجنب استبدال النسخ اليدوية
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.')[0];
+      final backupPath = p.join(selectedDirectory, 'ERP_ManualBackup_$timestamp.sqlite');
+
+      await dbFile.copy(backupPath);
+      return '✅ تم الحفظ بنجاح في:\n$backupPath';
+    } catch (e) {
+      return '❌ حدث خطأ أثناء النسخ: $e';
+    }
+  }
+
+  /// 3. استعادة البيانات (عملية جراحية دقيقة)
+  Future<String> restoreDatabase() async {
+    try {
+      // 1. اختيار ملف النسخة الاحتياطية
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'اختر ملف النسخة الاحتياطية (sqlite)',
+        type: FileType.custom,
+        allowedExtensions: ['sqlite', 'db'],
+      );
+
+      if (result == null || result.files.single.path == null) {
+        return '⚠️ تم إلغاء الاستعادة.';
+      }
+
+      File backupFile = File(result.files.single.path!);
+
+      // 2. مسار قاعدة البيانات الأصلية
+      final supportDir = await getApplicationSupportDirectory();
+      final targetDbPath = p.join(supportDir.path, _dbFileName);
+
+      // 3. 🚨 الأمان أولاً: إغلاق قاعدة البيانات لمنع قفل الملف (File Lock)
+      await _localApi.database.close();
+
+      // 4. استبدال القاعدة القديمة بالقاعدة المستعادة
+      await backupFile.copy(targetDbPath);
+
+      return '✅ تمت استعادة البيانات بنجاح!\n\n🚨 يرجى إغلاق البرنامج بالكامل وإعادة فتحه لتطبيق التغييرات.';
+      
+    } catch (e) {
+      return '❌ فشلت الاستعادة: $e';
+    }
+  }
 } 

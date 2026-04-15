@@ -11,9 +11,12 @@ environment:
 dependencies:
   cloud_storage_api:
     path: ../cloud_storage_api
+  file_picker: ^10.3.10
   local_storage_api:
     path: ../local_storage_api
   # path: ^1.9.0
+  path: ^1.9.1
+  path_provider: ^2.1.5
   shared_preferences: ^2.3.5
 
 dev_dependencies:
