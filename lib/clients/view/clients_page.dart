@@ -59,32 +59,44 @@ class ClientsView extends StatelessWidget {
                     DataCell(Text(client.phone)),
                     DataCell(Text(client.nationalId ?? 'غير متوفر')),
                     DataCell(Text('${client.createdAt.year}/${client.createdAt.month}/${client.createdAt.day}')),
+                    // ... (باقي كود الـ DataTable)
                     DataCell(
-                      // 🌟 زر الحذف (Soft Delete)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        tooltip: 'حذف العميل',
-                        onPressed: () {
-                          // إظهار رسالة تأكيد قبل الحذف
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('تأكيد الحذف'),
-                              content: Text('هل أنت متأكد من حذف العميل "${client.name}"؟'),
-                              actions:[
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                  onPressed: () {
-                                    context.read<ClientsCubit>().deleteClient(client.id);
-                                    Navigator.pop(ctx);
-                                  },
-                                  child: const Text('حذف نهائي'),
+                      // 🌟 قمنا بوضع الأزرار داخل Row ليكونوا بجانب بعض
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🌟 زر التعديل (جديد)
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                            tooltip: 'تعديل العميل',
+                            onPressed: () => _showEditClientDialog(context, client),
+                          ),
+                          // 🌟 زر الحذف (السابق)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'حذف العميل',
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('تأكيد الحذف'),
+                                  content: Text('هل أنت متأكد من حذف العميل "${client.name}"؟'),
+                                  actions:[
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        context.read<ClientsCubit>().deleteClient(client.id);
+                                        Navigator.pop(ctx);
+                                      },
+                                      child: const Text('حذف نهائي'),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          );
-                        },
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ]);
@@ -134,6 +146,56 @@ class ClientsView extends StatelessWidget {
                 }
               },
               child: const Text('حفظ العميل'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  /// 🌟 نافذة تعديل بيانات العميل
+  void _showEditClientDialog(BuildContext parentContext, dynamic client) {
+    // نقوم بملء الحقول ببيانات العميل الحالية فوراً
+    final nameController = TextEditingController(text: client.name);
+    final phoneController = TextEditingController(text: client.phone);
+    final nationalIdController = TextEditingController(text: client.nationalId ?? '');
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('تعديل بيانات العميل'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children:[
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: 'الاسم الرباعي', border: OutlineInputBorder())),
+                const SizedBox(height: 16),
+                TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'رقم الهاتف (للواتساب)', border: OutlineInputBorder()), keyboardType: TextInputType.phone),
+                const SizedBox(height: 16),
+                TextField(controller: nationalIdController, decoration: const InputDecoration(labelText: 'الرقم الوطني (اختياري)', border: OutlineInputBorder())),
+              ],
+            ),
+          ),
+          actions:[
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              onPressed: () {
+                if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
+                  // استدعاء دالة التعديل من الـ Cubit
+                  parentContext.read<ClientsCubit>().updateClient(
+                    id: client.id, // تمرير الـ ID لتحديد العميل المراد تعديله
+                    name: nameController.text,
+                    phone: phoneController.text,
+                    nationalId: nationalIdController.text.isEmpty ? null : nationalIdController.text,
+                  );
+                  Navigator.pop(dialogContext); // إغلاق النافذة
+                }
+              },
+              child: const Text('حفظ التعديلات'),
             ),
           ],
         );

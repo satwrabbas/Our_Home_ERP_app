@@ -39,6 +39,33 @@ class ClientsCubit extends Cubit<ClientsState> {
     }
   }
 
+  /// 🌟 تعديل بيانات العميل
+  Future<void> updateClient({
+    required String id,
+    required String name,
+    required String phone,
+    String? nationalId,
+  }) async {
+    try {
+      // 1. إظهار حالة التحميل (اختياري، يمكنك تجاهلها إذا كنت تفضل التحديث الصامت)
+      emit(state.copyWith(status: ClientsStatus.loading));
+
+      // 2. إرسال طلب التعديل للـ Repository
+      // ملاحظة: يجب التأكد من إضافة هذه الدالة في ErpRepository الخاص بك
+      await _erpRepository.updateClient(
+        id: id,
+        name: name,
+        phone: phone,
+        nationalId: nationalId,
+      );
+
+      // 3. جلب البيانات من جديد لتحديث الجدول
+      await fetchClients();
+    } catch (e) {
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+  
   /// 🌟 حذف عميل (حذف مؤقت Soft Delete)
   Future<void> deleteClient(String id) async { // 🌟 لاحظ أن الـ ID أصبح String
     try {
