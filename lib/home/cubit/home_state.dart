@@ -33,7 +33,6 @@ class HomeState extends Equatable {
   final Map<String, double> priceTrend; 
   final Map<String, double> costTrend; // 🌟 إضافة مسار التكلفة
   final Map<String, int> contractsByType; 
-  
   final String? errorMessage;
   
   double get averageSellPrice => totalAreaSold == 0 ? 0.0 : totalRevenue / totalAreaSold;
