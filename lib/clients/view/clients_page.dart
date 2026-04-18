@@ -27,15 +27,33 @@ class ClientsView extends StatelessWidget {
         icon: const Icon(Icons.person_add),
         label: const Text('إضافة عميل'),
       ),
-      body: BlocBuilder<ClientsCubit, ClientsState>(
+      body: BlocConsumer<ClientsCubit, ClientsState>(
+        // 1. الـ Listener: للرد على الحالات دون تغيير الشاشة (مثل إظهار SnackBar)
+        listener: (context, state) {
+          if (state.status == ClientsStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'حدث خطأ غير متوقع', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                backgroundColor: Colors.red.shade700,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        
+        // 2. الـ Builder: لبناء واجهة المستخدم
         builder: (context, state) {
-          if (state.status == ClientsStatus.loading) {
+          // عرض دائرة التحميل فقط إذا كانت البيانات فارغة وتتم عملية التحميل
+          if (state.status == ClientsStatus.loading && state.clients.isEmpty) {
             return const Center(child: CircularProgressIndicator());
-          } else if (state.status == ClientsStatus.failure) {
-            return Center(child: Text('حدث خطأ: ${state.errorMessage}'));
-          } else if (state.clients.isEmpty) {
+          } 
+          
+          // إذا لم يكن هناك عملاء
+          if (state.clients.isEmpty) {
             return const Center(child: Text('لا يوجد عملاء مضافين حتى الآن.', style: TextStyle(fontSize: 18)));
           }
+
+          // 🌟 تم إزالة شرط الـ failure من هنا حتى لا يختفي الجدول عند حدوث خطأ!
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -43,35 +61,32 @@ class ClientsView extends StatelessWidget {
               width: double.infinity,
               child: DataTable(
                 headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                columns: const[
+                columns: const [
                   DataColumn(label: Text('مُعرّف (ID)', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('اسم العميل', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('رقم الهاتف', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('الرقم الوطني', style: TextStyle(fontWeight: FontWeight.bold))),
                   DataColumn(label: Text('تاريخ الإضافة', style: TextStyle(fontWeight: FontWeight.bold))),
-                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 عمود جديد
+                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))), 
                 ],
                 rows: state.clients.map((client) {
-                  return DataRow(cells:[
-                    // 🌟 عرض أول جزء من الـ UUID فقط (قبل أول "شارحة") لجمالية الجدول
+                  return DataRow(cells: [
                     DataCell(Text(client.id.split('-').first, style: const TextStyle(color: Colors.grey))),
                     DataCell(Text(client.name, style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(client.phone)),
                     DataCell(Text(client.nationalId ?? 'غير متوفر')),
                     DataCell(Text('${client.createdAt.year}/${client.createdAt.month}/${client.createdAt.day}')),
-                    // ... (باقي كود الـ DataTable)
                     DataCell(
                       // 🌟 قمنا بوضع الأزرار داخل Row ليكونوا بجانب بعض
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 🌟 زر التعديل (جديد)
+                          // 🌟 هنا سنضع زر التعديل لاحقاً
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                             tooltip: 'تعديل العميل',
                             onPressed: () => _showEditClientDialog(context, client),
                           ),
-                          // 🌟 زر الحذف (السابق)
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             tooltip: 'حذف العميل',
@@ -81,7 +96,7 @@ class ClientsView extends StatelessWidget {
                                 builder: (ctx) => AlertDialog(
                                   title: const Text('تأكيد الحذف'),
                                   content: Text('هل أنت متأكد من حذف العميل "${client.name}"؟'),
-                                  actions:[
+                                  actions: [
                                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),

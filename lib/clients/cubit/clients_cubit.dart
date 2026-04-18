@@ -29,13 +29,23 @@ class ClientsCubit extends Cubit<ClientsState> {
         name: name,
         phone: phone,
         nationalId: Value(nationalId),
-        userId:  '',
+        userId:  '', // تأكد من تمرير הـ User ID الصحيح إذا لزم الأمر
       );
       
       await _erpRepository.addClient(newClient);
       await fetchClients(); // تحديث الشاشة
+      
     } catch (e) {
-      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+      String errorMessage = e.toString();
+      
+      // 🌟 التعرف على خطأ تكرار رقم الهاتف وتحويله لرسالة مفهومة
+      if (errorMessage.contains('UNIQUE constraint failed: clients.phone') || errorMessage.contains('2067')) {
+        errorMessage = 'رقم الهاتف هذا مستخدم بالفعل لعميل آخر!';
+      } else {
+        errorMessage = 'حدث خطأ أثناء إضافة العميل.';
+      }
+
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: errorMessage));
     }
   }
 
@@ -65,7 +75,7 @@ class ClientsCubit extends Cubit<ClientsState> {
       emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
     }
   }
-  
+
   /// 🌟 حذف عميل (حذف مؤقت Soft Delete)
   Future<void> deleteClient(String id) async { // 🌟 لاحظ أن الـ ID أصبح String
     try {
