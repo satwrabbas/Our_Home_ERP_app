@@ -191,14 +191,12 @@ class ClientsView extends StatelessWidget {
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
                   onPressed: () async {
                     if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
-                      // 1. إغلاق النافذة
                       Navigator.pop(dialogContext);
 
-                      // 2. طلب الـ PIN Code قبل التعديل
                       bool isAuthorized = await _verifyPin(parentContext);
                       
-                      // 3. إذا كان الرمز صحيحاً، نفذ التعديل
                       if (isAuthorized && parentContext.mounted) {
+                        // 🌟 نكتفي بإرسال الطلب للـ Cubit فقط.
                         parentContext.read<ClientsCubit>().updateClient(
                           id: client.id, 
                           name: nameController.text,
