@@ -170,18 +170,14 @@ class ClientsView extends StatelessWidget {
               icon: const Icon(Icons.delete_forever, color: Colors.red),
               label: const Text('حذف نهائي', style: TextStyle(color: Colors.red)),
               onPressed: () async {
-                // 1. إغلاق نافذة التعديل أولاً
-                Navigator.pop(dialogContext); 
+                Navigator.pop(dialogContext); // إغلاق النافذة
                 
-                // 2. طلب الـ PIN Code
                 bool isAuthorized = await _verifyPin(parentContext); 
                 
-                // 3. إذا كان الرمز صحيحاً، نفذ الحذف
                 if (isAuthorized && parentContext.mounted) {
+                  // 🌟 نكتفي بإرسال الطلب للـ Cubit فقط.
+                  // إذا فشل، الـ BlocConsumer سيعرض رسالة الخطأ لوحده!
                   parentContext.read<ClientsCubit>().deleteClient(client.id);
-                  ScaffoldMessenger.of(parentContext).showSnackBar(
-                    const SnackBar(content: Text('تم الحذف بنجاح ✅'), backgroundColor: Colors.green)
-                  );
                 }
               },
             ),
