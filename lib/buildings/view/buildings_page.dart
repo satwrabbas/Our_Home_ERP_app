@@ -1,4 +1,4 @@
-//lib/buildings/view/buildings_page.dart
+// lib/buildings/view/buildings_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,21 +11,33 @@ import 'dialogs/apartment_details_dialog.dart';
 import 'dialogs/building_details_dialog.dart';
 import 'dialogs/copy_floor_dialog.dart';
 
-class BuildingsPage extends StatelessWidget {
+// 🌟 تحويلها إلى StatefulWidget لطلب البيانات بآمان دون إنشاء BlocProvider جديد
+class BuildingsPage extends StatefulWidget {
   const BuildingsPage({super.key});
 
   @override
+  State<BuildingsPage> createState() => _BuildingsPageState();
+}
+
+class _BuildingsPageState extends State<BuildingsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 🚀 تحديث البيانات فور دخول الصفحة من الـ Cubit المركزي (Global)
+    context.read<BuildingsCubit>().loadData();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => BuildingsCubit(context.read<ErpRepository>())..loadData(),
-      child: const BuildingsView(),
-    );
+    // 🚀 أزلنا الـ BlocProvider من هنا لكي تتصل الصفحة بنفس الـ Cubit الذي تعدله صفحة العقود
+    return const BuildingsView();
   }
 }
 
 class BuildingsView extends StatelessWidget {
   const BuildingsView({super.key});
 
+// ... باقي الكود كما هو تماماً (appBar و BlocConsumer الخ...)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
