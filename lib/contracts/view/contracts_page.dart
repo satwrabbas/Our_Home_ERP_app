@@ -1,4 +1,4 @@
-//contracts_page.dart
+//lib\contracts\view\contracts_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

@@ -1,4 +1,4 @@
-//contracts_cubit.dart
+//lib\contracts\cubit\contracts_cubit.dart
 import 'dart:io';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
