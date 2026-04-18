@@ -1,4 +1,4 @@
-//buildings_cubit.dart
+//lib\buildings\cubit\buildings_cubit.dart
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
