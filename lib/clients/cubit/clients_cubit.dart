@@ -57,11 +57,7 @@ class ClientsCubit extends Cubit<ClientsState> {
     String? nationalId,
   }) async {
     try {
-      // 1. إظهار حالة التحميل (اختياري، يمكنك تجاهلها إذا كنت تفضل التحديث الصامت)
-      emit(state.copyWith(status: ClientsStatus.loading));
-
-      // 2. إرسال طلب التعديل للـ Repository
-      // ملاحظة: يجب التأكد من إضافة هذه الدالة في ErpRepository الخاص بك
+      // 1. استدعاء دالة التعديل من الـ Repository
       await _erpRepository.updateClient(
         id: id,
         name: name,
@@ -69,10 +65,21 @@ class ClientsCubit extends Cubit<ClientsState> {
         nationalId: nationalId,
       );
 
-      // 3. جلب البيانات من جديد لتحديث الجدول
-      await fetchClients();
+      // 2. تحديث الشاشة بعد النجاح
+      await fetchClients(); 
+      
     } catch (e) {
-      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+      String errorMessage = e.toString();
+      
+      // 🌟 التعرف على خطأ تكرار رقم الهاتف
+      if (errorMessage.contains('UNIQUE constraint failed: clients.phone') || errorMessage.contains('2067')) {
+        errorMessage = 'رقم الهاتف هذا مستخدم بالفعل لعميل آخر! لا يمكن تعديله لهذا الرقم.';
+      } else {
+        errorMessage = 'حدث خطأ أثناء تعديل بيانات العميل.';
+      }
+
+      // إرسال حالة الفشل ليقوم الـ SnackBar بعرضها
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: errorMessage));
     }
   }
 

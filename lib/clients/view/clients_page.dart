@@ -77,16 +77,16 @@ class ClientsView extends StatelessWidget {
                     DataCell(Text(client.nationalId ?? 'غير متوفر')),
                     DataCell(Text('${client.createdAt.year}/${client.createdAt.month}/${client.createdAt.day}')),
                     DataCell(
-                      // 🌟 قمنا بوضع الأزرار داخل Row ليكونوا بجانب بعض
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 🌟 هنا سنضع زر التعديل لاحقاً
+                          // 🌟 زر التعديل
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                             tooltip: 'تعديل العميل',
                             onPressed: () => _showEditClientDialog(context, client),
                           ),
+                          // 🌟 زر الحذف
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             tooltip: 'حذف العميل',
@@ -171,7 +171,7 @@ class ClientsView extends StatelessWidget {
 
   /// 🌟 نافذة تعديل بيانات العميل
   void _showEditClientDialog(BuildContext parentContext, dynamic client) {
-    // نقوم بملء الحقول ببيانات العميل الحالية فوراً
+    // ملء الحقول مسبقاً ببيانات العميل المختار
     final nameController = TextEditingController(text: client.name);
     final phoneController = TextEditingController(text: client.phone);
     final nationalIdController = TextEditingController(text: client.nationalId ?? '');
@@ -202,7 +202,7 @@ class ClientsView extends StatelessWidget {
                 if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
                   // استدعاء دالة التعديل من الـ Cubit
                   parentContext.read<ClientsCubit>().updateClient(
-                    id: client.id, // تمرير الـ ID لتحديد العميل المراد تعديله
+                    id: client.id, 
                     name: nameController.text,
                     phone: phoneController.text,
                     nationalId: nationalIdController.text.isEmpty ? null : nationalIdController.text,
