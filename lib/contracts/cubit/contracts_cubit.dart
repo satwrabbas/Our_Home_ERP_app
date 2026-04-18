@@ -113,15 +113,14 @@ class ContractsCubit extends Cubit<ContractsState> {
     required String id,
     required String details,
     required String guarantorName,
-    required double basePrice,
-    required int installmentsCount,
+    required int installmentsCount, // 🌟 لاحظ أننا حذفنا basePrice من هنا
   }) async {
     try {
+      // 🌟 استدعاء دالة المستودع بدون سعر المتر
       await _erpRepository.updateContract(
         id: id,
         apartmentDetails: details,
         guarantorName: guarantorName,
-        baseMeterPriceAtSigning: basePrice,
         installmentsCount: installmentsCount,
       );
 

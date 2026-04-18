@@ -492,12 +492,11 @@ class ErpRepository {
     syncPendingData();
   }
 
-  // 🌟 تعديل بيانات العقد
+  // 🌟 تعديل بيانات العقد (بدون المساس بسعر المتر)
   Future<void> updateContract({
     required String id,
     required String apartmentDetails,
     required String guarantorName,
-    required double baseMeterPriceAtSigning,
     required int installmentsCount,
   }) async {
     final db = _localApi.database;
@@ -506,10 +505,9 @@ class ErpRepository {
       ContractsCompanion(
         apartmentDetails: drift.Value(apartmentDetails),
         guarantorName: drift.Value(guarantorName),
-        baseMeterPriceAtSigning: drift.Value(baseMeterPriceAtSigning),
         installmentsCount: drift.Value(installmentsCount),
         updatedAt: drift.Value(DateTime.now()),
-        isSynced: const drift.Value(false), // إجبار المزامنة
+        isSynced: const drift.Value(false), 
       )
     );
 

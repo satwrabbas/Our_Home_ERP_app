@@ -567,13 +567,11 @@ class ContractsView extends StatelessWidget {
   }
 
   // ==========================================
-  // ✏️ نافذة التعديل (للمعلومات القابلة للتعديل فقط)
+  // ✏️ نافذة التعديل (للمعلومات القابلة للتعديل + إرفاق الملف)
   // ==========================================
   void _showEditContractDialog(BuildContext parentContext, dynamic contract) {
-    // تعبئة الحقول مسبقاً بالبيانات الحالية
     final detailsController = TextEditingController(text: contract.apartmentDetails);
     final guarantorController = TextEditingController(text: contract.guarantorName);
-    final priceController = TextEditingController(text: contract.baseMeterPriceAtSigning.toString());
     final monthsController = TextEditingController(text: contract.installmentsCount.toString());
 
     showDialog(
@@ -582,7 +580,7 @@ class ContractsView extends StatelessWidget {
         return AlertDialog(
           title: const Text('تعديل تفاصيل العقد', style: TextStyle(color: Colors.blue)),
           content: SizedBox(
-            width: 400,
+            width: 450, // تم تكبير العرض قليلاً ليتناسب مع زر الملف
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -591,25 +589,95 @@ class ContractsView extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     color: Colors.amber.shade50,
-                    child: const Text(
-                      'ملاحظة: لا يمكن تغيير العميل أو العقار بعد توقيع العقد لدواعٍ محاسبية. لتغييرهما، يجب حذف العقد وإبرام عقد جديد.',
-                      style: TextStyle(color: Colors.brown, fontSize: 13),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.brown, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'لا يمكن تغيير العميل، العقار، أو سعر المتر بعد التوقيع. يمكنك فقط تحديث التفاصيل، الكفيل، المدة، أو استبدال ملف العقد.',
+                            style: TextStyle(color: Colors.brown, fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   
-                  TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'وصف العقد / التفاصيل', border: OutlineInputBorder()), maxLines: 2),
-                  const SizedBox(height: 16),
-                  
-                  TextField(controller: guarantorController, decoration: const InputDecoration(labelText: 'اسم الكفيل', border: OutlineInputBorder())),
+                  TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'وصف العقد / التفاصيل (الشروط الإضافية)', border: OutlineInputBorder()), maxLines: 2),
                   const SizedBox(height: 16),
                   
                   Row(
                     children: [
-                      Expanded(child: TextField(controller: priceController, decoration: const InputDecoration(labelText: 'سعر المتر', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      Expanded(flex: 2, child: TextField(controller: guarantorController, decoration: const InputDecoration(labelText: 'اسم الكفيل', border: OutlineInputBorder()))),
                       const SizedBox(width: 12),
-                      Expanded(child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      Expanded(flex: 1, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 🌟 قسم ملف العقد (الاستبدال أو الإرفاق)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Icons.check_circle : Icons.warning_amber_rounded,
+                              color: contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Colors.green : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'يوجد ملف مرفق' : 'لا يوجد ملف',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.upload_file, color: Colors.blue),
+                          label: Text(contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'استبدال الملف' : 'إرفاق ملف'),
+                          onPressed: () async {
+                            FilePickerResult? result = await FilePicker.platform.pickFiles(
+                              type: FileType.custom,
+                              allowedExtensions: ['doc', 'docx', 'pdf'], 
+                            );
+
+                            if (result != null && result.files.single.path != null) {
+                              final filePath = result.files.single.path!;
+                              final extension = result.files.single.extension ?? 'docx';
+                              
+                              if(parentContext.mounted) {
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
+                                  const SnackBar(content: Text('جاري رفع الملف الجديد للسحابة... ⏳'), backgroundColor: Colors.orange)
+                                );
+
+                                // استدعاء الدالة لرفع الملف
+                                await parentContext.read<ContractsCubit>().attachContractFile(
+                                  contractId: contract.id,
+                                  filePath: filePath,
+                                  extension: extension,
+                                );
+
+                                if(parentContext.mounted) {
+                                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                                    const SnackBar(content: Text('تم استبدال/إرفاق الملف بنجاح! ✅ (يمكنك إغلاق هذه النافذة)'), backgroundColor: Colors.green)
+                                  );
+                                  // إغلاق نافذة التعديل تلقائياً بعد رفع الملف بنجاح
+                                  Navigator.pop(dialogContext); 
+                                }
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -620,18 +688,17 @@ class ContractsView extends StatelessWidget {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
               onPressed: () {
-                if (priceController.text.isNotEmpty && monthsController.text.isNotEmpty) {
+                if (monthsController.text.isNotEmpty) {
                   parentContext.read<ContractsCubit>().updateContract(
                     id: contract.id,
                     details: detailsController.text,
                     guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
-                    basePrice: double.parse(priceController.text),
                     installmentsCount: int.parse(monthsController.text),
                   );
                   Navigator.pop(dialogContext);
                 }
               },
-              child: const Text('حفظ التعديلات'),
+              child: const Text('حفظ التعديلات النصية'),
             ),
           ],
         );
