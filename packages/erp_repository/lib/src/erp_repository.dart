@@ -443,6 +443,28 @@ class ErpRepository {
     syncPendingData();
   }
 
+  // 🌟 الصق الدالة الجديدة هنا 🌟
+  Future<void> updateClient({
+    required String id,
+    required String name,
+    required String phone,
+    String? nationalId,
+  }) async {
+    final db = _localApi.database;
+
+    await (db.update(db.clients)..where((t) => t.id.equals(id))).write(
+      ClientsCompanion(
+        name: drift.Value(name),
+        phone: drift.Value(phone),
+        nationalId: drift.Value(nationalId),
+        updatedAt: drift.Value(DateTime.now()),
+        isSynced: const drift.Value(false), 
+      )
+    );
+
+    await syncPendingData();
+  }
+
   // ==========================================
   // 📄 العقود والتوليد الآلي للاستحقاقات
   // ==========================================
