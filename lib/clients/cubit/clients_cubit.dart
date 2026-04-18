@@ -83,25 +83,26 @@ class ClientsCubit extends Cubit<ClientsState> {
     }
   }
 
-  /// 🌟 حذف عميل (حذف مؤقت Soft Delete)
   Future<void> deleteClient(String clientId) async {
-    // 1. جلب عقود هذا العميل
-    final clientContracts = await _erpRepository.getContractsForClient(clientId);
-    
-    // 2. الفحص قبل الحذف
-    if (clientContracts.isNotEmpty) {
-      // إيقاف العملية وإصدار خطأ ليظهر كـ SnackBar في الواجهة
-      emit(state.copyWith(
-        status: ClientsStatus.failure, 
-        errorMessage: 'تحذير أمني: لا يمكن حذف العميل لأن لديه عقود مسجلة. الرجاء إلغاء عقوده أولاً لكي تعود الشقق للكتالوج.'
-      ));
-      return;
-    }
-
-    // 3. إذا لم يكن لديه عقود، قم بالحذف بآمان
     try {
+      // 1. جلب عقود هذا العميل للتحقق
+      final clientContracts = await _erpRepository.getContractsForClient(clientId);
+      
+      // 2. الفحص الأمني قبل الحذف
+      if (clientContracts.isNotEmpty) {
+        emit(state.copyWith(
+          status: ClientsStatus.failure, 
+          errorMessage: 'تحذير أمني: لا يمكن حذف العميل لأن لديه عقود مسجلة. الرجاء إلغاء عقوده أولاً لكي تعود الشقق للكتالوج.'
+        ));
+        return;
+      }
+
+      // 3. إذا لم يكن لديه عقود، قم بالحذف بآمان
       await _erpRepository.deleteClient(clientId);
-      await loadClients();
+      
+      // 🌟 تأكد من استخدام اسم دالة جلب العملاء الموجودة في ملفك (قد تكون fetchData أو fetchClients أو loadData)
+      await fetchClients(); 
+      
     } catch (e) {
       emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
     }

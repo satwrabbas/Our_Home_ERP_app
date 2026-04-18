@@ -469,6 +469,12 @@ class ErpRepository {
   // 📄 العقود والتوليد الآلي للاستحقاقات
   // ==========================================
   Future<List<Contract>> getAllContracts() => _localApi.getAllContracts();
+  // 🌟 الدالة الجديدة المضافة لجلب عقود عميل محدد للتحقق قبل الحذف
+  Future<List<Contract>> getContractsForClient(String clientId) async {
+    final allContracts = await getAllContracts();
+    // جلب العقود الفعالة (غير المحذوفة) المرتبطة بهذا العميل
+    return allContracts.where((c) => c.clientId == clientId && c.isDeleted != true).toList();
+  }
 
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
@@ -821,4 +827,6 @@ class ErpRepository {
       return '❌ فشلت الاستعادة: $e';
     }
   }
+
+
 } 
