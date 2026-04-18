@@ -96,11 +96,22 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  /// إلغاء العقد (حذف مؤقت Soft Delete)
+  /// إلغاء العقد وحذفه (وإرجاع الشقة للكتالوج إن وجدت)
   Future<void> deleteContract(String id) async { 
     emit(state.copyWith(status: ContractsStatus.loading));
     try {
+      // 1. 🔍 البحث عن العقد المراد حذفه لمعرفة ما إذا كان يمتلك شقة
+      final contractToCancel = state.contracts.firstWhere((c) => c.id == id);
+
+      // 2. 🗑️ حذف العقد من قاعدة البيانات
       await _erpRepository.deleteContract(id);
+
+      // 3. 🔄 السحر: إذا كان العقد متخصصاً (مربوط بشقة)، أعد الشقة لحالة "متاحة"
+      if (contractToCancel.apartmentId != null && contractToCancel.apartmentId!.isNotEmpty) {
+        await _erpRepository.changeApartmentStatus(contractToCancel.apartmentId!, 'available');
+      }
+
+      // 4. تحديث قائمة العقود في الشاشة
       await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
