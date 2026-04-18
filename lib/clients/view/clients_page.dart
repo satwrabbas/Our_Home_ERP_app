@@ -77,41 +77,11 @@ class ClientsView extends StatelessWidget {
                     DataCell(Text(client.nationalId ?? 'غير متوفر')),
                     DataCell(Text('${client.createdAt.year}/${client.createdAt.month}/${client.createdAt.day}')),
                     DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 🌟 زر التعديل
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                            tooltip: 'تعديل العميل',
-                            onPressed: () => _showEditClientDialog(context, client),
-                          ),
-                          // 🌟 زر الحذف
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            tooltip: 'حذف العميل',
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('تأكيد الحذف'),
-                                  content: Text('هل أنت متأكد من حذف العميل "${client.name}"؟'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                      onPressed: () {
-                                        context.read<ClientsCubit>().deleteClient(client.id);
-                                        Navigator.pop(ctx);
-                                      },
-                                      child: const Text('حذف نهائي'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                      // 🌟 تم إزالة Row وزر الحذف، أصبح هناك زر واحد فقط يفتح نافذة التعديل/الحذف
+                      IconButton(
+                        icon: const Icon(Icons.edit_note, color: Colors.blue, size: 28),
+                        tooltip: 'تعديل أو حذف العميل',
+                        onPressed: () => _showEditClientDialog(context, client),
                       ),
                     ),
                   ]);
@@ -169,9 +139,8 @@ class ClientsView extends StatelessWidget {
   }
 
 
-  /// 🌟 نافذة تعديل بيانات العميل
+  /// 🌟 نافذة تعديل أو حذف بيانات العميل
   void _showEditClientDialog(BuildContext parentContext, dynamic client) {
-    // ملء الحقول مسبقاً ببيانات العميل المختار
     final nameController = TextEditingController(text: client.name);
     final phoneController = TextEditingController(text: client.phone);
     final nationalIdController = TextEditingController(text: client.nationalId ?? '');
@@ -180,7 +149,7 @@ class ClientsView extends StatelessWidget {
       context: parentContext,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('تعديل بيانات العميل'),
+          title: const Text('تعديل بيانات العميل', style: TextStyle(color: Colors.blue)),
           content: SizedBox(
             width: 400,
             child: Column(
@@ -194,27 +163,127 @@ class ClientsView extends StatelessWidget {
               ],
             ),
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween, // 🌟 لجعل زر الحذف على اليمين والباقي على اليسار
           actions:[
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-              onPressed: () {
-                if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
-                  // استدعاء دالة التعديل من الـ Cubit
-                  parentContext.read<ClientsCubit>().updateClient(
-                    id: client.id, 
-                    name: nameController.text,
-                    phone: phoneController.text,
-                    nationalId: nationalIdController.text.isEmpty ? null : nationalIdController.text,
+            // 🗑️ زر الحذف (مدمج داخل النافذة)
+            TextButton.icon(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              label: const Text('حذف نهائي', style: TextStyle(color: Colors.red)),
+              onPressed: () async {
+                // 1. إغلاق نافذة التعديل أولاً
+                Navigator.pop(dialogContext); 
+                
+                // 2. طلب الـ PIN Code
+                bool isAuthorized = await _verifyPin(parentContext); 
+                
+                // 3. إذا كان الرمز صحيحاً، نفذ الحذف
+                if (isAuthorized && parentContext.mounted) {
+                  parentContext.read<ClientsCubit>().deleteClient(client.id);
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(content: Text('تم الحذف بنجاح ✅'), backgroundColor: Colors.green)
                   );
-                  Navigator.pop(dialogContext); // إغلاق النافذة
                 }
               },
-              child: const Text('حفظ التعديلات'),
+            ),
+            
+            // ✏️ أزرار الحفظ والإلغاء
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty && phoneController.text.isNotEmpty) {
+                      // 1. إغلاق النافذة
+                      Navigator.pop(dialogContext);
+
+                      // 2. طلب الـ PIN Code قبل التعديل
+                      bool isAuthorized = await _verifyPin(parentContext);
+                      
+                      // 3. إذا كان الرمز صحيحاً، نفذ التعديل
+                      if (isAuthorized && parentContext.mounted) {
+                        parentContext.read<ClientsCubit>().updateClient(
+                          id: client.id, 
+                          name: nameController.text,
+                          phone: phoneController.text,
+                          nationalId: nationalIdController.text.isEmpty ? null : nationalIdController.text,
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('حفظ التعديلات'),
+                ),
+              ],
+            )
+          ],
+        );
+      },
+    );
+  }
+
+
+  // ==========================================
+  // 🔐 نافذة التحقق من رمز الأمان (PIN Code)
+  // ==========================================
+  Future<bool> _verifyPin(BuildContext context) async {
+    final pinController = TextEditingController();
+    bool isAuthorized = false;
+    final String correctPin = '0000'; // 🌟 الرمز الافتراضي (يمكنك تغييره)
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // لا يمكن إغلاقها بالنقر خارجها
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.lock_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text('تأكيد الصلاحية', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('هذه العملية حساسة. يرجى إدخال رمز الأمان (PIN):'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                obscureText: true, // إخفاء الأرقام ككلمة سر
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                maxLength: 4,
+                style: const TextStyle(fontSize: 24, letterSpacing: 12),
+                decoration: const InputDecoration(border: OutlineInputBorder(), counterText: ''),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx), 
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey))
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () {
+                if (pinController.text == correctPin) {
+                  isAuthorized = true;
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('الرمز غير صحيح! ❌'), backgroundColor: Colors.red)
+                  );
+                  pinController.clear();
+                }
+              },
+              child: const Text('تأكيد'),
             ),
           ],
         );
       },
     );
+
+    return isAuthorized;
   }
 }
