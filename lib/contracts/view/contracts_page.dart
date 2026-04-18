@@ -137,41 +137,11 @@ class ContractsView extends StatelessWidget {
                     ),
 
                     DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 🌟 زر التعديل (الجديد)
-                          IconButton(
-                            icon: const Icon(Icons.edit_note, color: Colors.blue),
-                            tooltip: 'تعديل تفاصيل العقد',
-                            onPressed: () => _showEditContractDialog(context, contract),
-                          ),
-                          // 🌟 زر الحذف (السابق)
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            tooltip: 'إلغاء وحذف العقد',
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('تأكيد الإلغاء'),
-                                  content: Text('هل أنت متأكد من إلغاء عقد الشقة الخاص بالعميل "$clientName"؟'),
-                                  actions:[
-                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                      onPressed: () {
-                                        context.read<ContractsCubit>().deleteContract(contract.id);
-                                        Navigator.pop(ctx);
-                                      },
-                                      child: const Text('حذف نهائي'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                      // 🌟 زر واحد فقط يفتح نافذة إدارة العقد (تعديل/إلغاء)
+                      IconButton(
+                        icon: const Icon(Icons.edit_note, color: Colors.blue, size: 28),
+                        tooltip: 'إدارة وتعديل العقد',
+                        onPressed: () => _showEditContractDialog(context, contract),
                       ),
                     ),
                   ]);
@@ -568,7 +538,7 @@ class ContractsView extends StatelessWidget {
       },
     );
   }
-  
+
 
   // ==========================================
   // ✏️ نافذة التعديل (للمعلومات القابلة للتعديل + إرفاق الملف)
@@ -648,6 +618,12 @@ class ContractsView extends StatelessWidget {
                           icon: const Icon(Icons.upload_file, color: Colors.blue),
                           label: Text(contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'استبدال الملف' : 'إرفاق ملف'),
                           onPressed: () async {
+                            
+                            // 🌟 1. طلب الـ PIN Code أولاً قبل فتح ملفات الكمبيوتر
+                            bool isAuthorized = await _verifyPin(parentContext);
+                            if (!isAuthorized) return; // توقف إذا الرمز غير صحيح
+                            
+                            // 🌟 2. إذا الرمز صحيح، نسمح باختيار الملف
                             FilePickerResult? result = await FilePicker.platform.pickFiles(
                               type: FileType.custom,
                               allowedExtensions: ['doc', 'docx', 'pdf'], 
@@ -662,7 +638,6 @@ class ContractsView extends StatelessWidget {
                                   const SnackBar(content: Text('جاري رفع الملف الجديد للسحابة... ⏳'), backgroundColor: Colors.orange)
                                 );
 
-                                // استدعاء الدالة لرفع الملف
                                 await parentContext.read<ContractsCubit>().attachContractFile(
                                   contractId: contract.id,
                                   filePath: filePath,
@@ -671,9 +646,8 @@ class ContractsView extends StatelessWidget {
 
                                 if(parentContext.mounted) {
                                   ScaffoldMessenger.of(parentContext).showSnackBar(
-                                    const SnackBar(content: Text('تم استبدال/إرفاق الملف بنجاح! ✅ (يمكنك إغلاق هذه النافذة)'), backgroundColor: Colors.green)
+                                    const SnackBar(content: Text('تم استبدال/إرفاق الملف بنجاح! ✅'), backgroundColor: Colors.green)
                                   );
-                                  // إغلاق نافذة التعديل تلقائياً بعد رفع الملف بنجاح
                                   Navigator.pop(dialogContext); 
                                 }
                               }
@@ -687,26 +661,123 @@ class ContractsView extends StatelessWidget {
               ),
             ),
           ),
+          actionsAlignment: MainAxisAlignment.spaceBetween, // 🌟 لجعل زر الحذف على اليمين والباقي يساراً
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-              onPressed: () {
-                if (monthsController.text.isNotEmpty) {
-                  parentContext.read<ContractsCubit>().updateContract(
-                    id: contract.id,
-                    details: detailsController.text,
-                    guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
-                    installmentsCount: int.parse(monthsController.text),
-                  );
-                  Navigator.pop(dialogContext);
+            // 🗑️ زر إلغاء وحذف العقد
+            TextButton.icon(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              label: const Text('إلغاء العقد نهائياً', style: TextStyle(color: Colors.red)),
+              onPressed: () async {
+                Navigator.pop(dialogContext); // إغلاق نافذة التعديل
+                
+                bool isAuthorized = await _verifyPin(parentContext); 
+                
+                if (isAuthorized && parentContext.mounted) {
+                  // 1. إرسال طلب الحذف بصمت
+                  parentContext.read<ContractsCubit>().deleteContract(contract.id);
+                  
+                  // 2. 🌟 خطوة هامة جداً: تحديث بيانات الكتالوج لأن الشقة أصبحت "متاحة" من جديد!
+                  parentContext.read<BuildingsCubit>().loadData();
                 }
               },
-              child: const Text('حفظ التعديلات النصية'),
+            ),
+
+            // ✏️ أزرار الحفظ والإلغاء
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                  onPressed: () async {
+                    if (monthsController.text.isNotEmpty) {
+                      Navigator.pop(dialogContext); // إغلاق النافذة
+
+                      bool isAuthorized = await _verifyPin(parentContext);
+                      
+                      if (isAuthorized && parentContext.mounted) {
+                        parentContext.read<ContractsCubit>().updateContract(
+                          id: contract.id,
+                          details: detailsController.text,
+                          guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
+                          installmentsCount: int.parse(monthsController.text),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('حفظ التعديلات النصية'),
+                ),
+              ],
+            )
+          ],
+        );
+      },
+    );
+  }
+
+
+
+  // ==========================================
+  // 🔐 نافذة التحقق من رمز الأمان (PIN Code)
+  // ==========================================
+  Future<bool> _verifyPin(BuildContext context) async {
+    final pinController = TextEditingController();
+    bool isAuthorized = false;
+    final String correctPin = '0000'; // 🌟 الرمز الافتراضي للإدارة
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.lock_outline, color: Colors.red),
+              SizedBox(width: 8),
+              Text('تأكيد الصلاحية', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('هذه العملية حساسة مالياً. يرجى إدخال رمز الأمان:'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                obscureText: true, 
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                maxLength: 4,
+                style: const TextStyle(fontSize: 24, letterSpacing: 12),
+                decoration: const InputDecoration(border: OutlineInputBorder(), counterText: ''),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx), 
+              child: const Text('إلغاء', style: TextStyle(color: Colors.grey))
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+              onPressed: () {
+                if (pinController.text == correctPin) {
+                  isAuthorized = true;
+                  Navigator.pop(ctx);
+                } else {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('الرمز غير صحيح! ❌'), backgroundColor: Colors.red)
+                  );
+                  pinController.clear();
+                }
+              },
+              child: const Text('تأكيد'),
             ),
           ],
         );
       },
     );
+
+    return isAuthorized;
   }
 }

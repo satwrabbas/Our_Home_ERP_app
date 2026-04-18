@@ -498,7 +498,7 @@ class ErpRepository {
     syncPendingData();
   }
 
-  // 🌟 تعديل بيانات العقد (بدون المساس بسعر المتر)
+  // 🌟 تعديل بيانات العقد + تسوية جدول الاستحقاقات
   Future<void> updateContract({
     required String id,
     required String apartmentDetails,
@@ -507,16 +507,32 @@ class ErpRepository {
   }) async {
     final db = _localApi.database;
 
+    // 1. تحديث بيانات العقد الأساسية
     await (db.update(db.contracts)..where((t) => t.id.equals(id))).write(
       ContractsCompanion(
         apartmentDetails: drift.Value(apartmentDetails),
         guarantorName: drift.Value(guarantorName),
-        installmentsCount: drift.Value(installmentsCount),
+        installmentsCount: drift.Value(installmentsCount), // 🌟 حفظ العدد الجديد
         updatedAt: drift.Value(DateTime.now()),
         isSynced: const drift.Value(false), 
       )
     );
 
+    // 2. 🌟 السحر المحاسبي: تسوية لوحة المراقبة (حذف الأقساط الزائدة)
+    // نقوم بالبحث عن الأقساط التي رقمها "أكبر" من المدة الجديدة للعقد، ونقوم بحذفها، 
+    // بشرط أن تكون حالتها (pending) لحماية الأقساط التي تم دفعها مسبقاً!
+    await (db.update(db.installmentsSchedule)
+      ..where((t) => t.contractId.equals(id))
+      ..where((t) => t.installmentNumber.isBiggerThanValue(installmentsCount)) // إذا القسط رقم 50 والعقد صار 48
+      ..where((t) => t.status.equals('pending')) // حماية مالية 🛡️
+    ).write(
+      const InstallmentsScheduleCompanion(
+        isDeleted: drift.Value(true), // حذف مؤقت لكي يختفي من النظام
+        isSynced: drift.Value(false), // إجبار السحابة على مسحه أيضاً
+      )
+    );
+
+    // 3. رفع التعديلات (العقد + الأقساط المحذوفة) للسحابة فوراً
     await syncPendingData();
   }
 
