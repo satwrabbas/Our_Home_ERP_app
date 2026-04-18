@@ -106,4 +106,29 @@ class ContractsCubit extends Cubit<ContractsState> {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
   }
+
+
+  /// 🌟 تعديل العقد الحالي
+  Future<void> updateContract({
+    required String id,
+    required String details,
+    required String guarantorName,
+    required double basePrice,
+    required int installmentsCount,
+  }) async {
+    try {
+      await _erpRepository.updateContract(
+        id: id,
+        apartmentDetails: details,
+        guarantorName: guarantorName,
+        baseMeterPriceAtSigning: basePrice,
+        installmentsCount: installmentsCount,
+      );
+
+      // تحديث الشاشة بعد النجاح
+      await fetchData(); 
+    } catch (e) {
+      emit(state.copyWith(status: ContractsStatus.failure, errorMessage: 'حدث خطأ أثناء تعديل العقد: $e'));
+    }
+  }
 }

@@ -35,9 +35,21 @@ class ContractsView extends StatelessWidget {
         label: const Text('عقد جديد'),
         backgroundColor: Colors.teal,
       ),
-      body: BlocBuilder<ContractsCubit, ContractsState>(
+      body: BlocConsumer<ContractsCubit, ContractsState>(
+        listener: (context, state) {
+          // 🌟 عرض الخطأ عبر SnackBar بدلاً من الشاشة الحمراء
+          if (state.status == ContractsStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'حدث خطأ غير متوقع', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                backgroundColor: Colors.red.shade700,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
         builder: (context, state) {
-          if (state.status == ContractsStatus.loading) {
+          if (state.status == ContractsStatus.loading && state.contracts.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           } 
           if (state.clients.isEmpty) {
@@ -125,29 +137,41 @@ class ContractsView extends StatelessWidget {
                     ),
 
                     DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        tooltip: 'إلغاء وحذف العقد',
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('تأكيد الإلغاء'),
-                              content: Text('هل أنت متأكد من إلغاء عقد الشقة الخاص بالعميل "$clientName"؟'),
-                              actions:[
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                  onPressed: () {
-                                    context.read<ContractsCubit>().deleteContract(contract.id);
-                                    Navigator.pop(ctx);
-                                  },
-                                  child: const Text('حذف نهائي'),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🌟 زر التعديل (الجديد)
+                          IconButton(
+                            icon: const Icon(Icons.edit_note, color: Colors.blue),
+                            tooltip: 'تعديل تفاصيل العقد',
+                            onPressed: () => _showEditContractDialog(context, contract),
+                          ),
+                          // 🌟 زر الحذف (السابق)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                            tooltip: 'إلغاء وحذف العقد',
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('تأكيد الإلغاء'),
+                                  content: Text('هل أنت متأكد من إلغاء عقد الشقة الخاص بالعميل "$clientName"؟'),
+                                  actions:[
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('تراجع')),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        context.read<ContractsCubit>().deleteContract(contract.id);
+                                        Navigator.pop(ctx);
+                                      },
+                                      child: const Text('حذف نهائي'),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          );
-                        },
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ]);
@@ -537,6 +561,79 @@ class ContractsView extends StatelessWidget {
               ],
             );
           }
+        );
+      },
+    );
+  }
+
+  // ==========================================
+  // ✏️ نافذة التعديل (للمعلومات القابلة للتعديل فقط)
+  // ==========================================
+  void _showEditContractDialog(BuildContext parentContext, dynamic contract) {
+    // تعبئة الحقول مسبقاً بالبيانات الحالية
+    final detailsController = TextEditingController(text: contract.apartmentDetails);
+    final guarantorController = TextEditingController(text: contract.guarantorName);
+    final priceController = TextEditingController(text: contract.baseMeterPriceAtSigning.toString());
+    final monthsController = TextEditingController(text: contract.installmentsCount.toString());
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('تعديل تفاصيل العقد', style: TextStyle(color: Colors.blue)),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // تنبيه للمحاسب
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.amber.shade50,
+                    child: const Text(
+                      'ملاحظة: لا يمكن تغيير العميل أو العقار بعد توقيع العقد لدواعٍ محاسبية. لتغييرهما، يجب حذف العقد وإبرام عقد جديد.',
+                      style: TextStyle(color: Colors.brown, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'وصف العقد / التفاصيل', border: OutlineInputBorder()), maxLines: 2),
+                  const SizedBox(height: 16),
+                  
+                  TextField(controller: guarantorController, decoration: const InputDecoration(labelText: 'اسم الكفيل', border: OutlineInputBorder())),
+                  const SizedBox(height: 16),
+                  
+                  Row(
+                    children: [
+                      Expanded(child: TextField(controller: priceController, decoration: const InputDecoration(labelText: 'سعر المتر', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      const SizedBox(width: 12),
+                      Expanded(child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              onPressed: () {
+                if (priceController.text.isNotEmpty && monthsController.text.isNotEmpty) {
+                  parentContext.read<ContractsCubit>().updateContract(
+                    id: contract.id,
+                    details: detailsController.text,
+                    guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
+                    basePrice: double.parse(priceController.text),
+                    installmentsCount: int.parse(monthsController.text),
+                  );
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('حفظ التعديلات'),
+            ),
+          ],
         );
       },
     );
