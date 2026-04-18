@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/payments_cubit.dart';
-
+import '../../core/utils/ledger_pdf_helper.dart';
 import '../../core/utils/pdf_generator.dart';
 import '../../core/utils/pdf_preview_page.dart';
 import '../../core/utils/whatsapp_helper.dart';
@@ -77,6 +77,8 @@ class PaymentsView extends StatelessWidget {
                     const SizedBox(width: 16),
                     
                     if (state.selectedContractId != null) ...[
+                      
+                      // 🟢 زر تصدير الإكسل (يعمل كما هو)
                       ElevatedButton.icon(
                         onPressed: () async {
                           if (state.ledgerEntries.isEmpty) {
@@ -86,16 +88,8 @@ class PaymentsView extends StatelessWidget {
                           
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ملف الإكسل...')));
                           
-                          final contractIdx = state.contracts.indexWhere((c) => c.id == state.selectedContractId);
-                          if(contractIdx == -1) return;
-                          final contract = state.contracts[contractIdx];
-                          
-                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                          if(clientIdx == -1) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('بيانات العميل مفقودة!'), backgroundColor: Colors.red));
-                            return;
-                          }
-                          final client = state.clients[clientIdx];
+                          final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                          final client = state.clients.firstWhere((c) => c.id == contract.clientId);
 
                           final filePath = await ExcelExportHelper.exportLedgerToExcel(
                             ledgerEntries: state.ledgerEntries,
@@ -117,15 +111,53 @@ class PaymentsView extends StatelessWidget {
                         },
                         icon: const Icon(Icons.table_view),
                         label: const Text('تصدير Excel', style: TextStyle(fontSize: 16)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
+                      
                       const SizedBox(width: 12),
                       
+                      // 🔴 زر طباعة كشف حساب PDF (الزر الجديد)
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          if (state.ledgerEntries.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يوجد حركات مالية لطباعتها!'), backgroundColor: Colors.red));
+                            return;
+                          }
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز كشف الحساب (PDF)...')));
+                          
+                          final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                          final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+
+                          // هنا سنستدعي دالة من ملف جديد سننشئه بعد قليل
+                          final pdfBytes = await LedgerPdfHelper.generateLedgerReportPdf(
+                            ledgerEntries: state.ledgerEntries,
+                            contract: contract,
+                            client: client,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => PdfPreviewPage(
+                                pdfBytes: pdfBytes, 
+                                title: 'كشف_حساب_${client.name}'
+                              )
+                            ));
+                          }
+                        },
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('كشف حساب PDF', style: TextStyle(fontSize: 16)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
+                      ),
+
+                      const SizedBox(width: 12),
+                      
+                      // 🟠 زر إدخال دفعة جديدة
                       ElevatedButton.icon(
                         onPressed: () => _showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
-                        label: const Text('إدخال دفعة جديدة', style: TextStyle(fontSize: 16)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18)),
+                        label: const Text('إدخال دفعة', style: TextStyle(fontSize: 16)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
                     ],
                   ],

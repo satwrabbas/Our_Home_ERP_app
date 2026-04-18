@@ -158,4 +158,5 @@ class PdfGenerator {
 
     return pdf.save();
   }
+  
 }
