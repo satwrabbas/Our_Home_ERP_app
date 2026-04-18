@@ -34,9 +34,19 @@ class BuildingsView extends StatelessWidget {
         backgroundColor: Colors.indigo,
         centerTitle: true,
       ),
-      body: BlocBuilder<BuildingsCubit, BuildingsState>(
+      body: BlocConsumer<BuildingsCubit, BuildingsState>(
+        listener: (context, state) {
+          if (state.status == BuildingsStatus.failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'حدث خطأ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
         builder: (context, state) {
-          if (state.status == BuildingsStatus.loading) {
+          if (state.status == BuildingsStatus.loading && state.buildings.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.buildings.isEmpty) {
@@ -44,6 +54,7 @@ class BuildingsView extends StatelessWidget {
           }
 
           return ListView.builder(
+            // ... (باقي الكود يبقى كما هو)
             padding: const EdgeInsets.all(16),
             itemCount: state.buildings.length,
             itemBuilder: (context, index) {
@@ -73,13 +84,27 @@ class BuildingsView extends StatelessWidget {
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
                       ),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.domain_verification, color: Colors.teal),
-                        tooltip: 'عرض تفاصيل المحضر',
-                        onPressed: () => showBuildingDetailsDialog(context, building),
+                      // 🌟 الأزرار موضوعة في Row لترتيبها
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 🌟 زر تعديل المحضر (الجديد)
+                          IconButton(
+                            icon: const Icon(Icons.edit_note, color: Colors.orange),
+                            tooltip: 'تعديل اسم وموقع المحضر',
+                            onPressed: () => _showEditBuildingDialog(context, building),
+                          ),
+                          // 🌟 زر التفاصيل (القديم)
+                          IconButton(
+                            icon: const Icon(Icons.domain_verification, color: Colors.teal),
+                            tooltip: 'عرض تفاصيل المحضر',
+                            onPressed: () => showBuildingDetailsDialog(context, building),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                  
                   subtitle: Text(
                     'الموقع: ${building.location} | إجمالي الشقق: ${bldApartments.length}',
                     style: TextStyle(color: Colors.grey.shade700),
@@ -279,4 +304,58 @@ class BuildingsView extends StatelessWidget {
       ),
     );
   }  
+
+  // ==========================================
+  // ✏️ نافذة تعديل المحضر (Building)
+  // ==========================================
+  void _showEditBuildingDialog(BuildContext parentContext, dynamic building) {
+    // تعبئة البيانات مسبقاً
+    final nameController = TextEditingController(text: building.name);
+    final locationController = TextEditingController(text: building.location ?? '');
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('تعديل بيانات المحضر', style: TextStyle(color: Colors.indigo)),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController, 
+                  decoration: const InputDecoration(labelText: 'اسم المحضر', border: OutlineInputBorder())
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: locationController, 
+                  decoration: const InputDecoration(labelText: 'الموقع / العنوان', border: OutlineInputBorder())
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+              onPressed: () {
+                if (nameController.text.trim().isNotEmpty) {
+                  parentContext.read<BuildingsCubit>().updateBuilding(
+                    id: building.id,
+                    name: nameController.text.trim(),
+                    location: locationController.text.trim(),
+                  );
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('حفظ التعديلات'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  
 }

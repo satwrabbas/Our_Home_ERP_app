@@ -614,6 +614,52 @@ class ErpRepository {
     await _localApi.addApartment(companionWithUser);
     await syncPendingData(); // 🌟 تفعيل الرفع السحابي الفوري
   }
+
+  // ==========================================
+  // 🏢 تعديل المحاضر والشقق
+  // ==========================================
+  
+  // 1. تعديل المحضر (الاسم والموقع فقط)
+  Future<void> updateBuilding({
+    required String id,
+    required String name,
+    required String location,
+  }) async {
+    final db = _localApi.database;
+
+    await (db.update(db.buildings)..where((t) => t.id.equals(id))).write(
+      BuildingsCompanion(
+        name: drift.Value(name),
+        location: drift.Value(location),
+        updatedAt: drift.Value(DateTime.now()),
+        isSynced: const drift.Value(false), // إجبار المزامنة
+      )
+    );
+
+    await syncPendingData();
+  }
+
+  // 2. تعديل الشقة (الرقم، المساحة، والاتجاه)
+  Future<void> updateApartment({
+    required String id,
+    required String apartmentNumber,
+    required double area,
+    required String directionName,
+  }) async {
+    final db = _localApi.database;
+
+    await (db.update(db.apartments)..where((t) => t.id.equals(id))).write(
+      ApartmentsCompanion(
+        apartmentNumber: drift.Value(apartmentNumber),
+        area: drift.Value(area),
+        directionName: drift.Value(directionName),
+        updatedAt: drift.Value(DateTime.now()),
+        isSynced: const drift.Value(false), // إجبار المزامنة
+      )
+    );
+
+    await syncPendingData();
+  }
   
   // ==========================================
   // 📡 محرك الاستماع السحابي الحي (Realtime Sync)

@@ -73,4 +73,38 @@ class BuildingsCubit extends Cubit<BuildingsState> {
       emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: e.toString()));
     }
   }
+
+  /// 🌟 تعديل بيانات المحضر (المبنى)
+  Future<void> updateBuilding({
+    required String id,
+    required String name,
+    required String location,
+  }) async {
+    try {
+      await _erpRepository.updateBuilding(id: id, name: name, location: location);
+      await loadData(); // تحديث الشاشة
+    } catch (e) {
+      emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: 'فشل تعديل المحضر: $e'));
+    }
+  }
+
+  /// 🌟 تعديل بيانات الشقة
+  Future<void> updateApartment({
+    required String id,
+    required String apartmentNumber,
+    required double area,
+    required String directionName,
+  }) async {
+    try {
+      await _erpRepository.updateApartment(
+        id: id,
+        apartmentNumber: apartmentNumber,
+        area: area,
+        directionName: directionName,
+      );
+      await loadData(); // تحديث الشاشة
+    } catch (e) {
+      emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: 'فشل تعديل الشقة: $e'));
+    }
+  }
 }
