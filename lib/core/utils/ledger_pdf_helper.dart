@@ -32,8 +32,9 @@ class LedgerPdfHelper {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        // 🌟 تقليل حواف الصفحة لاستغلال المساحة وإظهار عناصر أكثر
+        margin: const pw.EdgeInsets.symmetric(vertical: 24, horizontal: 24),
         textDirection: pw.TextDirection.rtl,
-        // 🌟 إجبار الـ Theme على الخطوط
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicBoldFont),
         
         header: (pw.Context context) {
@@ -46,24 +47,24 @@ class LedgerPdfHelper {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      // 🌟 استخدمنا font: arabicBoldFont صراحةً هنا وفي كل العناوين
-                      pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 20, color: primaryColor)), 
-                      pw.Text('Our Home Real Estate ERP', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey700)),
+                      // تصغير الخطوط لتكون متناسقة
+                      pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 16, color: primaryColor)), 
+                      pw.Text('Our Home Real Estate ERP', style: pw.TextStyle(font: arabicFont, fontSize: 7, color: PdfColors.grey700)),
                     ]
                   ),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('كشف حساب العميل', style: pw.TextStyle(font: arabicBoldFont, fontSize: 16, color: accentColor)),
-                      pw.SizedBox(height: 4),
-                      pw.Text('تاريخ الإصدار: ${formatDate(DateTime.now())}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                      pw.Text('كشف حساب العميل', style: pw.TextStyle(font: arabicBoldFont, fontSize: 14, color: accentColor)),
+                      pw.SizedBox(height: 2),
+                      pw.Text('تاريخ الإصدار: ${formatDate(DateTime.now())}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                     ]
                   ),
                 ]
               ),
-              pw.SizedBox(height: 12), 
-              pw.Divider(color: primaryColor, thickness: 1.5),
-              pw.SizedBox(height: 16), 
+              pw.SizedBox(height: 8), 
+              pw.Divider(color: primaryColor, thickness: 1),
+              pw.SizedBox(height: 8), 
             ]
           );
         },
@@ -76,138 +77,138 @@ class LedgerPdfHelper {
               decoration: pw.BoxDecoration(
                 color: PdfColors.grey100,
                 border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
-                borderRadius: pw.BorderRadius.circular(6),
+                borderRadius: pw.BorderRadius.circular(4),
               ),
-              padding: const pw.EdgeInsets.all(16), 
+              padding: const pw.EdgeInsets.all(8), // تقليل الحشوة الداخلية
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('👤 هوية الفريق الثاني (العميل)', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 12)),
-                  pw.SizedBox(height: 12), 
+                  pw.Text('👤 هوية الفريق الثاني (العميل)', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
+                  pw.SizedBox(height: 6), 
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('الاسم: ${client.name}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('رقم الهاتف: ${client.phone}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('الاسم: ${client.name}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 9)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('رقم الهاتف: ${client.phone}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('الرقم الوطني: ${client.nationalId ?? 'غير مدون'}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('كود العميل: ${client.id.split('-').first.toUpperCase()}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('الرقم الوطني: ${client.nationalId ?? 'غير مدون'}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('كود العميل: ${client.id.split('-').first.toUpperCase()}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                     ]
                   ),
                 ]
               )
             ),
-            pw.SizedBox(height: 16), 
+            pw.SizedBox(height: 8), 
 
-            // --- هوية العقد والشقة التفصيلية 🌟 ---
+            // --- هوية العقد والشقة التفصيلية ---
             pw.Container(
               decoration: pw.BoxDecoration(
                 color: PdfColors.blue50,
                 border: pw.Border.all(color: primaryColor, width: 0.5),
-                borderRadius: pw.BorderRadius.circular(6),
+                borderRadius: pw.BorderRadius.circular(4),
               ),
-              padding: const pw.EdgeInsets.all(16), 
+              padding: const pw.EdgeInsets.all(8), 
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('📄 تفاصيل العقد والمواصفات', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 12)),
-                  pw.SizedBox(height: 12),
+                  pw.Text('📄 تفاصيل العقد والمواصفات', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
+                  pw.SizedBox(height: 6),
                   
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('نوع العقد: ${contract.contractType}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10, color: accentColor)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('المحضر (البناء): ${building?.name ?? "غير محدد"}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('الموقع: ${building?.location ?? "غير محدد"}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('نوع العقد: ${contract.contractType}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 9, color: accentColor)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('المحضر (البناء): ${building?.name ?? "غير محدد"}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('الموقع: ${building?.location ?? "غير محدد"}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('رقم الشقة: ${apartment?.apartmentNumber ?? "-"}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('الطابق: ${apartment?.floorName ?? "-"}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('الاتجاه: ${apartment?.directionName ?? "-"}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('رقم الشقة: ${apartment?.apartmentNumber ?? "-"}', style: pw.TextStyle(font: arabicBoldFont, fontSize: 9)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('الطابق: ${apartment?.floorName ?? "-"}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('الاتجاه: ${apartment?.directionName ?? "-"}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                     ]
                   ),
-                  pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 4),
                   pw.Divider(color: PdfColors.grey400, thickness: 0.5),
-                  pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 4),
                   
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('المساحة الإجمالية: ${contract.totalArea} م2', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('تاريخ التوقيع: ${formatDate(contract.contractDate)}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('الكفيل: ${contract.guarantorName}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('المساحة الإجمالية: ${contract.totalArea} م2', style: pw.TextStyle(font: arabicBoldFont, fontSize: 9)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('تاريخ التوقيع: ${formatDate(contract.contractDate)}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('الكفيل: ${contract.guarantorName}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                        pw.Text('مدة الأقساط: ${contract.installmentsCount} شهراً', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('سعر الأساس وقت التوقيع: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('ملاحظات: ${contract.apartmentDetails}', style: pw.TextStyle(font: arabicFont, fontSize: 9)),
+                        pw.Text('مدة الأقساط: ${contract.installmentsCount} شهراً', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('سعر الأساس: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('ملاحظات: ${contract.apartmentDetails}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                     ]
                   ),
                 ]
               )
             ),
-            pw.SizedBox(height: 24), 
+            pw.SizedBox(height: 12), 
 
             // --- الخلاصة المالية ---
             pw.Container(
-              padding: const pw.EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: pw.BoxDecoration(
-                border: pw.Border(left: pw.BorderSide(color: accentColor, width: 4)),
+                border: pw.Border(left: pw.BorderSide(color: accentColor, width: 3)),
                 color: PdfColors.grey100,
               ),
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                    pw.Text('إجمالي المبالغ المسددة', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey700)),
-                    pw.SizedBox(height: 4),
-                    pw.Text('${totalPaid.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicBoldFont, fontSize: 12, color: primaryColor)),
+                    pw.Text('إجمالي المبالغ المسددة', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey700)),
+                    pw.SizedBox(height: 2),
+                    pw.Text('${totalPaid.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10, color: primaryColor)),
                   ]),
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                    pw.Text('مجموع الأمتار المملوكة', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey700)),
-                    pw.SizedBox(height: 4),
-                    pw.Text('${totalMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(font: arabicBoldFont, fontSize: 12, color: PdfColors.green700)),
+                    pw.Text('مجموع الأمتار المملوكة', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey700)),
+                    pw.SizedBox(height: 2),
+                    pw.Text('${totalMeters.toStringAsFixed(3)} م2', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10, color: PdfColors.green700)),
                   ]),
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                    pw.Text('الأمتار المتبقية للشركة', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey700)),
-                    pw.SizedBox(height: 4),
+                    pw.Text('الأمتار المتبقية للشركة', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey700)),
+                    pw.SizedBox(height: 2),
                     pw.Text('${remainingMeters > 0 ? remainingMeters.toStringAsFixed(3) : "0 (مكتمل)"} م2', 
-                      style: pw.TextStyle(font: arabicBoldFont, fontSize: 12, color: remainingMeters > 0 ? PdfColors.red700 : PdfColors.green700)),
+                      style: pw.TextStyle(font: arabicBoldFont, fontSize: 10, color: remainingMeters > 0 ? PdfColors.red700 : PdfColors.green700)),
                   ]),
                 ]
               ),
             ),
-            pw.SizedBox(height: 24),
+            pw.SizedBox(height: 12),
 
             // --- جدول الحركات ---
-            pw.Text('📊 السجل المالي المفصل (دفتر الأستاذ)', style: pw.TextStyle(font: arabicBoldFont, fontSize: 12, color: primaryColor)),
-            pw.SizedBox(height: 12),
+            pw.Text('📊 السجل المالي المفصل (دفتر الأستاذ)', style: pw.TextStyle(font: arabicBoldFont, fontSize: 10, color: primaryColor)),
+            pw.SizedBox(height: 8),
             pw.TableHelper.fromTextArray(
               context: context,
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
-              // 🌟 رأس الجدول بخط عريض
-              headerStyle: pw.TextStyle(font: arabicBoldFont, color: PdfColors.white, fontSize: 9), 
+              // 🌟 تقليل مساحات الخلايا في الجدول ليتسع لعدد أكبر من الأسطر في نفس الصفحة
+              cellPadding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+              headerStyle: pw.TextStyle(font: arabicBoldFont, color: PdfColors.white, fontSize: 8), 
               headerDecoration: const pw.BoxDecoration(color: primaryColor),
               cellAlignment: pw.Alignment.center,
-              // 🌟 خلايا الجدول بخط عادي
-              cellStyle: pw.TextStyle(font: arabicFont, fontSize: 9), 
+              cellStyle: pw.TextStyle(font: arabicFont, fontSize: 8), 
               headers: ['الإيصال', 'التاريخ', 'المبلغ المدفوع (ل.س)', 'سعر المتر', 'نسبة البونص', 'الأمتار المشتراة'],
               data: ledgerEntries.map((entry) {
                 return [
@@ -221,11 +222,11 @@ class LedgerPdfHelper {
               }).toList(),
             ),
             
-            pw.SizedBox(height: 16),
+            pw.SizedBox(height: 8),
             
             pw.Text(
               '* ملاحظة: عدد الأمتار المشتراة يعتبر حقاً مكتسباً للعميل، وهو محمي ضد التضخم ولا يتأثر بتقلبات أسعار المواد المستقبلية.',
-              style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey600),
+              style: pw.TextStyle(font: arabicFont, fontSize: 7, color: PdfColors.grey600),
             ),
           ];
         },
@@ -233,14 +234,14 @@ class LedgerPdfHelper {
         footer: (pw.Context context) {
           return pw.Column(
             children: [
-              pw.Divider(color: PdfColors.grey300, thickness: 1),
-              pw.SizedBox(height: 8),
+              pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+              pw.SizedBox(height: 4),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('Our Home ERP System', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 8)),
-                  pw.Text('صفحة ${context.pageNumber} من ${context.pagesCount}', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 9)),
-                  pw.Text('المدقق المالي: _______________', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 9)),
+                  pw.Text('Our Home ERP System', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 7)),
+                  pw.Text('صفحة ${context.pageNumber} من ${context.pagesCount}', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 8)),
+                  pw.Text('المدقق المالي: _______________', style: pw.TextStyle(font: arabicFont, color: PdfColors.grey600, fontSize: 8)),
                 ]
               ),
             ]
