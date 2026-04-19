@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart'; // 🌟 التعديل هنا: أزلنا كلمة show
+import 'package:local_storage_api/local_storage_api.dart'; 
 import 'package:drift/drift.dart' show Value;
 
 import '../../core/utils/calculator_helper.dart';
@@ -63,16 +63,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً.');
       }
 
-      // 🌟 [الكود الجديد]: تجهيز لقطة الأسعار بصيغة JSON
-      final String pricesSnapshotJson = jsonEncode({
-        'iron': currentPrices.ironPrice,
-        'cement': currentPrices.cementPrice,
-        'block': currentPrices.block15Price,
-        'formwork': currentPrices.formworkAndPouringWages,
-        'aggregates': currentPrices.aggregateMaterialsPrice,
-        'worker': currentPrices.ordinaryWorkerWage,
-      });
-
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول لضمان مزامنة البيانات.');
 
@@ -95,6 +85,16 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       final double effectiveAmount = amountPaid + (amountPaid * (discountPercentage / 100));
       final double convertedMeters = effectiveAmount / meterPriceToday;
 
+      // 🌟 تجهيز لقطة الأسعار بصيغة JSON
+      final String pricesSnapshotJson = jsonEncode({
+        'iron': currentPrices.ironPrice,
+        'cement': currentPrices.cementPrice,
+        'block': currentPrices.block15Price,
+        'formwork': currentPrices.formworkAndPouringWages,
+        'aggregates': currentPrices.aggregateMaterialsPrice,
+        'worker': currentPrices.ordinaryWorkerWage,
+      });
+
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
@@ -102,13 +102,10 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         amountPaid: amountPaid, 
         meterPriceAtPayment: meterPriceToday, 
         convertedMeters: convertedMeters, 
-        pricesSnapshot: Value(pricesSnapshotJson), // 🌟 الحقل الجديد هنا
+        pricesSnapshot: Value(pricesSnapshotJson), // 🌟 حفظ اللقطة
         fees: Value(discountPercentage), 
         userId: userId,
       );
-
-      // 🌟 [السطر الجديد]: حقن اللقطة في قاعدة البيانات
-        pricesSnapshot: Value(pricesSnapshotJson), 
       
       await _erpRepository.addLedgerEntry(newEntry);
 

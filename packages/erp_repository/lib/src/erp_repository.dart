@@ -179,22 +179,26 @@ class ErpRepository {
         await _localApi.syncSchedule(schedule);
       }
 
-      //5 سحب دفتر الأستاذ (الدفعات)
+      // 5. سحب دفتر الأستاذ (الدفعات)
       final cloudPayments = await _cloudApi.getPayments(lastSync: lastSyncTime);
       for (var p in cloudPayments) {
         final payment = PaymentsLedgerCompanion.insert(
           id: drift.Value(p['id'].toString()), 
-          contractId: p['contract_id'].toString(), // تم التعديل لـ snake_case
-          scheduleId: drift.Value(p['schedule_id']?.toString()), // تم التعديل
+          contractId: p['contract_id'].toString(), 
+          scheduleId: drift.Value(p['schedule_id']?.toString()), 
           paymentDate: DateTime.tryParse(p['payment_date']?.toString() ?? '') ?? DateTime.now(), 
           amountPaid: double.tryParse(p['amount_paid']?.toString() ?? '0') ?? 0.0, 
           meterPriceAtPayment: double.tryParse(p['meter_price_at_payment']?.toString() ?? '0') ?? 0.0,
           convertedMeters: double.tryParse(p['converted_meters']?.toString() ?? '0') ?? 0.0, 
+          
+          // 🌟 السطر الجديد: سحب لقطة الأسعار من السحابة
+          pricesSnapshot: drift.Value(p['prices_snapshot']?.toString() ?? '{}'),
+          
           fees: drift.Value(double.tryParse(p['fees']?.toString() ?? '0') ?? 0.0),
-          isWhatsAppSent: drift.Value(p['is_whatsapp_sent'] == true), // تم التعديل
-          userId: p['user_id']?.toString() ?? '', // تم التعديل
-          isDeleted: drift.Value(p['is_deleted'] == true), // تم التعديل
-          updatedAt: drift.Value(DateTime.tryParse(p['updated_at']?.toString() ?? '') ?? DateTime.now()), // تم التعديل
+          isWhatsAppSent: drift.Value(p['is_whatsapp_sent'] == true), 
+          userId: p['user_id']?.toString() ?? '', 
+          isDeleted: drift.Value(p['is_deleted'] == true), 
+          updatedAt: drift.Value(DateTime.tryParse(p['updated_at']?.toString() ?? '') ?? DateTime.now()), 
           isSynced: const drift.Value(true),
         );
         await _localApi.syncPayment(payment);
@@ -349,6 +353,7 @@ class ErpRepository {
           'amount_paid': _safeNum(p.amountPaid), 
           'meter_price_at_payment': _safeNum(p.meterPriceAtPayment), 
           'converted_meters': _safeNum(p.convertedMeters), 
+          'prices_snapshot': p.pricesSnapshot,
           'fees': _safeNum(p.fees), 
           'is_whatsapp_sent': p.isWhatsAppSent, 
           'user_id': p.userId, 
