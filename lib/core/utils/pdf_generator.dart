@@ -5,12 +5,14 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:erp_repository/erp_repository.dart';
+import 'arabic_tafqeet.dart'; // 🌟 السطر الجديد
 import 'package:local_storage_api/local_storage_api.dart'; // 🌟 أضفناه ليتعرف على البيانات
 
 class PdfGenerator {
-  // دالة التفقيط
+  // 🌟 دالة التفقيط الجديدة والمربوطة بالمحرك العربي
   static String numberToArabicWords(double number) {
-    return "${number.toStringAsFixed(0)} ليرة سورية فقط لا غير"; 
+    String text = ArabicTafqeet.convert(number.toInt());
+    return " $text ليرة سورية فقط لا غير."; 
   }
 
   static Future<Uint8List> generateReceiptPdf({
