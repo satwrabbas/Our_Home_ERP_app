@@ -257,7 +257,7 @@ class PdfGenerator {
                     pw.Expanded(child: pw.Divider(borderStyle: pw.BorderStyle.dashed, color: PdfColors.grey500)),
                     pw.Padding(
                       padding: const pw.EdgeInsets.symmetric(horizontal: 8),
-                      child: pw.Text('✂️ قص هنا', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey600)),
+                      child: pw.Text(' قص هنا', style: pw.TextStyle(font: arabicFont, fontSize: 9, color: PdfColors.grey600)),
                     ),
                     pw.Expanded(child: pw.Divider(borderStyle: pw.BorderStyle.dashed, color: PdfColors.grey500)),
                   ]
