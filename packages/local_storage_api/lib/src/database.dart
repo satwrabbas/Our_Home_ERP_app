@@ -193,6 +193,10 @@ class PaymentsLedger extends Table {
   RealColumn get meterPriceAtPayment => real()(); 
   RealColumn get convertedMeters => real()(); 
 
+   // 🌟 [السطر الجديد]: لقطة الأسعار التاريخية لحظة الدفع (تُحفظ كـ JSON)
+  TextColumn get pricesSnapshot => text().withDefault(const Constant('{}'))(); 
+
+
   RealColumn get fees => real().withDefault(const Constant(0))(); 
   BoolColumn get isWhatsAppSent => boolean().withDefault(const Constant(false))();
   

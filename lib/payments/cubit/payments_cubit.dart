@@ -63,6 +63,16 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         throw Exception('يرجى إضافة أسعار المواد من شاشة الإعدادات أولاً.');
       }
 
+      // 🌟 [الكود الجديد]: تجهيز لقطة الأسعار بصيغة JSON
+      final String pricesSnapshotJson = jsonEncode({
+        'iron': currentPrices.ironPrice,
+        'cement': currentPrices.cementPrice,
+        'block': currentPrices.block15Price,
+        'formwork': currentPrices.formworkAndPouringWages,
+        'aggregates': currentPrices.aggregateMaterialsPrice,
+        'worker': currentPrices.ordinaryWorkerWage,
+      });
+
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول لضمان مزامنة البيانات.');
 
@@ -92,9 +102,13 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         amountPaid: amountPaid, 
         meterPriceAtPayment: meterPriceToday, 
         convertedMeters: convertedMeters, 
+        pricesSnapshot: Value(pricesSnapshotJson), // 🌟 الحقل الجديد هنا
         fees: Value(discountPercentage), 
         userId: userId,
       );
+
+      // 🌟 [السطر الجديد]: حقن اللقطة في قاعدة البيانات
+        pricesSnapshot: Value(pricesSnapshotJson), 
       
       await _erpRepository.addLedgerEntry(newEntry);
 

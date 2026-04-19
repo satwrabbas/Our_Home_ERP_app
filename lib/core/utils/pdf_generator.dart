@@ -1,4 +1,5 @@
 // lib/core/utils/pdf_generator.dart
+import 'dart:convert'; // 🌟 السطر الجديد لفك تشفير الـ JSON
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -15,8 +16,6 @@ class PdfGenerator {
     required PaymentsLedgerData entry,
     required Contract contract,
     required Client client,
-    // 💡 ملاحظة: إذا كنت تريد عرض أسعار الحديد والإسمنت الحقيقية وقت الدفع، 
-    // يجب تمريرها هنا مستقبلاً. حالياً سأضعها كشكل يطابق الإكسل.
   }) async {
     final pdf = pw.Document();
 
@@ -25,6 +24,35 @@ class PdfGenerator {
 
     // تصميم الوصل الواحد (نصف صفحة)
     pw.Widget buildReceipt(String copyType) {
+      
+      // ========================================================
+      // 🌟 السحر المحاسبي: استخراج لقطة الأسعار التاريخية (Snapshot)
+      // ========================================================
+      Map<String, dynamic> snapshot = {};
+      try {
+        if (entry.pricesSnapshot.isNotEmpty && entry.pricesSnapshot != '{}') {
+          snapshot = jsonDecode(entry.pricesSnapshot);
+        }
+      } catch (e) {
+        print('Error decoding prices snapshot: $e');
+      }
+
+      // دوال مساعدة لطباعة السعر وتجنب الأخطاء للبيانات القديمة
+      String getPrice(String key) {
+        if (snapshot.containsKey(key) && snapshot[key] != null) {
+          return (snapshot[key] as num).toStringAsFixed(0);
+        }
+        return 'غير متوفر'; // للبيانات القديمة التي لم تحفظ بصيغة Snapshot
+      }
+
+      String getTotal(String key, double quantity) {
+        if (snapshot.containsKey(key) && snapshot[key] != null) {
+          return ((snapshot[key] as num) * quantity).toStringAsFixed(0);
+        }
+        return '-';
+      }
+      // ========================================================
+
       return pw.Container(
         padding: const pw.EdgeInsets.all(12),
         decoration: pw.BoxDecoration(
@@ -72,7 +100,7 @@ class PdfGenerator {
             
             pw.SizedBox(height: 8),
 
-            // --- النص التوضيحي (من ملف الإكسل) ---
+            // --- النص التوضيحي ---
             pw.Container(
               width: double.infinity,
               padding: const pw.EdgeInsets.all(4),
@@ -86,8 +114,7 @@ class PdfGenerator {
             
             pw.SizedBox(height: 6),
 
-            // --- جدول تفاصيل المواد (تصميم Sheet3) ---
-            // ملاحظة: الخط هنا صغير جداً (fontSize: 8) ليتسع في الورقة
+            // --- جدول تفاصيل المواد (ديناميكي يسحب الأسعار التاريخية) ---
             pw.TableHelper.fromTextArray(
               context: null,
               cellAlignment: pw.Alignment.center,
@@ -104,19 +131,20 @@ class PdfGenerator {
                 5: const pw.FlexColumnWidth(2), // الاجمالي
               },
               headers: ['م', 'نوع العمل', 'الوحدة', 'الكمية', 'السعر الإفرادي', 'السعر الإجمالي'],
+              // 🌟 تعبئة البيانات بالاستعانة بالدوال المساعدة التي صممناها
               data: [
-                ['1', 'ثمن حديد مبروم واصل الى موقع العمل', 'كغ', '48', 'حسب السوق', '-'],
-                ['2', 'ثمن اسمنت واصل الى موقع العمل', 'كيس', '1.6', 'حسب السوق', '-'],
-                ['3', 'ثمن بلوك اسمنتي سماكة 15 سم واصل', 'بلوكة', '17', 'حسب السوق', '-'],
-                ['4', 'اجور كوفراج و صب حديد وتحديد بيتون', 'م3', '1.35', 'حسب السوق', '-'],
-                ['5', 'ثمن مواد حصوية جرجرة (بحص+نحاته) واصل', 'م3', '7', 'حسب السوق', '-'],
-                ['6', 'اجور عمل لعامل عادي 7 ساعات', 'يوم', '0.25', 'حسب السوق', '-'],
+                ['1', 'ثمن حديد مبروم واصل الى موقع العمل', 'كغ', '48', getPrice('iron'), getTotal('iron', 48.0)],
+                ['2', 'ثمن اسمنت واصل الى موقع العمل', 'كيس', '1.6', getPrice('cement'), getTotal('cement', 1.6)],
+                ['3', 'ثمن بلوك اسمنتي سماكة 15 سم واصل', 'بلوكة', '17', getPrice('block'), getTotal('block', 17.0)],
+                ['4', 'اجور كوفراج و صب حديد وتحديد بيتون', 'م3', '1.35', getPrice('formwork'), getTotal('formwork', 1.35)],
+                ['5', 'ثمن مواد حصوية جرجرة (بحص+نحاته) واصل', 'م3', '7', getPrice('aggregates'), getTotal('aggregates', 7.0)],
+                ['6', 'اجور عمل لعامل عادي 7 ساعات', 'يوم', '0.25', getPrice('worker'), getTotal('worker', 0.25)],
               ],
             ),
 
             pw.SizedBox(height: 6),
 
-            // --- الخلاصة المالية والامتار (أهم قسم) ---
+            // --- الخلاصة المالية والامتار ---
             pw.Container(
               padding: const pw.EdgeInsets.all(6),
               decoration: pw.BoxDecoration(
@@ -133,7 +161,7 @@ class PdfGenerator {
                       pw.Text('${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.deepOrange)),
                     ]
                   ),
-                  pw.Container(width: 1, height: 30, color: PdfColors.grey400), // خط فاصل عمودي
+                  pw.Container(width: 1, height: 30, color: PdfColors.grey400),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.center,
                     children: [
@@ -202,15 +230,12 @@ class PdfGenerator {
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicBoldFont),
-        // تقليل الهوامش الخارجية للصفحة لكي يتسع التصميم براحة
         margin: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         build: (pw.Context context) {
           return pw.Column(
             children: [
-              // النصف الأول (نسخة الشركة)
               pw.Expanded(child: buildReceipt('نسخة الفريق الأول')),
               
-              // خط القص في المنتصف
               pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 12),
                 child: pw.Row(
@@ -225,7 +250,6 @@ class PdfGenerator {
                 ),
               ),
               
-              // النصف الثاني (نسخة العميل)
               pw.Expanded(child: buildReceipt('نسخة الفريق الثاني')),
             ],
           );

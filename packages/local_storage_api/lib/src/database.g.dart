@@ -4490,6 +4490,18 @@ class $PaymentsLedgerTable extends PaymentsLedger
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _pricesSnapshotMeta = const VerificationMeta(
+    'pricesSnapshot',
+  );
+  @override
+  late final GeneratedColumn<String> pricesSnapshot = GeneratedColumn<String>(
+    'prices_snapshot',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _feesMeta = const VerificationMeta('fees');
   @override
   late final GeneratedColumn<double> fees = GeneratedColumn<double>(
@@ -4587,6 +4599,7 @@ class $PaymentsLedgerTable extends PaymentsLedger
     amountPaid,
     meterPriceAtPayment,
     convertedMeters,
+    pricesSnapshot,
     fees,
     isWhatsAppSent,
     userId,
@@ -4664,6 +4677,15 @@ class $PaymentsLedgerTable extends PaymentsLedger
       );
     } else if (isInserting) {
       context.missing(_convertedMetersMeta);
+    }
+    if (data.containsKey('prices_snapshot')) {
+      context.handle(
+        _pricesSnapshotMeta,
+        pricesSnapshot.isAcceptableOrUnknown(
+          data['prices_snapshot']!,
+          _pricesSnapshotMeta,
+        ),
+      );
     }
     if (data.containsKey('fees')) {
       context.handle(
@@ -4749,6 +4771,10 @@ class $PaymentsLedgerTable extends PaymentsLedger
         DriftSqlType.double,
         data['${effectivePrefix}converted_meters'],
       )!,
+      pricesSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prices_snapshot'],
+      )!,
       fees: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}fees'],
@@ -4795,6 +4821,7 @@ class PaymentsLedgerData extends DataClass
   final double amountPaid;
   final double meterPriceAtPayment;
   final double convertedMeters;
+  final String pricesSnapshot;
   final double fees;
   final bool isWhatsAppSent;
   final String userId;
@@ -4810,6 +4837,7 @@ class PaymentsLedgerData extends DataClass
     required this.amountPaid,
     required this.meterPriceAtPayment,
     required this.convertedMeters,
+    required this.pricesSnapshot,
     required this.fees,
     required this.isWhatsAppSent,
     required this.userId,
@@ -4830,6 +4858,7 @@ class PaymentsLedgerData extends DataClass
     map['amount_paid'] = Variable<double>(amountPaid);
     map['meter_price_at_payment'] = Variable<double>(meterPriceAtPayment);
     map['converted_meters'] = Variable<double>(convertedMeters);
+    map['prices_snapshot'] = Variable<String>(pricesSnapshot);
     map['fees'] = Variable<double>(fees);
     map['is_whats_app_sent'] = Variable<bool>(isWhatsAppSent);
     map['user_id'] = Variable<String>(userId);
@@ -4851,6 +4880,7 @@ class PaymentsLedgerData extends DataClass
       amountPaid: Value(amountPaid),
       meterPriceAtPayment: Value(meterPriceAtPayment),
       convertedMeters: Value(convertedMeters),
+      pricesSnapshot: Value(pricesSnapshot),
       fees: Value(fees),
       isWhatsAppSent: Value(isWhatsAppSent),
       userId: Value(userId),
@@ -4876,6 +4906,7 @@ class PaymentsLedgerData extends DataClass
         json['meterPriceAtPayment'],
       ),
       convertedMeters: serializer.fromJson<double>(json['convertedMeters']),
+      pricesSnapshot: serializer.fromJson<String>(json['pricesSnapshot']),
       fees: serializer.fromJson<double>(json['fees']),
       isWhatsAppSent: serializer.fromJson<bool>(json['isWhatsAppSent']),
       userId: serializer.fromJson<String>(json['userId']),
@@ -4896,6 +4927,7 @@ class PaymentsLedgerData extends DataClass
       'amountPaid': serializer.toJson<double>(amountPaid),
       'meterPriceAtPayment': serializer.toJson<double>(meterPriceAtPayment),
       'convertedMeters': serializer.toJson<double>(convertedMeters),
+      'pricesSnapshot': serializer.toJson<String>(pricesSnapshot),
       'fees': serializer.toJson<double>(fees),
       'isWhatsAppSent': serializer.toJson<bool>(isWhatsAppSent),
       'userId': serializer.toJson<String>(userId),
@@ -4914,6 +4946,7 @@ class PaymentsLedgerData extends DataClass
     double? amountPaid,
     double? meterPriceAtPayment,
     double? convertedMeters,
+    String? pricesSnapshot,
     double? fees,
     bool? isWhatsAppSent,
     String? userId,
@@ -4929,6 +4962,7 @@ class PaymentsLedgerData extends DataClass
     amountPaid: amountPaid ?? this.amountPaid,
     meterPriceAtPayment: meterPriceAtPayment ?? this.meterPriceAtPayment,
     convertedMeters: convertedMeters ?? this.convertedMeters,
+    pricesSnapshot: pricesSnapshot ?? this.pricesSnapshot,
     fees: fees ?? this.fees,
     isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
     userId: userId ?? this.userId,
@@ -4958,6 +4992,9 @@ class PaymentsLedgerData extends DataClass
       convertedMeters: data.convertedMeters.present
           ? data.convertedMeters.value
           : this.convertedMeters,
+      pricesSnapshot: data.pricesSnapshot.present
+          ? data.pricesSnapshot.value
+          : this.pricesSnapshot,
       fees: data.fees.present ? data.fees.value : this.fees,
       isWhatsAppSent: data.isWhatsAppSent.present
           ? data.isWhatsAppSent.value
@@ -4980,6 +5017,7 @@ class PaymentsLedgerData extends DataClass
           ..write('amountPaid: $amountPaid, ')
           ..write('meterPriceAtPayment: $meterPriceAtPayment, ')
           ..write('convertedMeters: $convertedMeters, ')
+          ..write('pricesSnapshot: $pricesSnapshot, ')
           ..write('fees: $fees, ')
           ..write('isWhatsAppSent: $isWhatsAppSent, ')
           ..write('userId: $userId, ')
@@ -5000,6 +5038,7 @@ class PaymentsLedgerData extends DataClass
     amountPaid,
     meterPriceAtPayment,
     convertedMeters,
+    pricesSnapshot,
     fees,
     isWhatsAppSent,
     userId,
@@ -5019,6 +5058,7 @@ class PaymentsLedgerData extends DataClass
           other.amountPaid == this.amountPaid &&
           other.meterPriceAtPayment == this.meterPriceAtPayment &&
           other.convertedMeters == this.convertedMeters &&
+          other.pricesSnapshot == this.pricesSnapshot &&
           other.fees == this.fees &&
           other.isWhatsAppSent == this.isWhatsAppSent &&
           other.userId == this.userId &&
@@ -5036,6 +5076,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
   final Value<double> amountPaid;
   final Value<double> meterPriceAtPayment;
   final Value<double> convertedMeters;
+  final Value<String> pricesSnapshot;
   final Value<double> fees;
   final Value<bool> isWhatsAppSent;
   final Value<String> userId;
@@ -5052,6 +5093,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     this.amountPaid = const Value.absent(),
     this.meterPriceAtPayment = const Value.absent(),
     this.convertedMeters = const Value.absent(),
+    this.pricesSnapshot = const Value.absent(),
     this.fees = const Value.absent(),
     this.isWhatsAppSent = const Value.absent(),
     this.userId = const Value.absent(),
@@ -5069,6 +5111,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     required double amountPaid,
     required double meterPriceAtPayment,
     required double convertedMeters,
+    this.pricesSnapshot = const Value.absent(),
     this.fees = const Value.absent(),
     this.isWhatsAppSent = const Value.absent(),
     required String userId,
@@ -5091,6 +5134,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     Expression<double>? amountPaid,
     Expression<double>? meterPriceAtPayment,
     Expression<double>? convertedMeters,
+    Expression<String>? pricesSnapshot,
     Expression<double>? fees,
     Expression<bool>? isWhatsAppSent,
     Expression<String>? userId,
@@ -5109,6 +5153,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
       if (meterPriceAtPayment != null)
         'meter_price_at_payment': meterPriceAtPayment,
       if (convertedMeters != null) 'converted_meters': convertedMeters,
+      if (pricesSnapshot != null) 'prices_snapshot': pricesSnapshot,
       if (fees != null) 'fees': fees,
       if (isWhatsAppSent != null) 'is_whats_app_sent': isWhatsAppSent,
       if (userId != null) 'user_id': userId,
@@ -5128,6 +5173,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     Value<double>? amountPaid,
     Value<double>? meterPriceAtPayment,
     Value<double>? convertedMeters,
+    Value<String>? pricesSnapshot,
     Value<double>? fees,
     Value<bool>? isWhatsAppSent,
     Value<String>? userId,
@@ -5145,6 +5191,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
       amountPaid: amountPaid ?? this.amountPaid,
       meterPriceAtPayment: meterPriceAtPayment ?? this.meterPriceAtPayment,
       convertedMeters: convertedMeters ?? this.convertedMeters,
+      pricesSnapshot: pricesSnapshot ?? this.pricesSnapshot,
       fees: fees ?? this.fees,
       isWhatsAppSent: isWhatsAppSent ?? this.isWhatsAppSent,
       userId: userId ?? this.userId,
@@ -5181,6 +5228,9 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
     }
     if (convertedMeters.present) {
       map['converted_meters'] = Variable<double>(convertedMeters.value);
+    }
+    if (pricesSnapshot.present) {
+      map['prices_snapshot'] = Variable<String>(pricesSnapshot.value);
     }
     if (fees.present) {
       map['fees'] = Variable<double>(fees.value);
@@ -5219,6 +5269,7 @@ class PaymentsLedgerCompanion extends UpdateCompanion<PaymentsLedgerData> {
           ..write('amountPaid: $amountPaid, ')
           ..write('meterPriceAtPayment: $meterPriceAtPayment, ')
           ..write('convertedMeters: $convertedMeters, ')
+          ..write('pricesSnapshot: $pricesSnapshot, ')
           ..write('fees: $fees, ')
           ..write('isWhatsAppSent: $isWhatsAppSent, ')
           ..write('userId: $userId, ')
@@ -8440,6 +8491,7 @@ typedef $$PaymentsLedgerTableCreateCompanionBuilder =
       required double amountPaid,
       required double meterPriceAtPayment,
       required double convertedMeters,
+      Value<String> pricesSnapshot,
       Value<double> fees,
       Value<bool> isWhatsAppSent,
       required String userId,
@@ -8458,6 +8510,7 @@ typedef $$PaymentsLedgerTableUpdateCompanionBuilder =
       Value<double> amountPaid,
       Value<double> meterPriceAtPayment,
       Value<double> convertedMeters,
+      Value<String> pricesSnapshot,
       Value<double> fees,
       Value<bool> isWhatsAppSent,
       Value<String> userId,
@@ -8554,6 +8607,11 @@ class $$PaymentsLedgerTableFilterComposer
 
   ColumnFilters<double> get convertedMeters => $composableBuilder(
     column: $table.convertedMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pricesSnapshot => $composableBuilder(
+    column: $table.pricesSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8673,6 +8731,11 @@ class $$PaymentsLedgerTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pricesSnapshot => $composableBuilder(
+    column: $table.pricesSnapshot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get fees => $composableBuilder(
     column: $table.fees,
     builder: (column) => ColumnOrderings(column),
@@ -8788,6 +8851,11 @@ class $$PaymentsLedgerTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get pricesSnapshot => $composableBuilder(
+    column: $table.pricesSnapshot,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get fees =>
       $composableBuilder(column: $table.fees, builder: (column) => column);
 
@@ -8896,6 +8964,7 @@ class $$PaymentsLedgerTableTableManager
                 Value<double> amountPaid = const Value.absent(),
                 Value<double> meterPriceAtPayment = const Value.absent(),
                 Value<double> convertedMeters = const Value.absent(),
+                Value<String> pricesSnapshot = const Value.absent(),
                 Value<double> fees = const Value.absent(),
                 Value<bool> isWhatsAppSent = const Value.absent(),
                 Value<String> userId = const Value.absent(),
@@ -8912,6 +8981,7 @@ class $$PaymentsLedgerTableTableManager
                 amountPaid: amountPaid,
                 meterPriceAtPayment: meterPriceAtPayment,
                 convertedMeters: convertedMeters,
+                pricesSnapshot: pricesSnapshot,
                 fees: fees,
                 isWhatsAppSent: isWhatsAppSent,
                 userId: userId,
@@ -8930,6 +9000,7 @@ class $$PaymentsLedgerTableTableManager
                 required double amountPaid,
                 required double meterPriceAtPayment,
                 required double convertedMeters,
+                Value<String> pricesSnapshot = const Value.absent(),
                 Value<double> fees = const Value.absent(),
                 Value<bool> isWhatsAppSent = const Value.absent(),
                 required String userId,
@@ -8946,6 +9017,7 @@ class $$PaymentsLedgerTableTableManager
                 amountPaid: amountPaid,
                 meterPriceAtPayment: meterPriceAtPayment,
                 convertedMeters: convertedMeters,
+                pricesSnapshot: pricesSnapshot,
                 fees: fees,
                 isWhatsAppSent: isWhatsAppSent,
                 userId: userId,
