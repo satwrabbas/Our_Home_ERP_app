@@ -1,37 +1,50 @@
 //packages\cloud_storage_api\lib\src\cloud_storage_client.dart
 import 'dart:io';
-import 'package:http/http.dart' as http; // 🌟 استيراد مكتبة HTTP
+import 'package:http/http.dart' as http; // 🌟 استيراد مكتبة HTTP للتعامل مع الرفع المباشر
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// كلاس [CloudStorageClient] هو المسؤول الحصري عن التخاطب المباشر مع قاعدة بيانات Supabase.
+/// لا يجب أن يحتوي هذا الكلاس على أي منطق أعمال (Business Logic)، 
+/// وظيفته فقط إرسال واستقبال البيانات بأمان، والتأكد من استخدام التوقيت العالمي (UTC).
 class CloudStorageClient {
   CloudStorageClient({SupabaseClient? supabaseClient})
       : _supabase = supabaseClient ?? Supabase.instance.client;
 
   final SupabaseClient _supabase;
 
-    // 🌟 هنا تعريف المتغير الذي كان يسبب الخطأ (يجب أن يكون داخل الكلاس)
+  // 🌟 قناة الاستماع للأسعار الحية (Realtime Channel)
+  // تم تعريفها على مستوى الكلاس لكي نتمكن من إغلاقها عند تسجيل الخروج
   RealtimeChannel? _pricesChannel;
+  
   // ==========================================
   // 🔐 المصادقة (Authentication)
   // ==========================================
+  
+  /// جلب معرّف المستخدم الحالي (ID)
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
+  /// تسجيل الدخول باستخدام البريد الإلكتروني وكلمة المرور
   Future<void> signIn({required String email, required String password}) async {
     await _supabase.auth.signInWithPassword(email: email, password: password);
-
   }
 
+  /// تسجيل الخروج الآمن
+  /// بالإضافة إلى إنهاء الجلسة، يقوم بإيقاف محرك الاستماع الحي لمنع تسريب الذاكرة (Memory Leak)
   Future<void> signOut() async {
     await _supabase.auth.signOut();
     _pricesChannel?.unsubscribe();
   }
 
-    // ==========================================
+  // ==========================================
   // 📡 محرك الاستماع السحابي الحي (Realtime Sync)
   // ==========================================
+  
+  /// بدء الاستماع لأي تغيير يطرأ على جدول أسعار المواد في السحابة
+  /// بمجرد حدوث تغيير (إضافة/تعديل/حذف) من أي جهاز آخر، سيتم استدعاء الدالة[onDataChanged]
   void startListeningToCloudChanges({required Function() onDataChanged}) {
     print('🎧 جاري بدء الاستماع لقناة Supabase Realtime...');
     
+    // إغلاق أي اتصال سابق لمنع تكرار الاستماع
     _pricesChannel?.unsubscribe();
 
     _pricesChannel = _supabase
@@ -44,7 +57,7 @@ class CloudStorageClient {
             print('🔥 السحابة تتحدث! نوع التغيير: ${payload.eventType}');
             print('📦 البيانات: ${payload.newRecord}');
             
-            // هنا نبلغ الـ Repository أن هناك تغييراً
+            // إبلاغ الطبقة الأعلى (Repository) بحدوث تغيير لتقوم بجلب البيانات الجديدة
             onDataChanged(); 
           },
         )
@@ -60,11 +73,16 @@ class CloudStorageClient {
   // ==========================================
   // 📥 دوال سحب البيانات (PULL from Cloud)
   // ==========================================
-  // 📥 جلب العملاء (تزايدي)
+  // ملاحظة مهمة جداً (UTC): في جميع الاستعلامات التي تعتمد على `lastSync`، 
+  // نقوم قسرياً باستخدام `.toUtc()` قبل `.toIso8601String()` لضمان أننا نسأل السحابة 
+  // بناءً على التوقيت العالمي، لأن السحابة تخزن التواريخ بصيغة UTC.
+  
+  // 📥 جلب العملاء (تزايدي - Incremental Sync)
   Future<List<Map<String, dynamic>>> getClients({DateTime? lastSync}) async {
     var query = _supabase.from('clients').select();
     if (lastSync != null) {
-      query = query.gte('updated_at', lastSync.toIso8601String()); // توحيد لـ snake_case
+      // 🌍 التعديل الذهبي: فرض الـ UTC لضمان المزامنة الصحيحة عبر المناطق الزمنية
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String()); 
     }
     return await query;
   }
@@ -73,66 +91,98 @@ class CloudStorageClient {
   Future<List<Map<String, dynamic>>> getContracts({DateTime? lastSync}) async {
     var query = _supabase.from('contracts').select();
     if (lastSync != null) {
-      query = query.gte('updated_at', lastSync.toIso8601String());
+      // 🌍 فرض الـ UTC
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String());
     }
     return await query;
   }
 
   // 📥 جلب الدفعات (تزايدي)
   Future<List<Map<String, dynamic>>> getPayments({DateTime? lastSync}) async {
-    var query = _supabase.from('payments').select(); // تأكد من اسم الجدول في سوبابيس
+    var query = _supabase.from('payments').select(); 
     if (lastSync != null) {
-      query = query.gte('updated_at', lastSync.toIso8601String()); // استخدام snake_case
+      // 🌍 فرض الـ UTC
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String()); 
     }
     return await query;
   }
-
 
   // 📥 جلب جدول الاستحقاقات (تزايدي)
   Future<List<Map<String, dynamic>>> getSchedules({DateTime? lastSync}) async {
     var query = _supabase.from('installments_schedule').select();
     if (lastSync != null) {
-      query = query.gte('updated_at', lastSync.toIso8601String()); // توحيد لـ snake_case
+      // 🌍 فرض الـ UTC
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String()); 
     }
     return await query;
   }
 
-  
-  // 🌟 (جديد) جلب سجل أسعار المواد
-  Future<List<Map<String, dynamic>>> getMaterialPrices() async => await _supabase.from('material_prices').select();
+  // 🌟 جلب سجل أسعار المواد (غالباً لا نحتاج lastSync هنا إن كنا نجلب السجل كاملاً للإحصائيات)
+  Future<List<Map<String, dynamic>>> getMaterialPrices() async => 
+      await _supabase.from('material_prices').select();
+
+  // 📥 جلب المحاضر (Buildings)
+  Future<List<Map<String, dynamic>>> getBuildings() async => 
+      await _supabase.from('buildings').select();
+      
+  // 📥 جلب الشقق (Apartments)
+  Future<List<Map<String, dynamic>>> getApartments() async => 
+      await _supabase.from('apartments').select();
+
 
   // ==========================================
-  // 📤 دوال رفع البيانات (PUSH to Cloud)
+  // 📤 دوال رفع البيانات (PUSH to Cloud) - (UPSERT)
   // ==========================================
+  // 🌍 تنبيه هندسي (UTC Warning): 
+  // بما أن هذه الدوال تستقبل `Map<String, dynamic>`، فهذا يعني أن الكائنات (Objects) 
+  // تم تحويلها إلى خرائط (JSON Maps) في مكان آخر (في الـ Repository أو الـ Models).
+  // **يجب** أن نضمن في ذلك المكان أن أي حقل يحتوي على وقت (مثل createdAt أو updatedAt)
+  // قد تم تحويله إلى نص باستخدام `dateTime.toUtc().toIso8601String()`.
+  
   // 📤 رفع العملاء
   Future<void> upsertClient(Map<String, dynamic> clientData) async => 
       await _supabase.from('clients').upsert(clientData);
       
-  // 📤 رفع العقود (Upsert)
+  // 📤 رفع العقود
   Future<void> upsertContract(Map<String, dynamic> contractData) async => 
       await _supabase.from('contracts').upsert(contractData);
-  // 📤 رفع الدفعات (Push)
+      
+  // 📤 رفع الدفعات
   Future<void> upsertPayment(Map<String, dynamic> paymentData) async => 
     await _supabase.from('payments').upsert(paymentData);
 
-  // 📤 رفع جدول الاستحقاقات
-  Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async =>  await _supabase.from('installments_schedule').upsert(scheduleData);
+  // 📤 رفع جدول الاستحقاقات (يمكنه رفع قائمة كاملة كـ Batch Insert)
+  Future<void> upsertSchedule(List<Map<String, dynamic>> scheduleData) async =>  
+      await _supabase.from('installments_schedule').upsert(scheduleData);
 
-  Future<void> upsertMaterialPrices(Map<String, dynamic> pricesData) async => await _supabase.from('material_prices').upsert(pricesData);
+  // 📤 رفع أسعار المواد
+  Future<void> upsertMaterialPrices(Map<String, dynamic> pricesData) async => 
+      await _supabase.from('material_prices').upsert(pricesData);
+
+  // 📤 رفع المحاضر (Buildings)
+  Future<void> upsertBuilding(Map<String, dynamic> buildingData) async => 
+      await _supabase.from('buildings').upsert(buildingData);
+      
+  // 📤 رفع الشقق (Apartments)
+  Future<void> upsertApartment(Map<String, dynamic> apartmentData) async => 
+      await _supabase.from('apartments').upsert(apartmentData);
 
 
   // ==========================================
   // 📂 رفع الملفات إلى Supabase Storage (طريقة التجاوز المباشر HTTP)
   // ==========================================
+  /// تقوم هذه الدالة برفع ملف العقد (PDF/Doc) إلى سلة تخزين Supabase.
+  /// تم استخدام مكتبة HTTP مباشرة لتجاوز بعض المشاكل المتعلقة بمكتبة Storage الأصلية،
+  /// مما يعطينا تحكماً كاملاً بالـ Headers والـ Auth Token.
   Future<String> uploadContractFile({
     required String contractId, 
     required File file, 
     required String extension
   }) async {
-    const bucketName = 'erp_contracts'; // المجلد الناجح
+    const bucketName = 'erp_contracts'; // اسم السلة (Bucket) في Supabase
     final fileName = 'contract_$contractId.$extension';
 
-    // 1. جلب مفتاح الجلسة الحالي (JWT) للمصادقة
+    // 1. جلب مفتاح الجلسة الحالي (JWT) للمصادقة للسماح بالرفع
     final session = _supabase.auth.currentSession;
     if (session == null) throw Exception('يجب تسجيل الدخول لرفع الملفات.');
     final jwtToken = session.accessToken;
@@ -140,27 +190,27 @@ class CloudStorageClient {
     // 2. قراءة الملف كبيانات خام (Bytes)
     final bytes = file.readAsBytesSync();
 
-    // 3. تحديد نوع الملف
-    String contentType = 'application/octet-stream';
+    // 3. تحديد نوع الملف (MIME Type) لتتعرف عليه السحابة
+    String contentType = 'application/octet-stream'; // الافتراضي
     if (extension == 'pdf') contentType = 'application/pdf';
     if (extension == 'doc' || extension == 'docx') contentType = 'application/msword';
 
-    // 4. 🌟 استخدام الرابط الثابت الذي نجحنا به في الاختبار
+    // 4. 🌟 الرابط المباشر لـ Supabase API
     const projectId = 'krdfrdzyfdcqjmnuzads';
     final uploadUrl = Uri.parse('https://$projectId.supabase.co/storage/v1/object/$bucketName/$fileName');
 
-    // 5. إطلاق صاروخ الـ HTTP مباشرة للسيرفر
+    // 5. إطلاق صاروخ الـ HTTP مباشرة للسيرفر (Post Request)
     final response = await http.post(
       uploadUrl,
       headers: {
         'Authorization': 'Bearer $jwtToken',
         'Content-Type': contentType,
-        'x-upsert': 'true', // استبدال الملف لو تم رفعه سابقاً
+        'x-upsert': 'true', // هذه القيمة تسمح باستبدال الملف لو تم رفعه مسبقاً بنفس الاسم
       },
       body: bytes,
     );
 
-    // 6. التحقق من الرد وإرجاع الرابط
+    // 6. التحقق من الرد (Status Code 200 يعني نجاح العملية) وإرجاع الرابط العام
     if (response.statusCode == 200) {
       final publicUrl = 'https://$projectId.supabase.co/storage/v1/object/public/$bucketName/$fileName';
       return publicUrl;
@@ -168,19 +218,4 @@ class CloudStorageClient {
       throw Exception('فشل الرفع من السيرفر: ${response.statusCode} - ${response.body}');
     }
   }
-
-  // ==========================================
-  // 📥 دوال سحب البيانات (PULL from Cloud)
-  // ==========================================
-  // ... (تحت بقية دوال الجلب أضف هذين السطرين):
-  Future<List<Map<String, dynamic>>> getBuildings() async => await _supabase.from('buildings').select();
-  Future<List<Map<String, dynamic>>> getApartments() async => await _supabase.from('apartments').select();
-
-
-  // ==========================================
-  // 📤 دوال رفع البيانات (PUSH to Cloud)
-  // ==========================================
-  // ... (تحت بقية دوال الرفع أضف هذين السطرين):
-  Future<void> upsertBuilding(Map<String, dynamic> buildingData) async => await _supabase.from('buildings').upsert(buildingData);
-  Future<void> upsertApartment(Map<String, dynamic> apartmentData) async => await _supabase.from('apartments').upsert(apartmentData);
 }

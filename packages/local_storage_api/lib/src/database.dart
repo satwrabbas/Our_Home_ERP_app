@@ -24,8 +24,12 @@ class Clients extends Table {
   // 🌟 من قام بإضافة هذا العميل؟ (حقل التدقيق المالي)
   TextColumn get userId => text()(); 
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // 🌍[تعديل التوقيت]: تم استبدال currentDateAndTime (الذي يأخذ التوقيت المحلي)
+  // بـ clientDefault(() => DateTime.now().toUtc()) لضمان حفظ الوقت بالتوقيت العالمي
+  // لتجنب أي مشاكل عند المزامنة مع السحابة أو عند فتح التطبيق في دول مختلفة
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -50,8 +54,11 @@ class Buildings extends Table {
   // حقول المزامنة (جاهزة للمستقبل، لكننا لن نستخدمها الآن)
   TextColumn get userId => text().withDefault(const Constant('offline_test'))();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  
+  // 🌍[تعديل التوقيت]: الحفظ بـ UTC لتوحيد الزمن في كامل النظام
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   @override
@@ -82,8 +89,11 @@ class Apartments extends Table {
   // حقول المزامنة
   TextColumn get userId => text().withDefault(const Constant('offline_test'))();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  
+  // 🌍[تعديل التوقيت]: حفظ التواريخ دائماً كـ UTC
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   @override
@@ -111,10 +121,17 @@ class Contracts extends Table {
   TextColumn get contractFileUrl => text().nullable()();
   
   TextColumn get userId => text()();
+  
+  // 🌍 ملاحظة: هذا الحقل لا يحتاج لـ clientDefault لأنه يُدخل يدوياً عند توقيع العقد، 
+  // لكن يجب أن نتأكد في واجهة المستخدم (UI) أو الـ Logic أن يتم تمريره كـ UTC.
   DateTimeColumn get contractDate => dateTime()(); 
+  
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))(); 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  
+  // 🌍 [تعديل التوقيت]: الحفظ بـ UTC
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -129,7 +146,8 @@ class Contracts extends Table {
 class MaterialPricesHistory extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   
-  DateTimeColumn get effectiveDate => dateTime().withDefault(currentDateAndTime)(); 
+  // 🌍 [تعديل التوقيت]: سريان مفعول السعر يجب أن يسجل كـ UTC
+  DateTimeColumn get effectiveDate => dateTime().clientDefault(() => DateTime.now().toUtc())(); 
   
   RealColumn get ironPrice => real()(); 
   RealColumn get cementPrice => real()(); 
@@ -141,8 +159,10 @@ class MaterialPricesHistory extends Table {
   // 🌟 من المدير الذي عدل الأسعار في هذا اليوم؟
   TextColumn get userId => text()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // 🌍 [تعديل التوقيت]: الحفظ بـ UTC
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -160,14 +180,19 @@ class InstallmentsSchedule extends Table {
   TextColumn get contractId => text().references(Contracts, #id)(); 
   
   IntColumn get installmentNumber => integer()(); 
+  
+  // 🌍 ملاحظة: الـ dueDate يتم إنشاؤه برمجياً (انظر دالة insertContractWithSchedules بالأسفل) 
+  // وتم التعديل هناك ليتم توليده كـ UTC
   DateTimeColumn get dueDate => dateTime()(); 
   TextColumn get status => text().withDefault(const Constant('pending'))();
   
   // 🌟 تتبع من أدار هذا القسط
   TextColumn get userId => text()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // 🌍[تعديل التوقيت]: الحفظ بـ UTC
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -186,7 +211,9 @@ class PaymentsLedger extends Table {
   TextColumn get contractId => text().references(Contracts, #id)(); 
   TextColumn get scheduleId => text().nullable().references(InstallmentsSchedule, #id)();
   
+  // 🌍 ملاحظة: يجب تمريره من الـ Logic كـ UTC (مثلاً الدفع تم الآن، فنأخذ الآن بالتوقيت العالمي)
   DateTimeColumn get paymentDate => dateTime()(); 
+  
   RealColumn get amountPaid => real()(); 
   
   // 🌟 جوهر النظام: تجميد السعر والأمتار في لحظة الدفع لكي لا تتغير لاحقاً
@@ -196,15 +223,16 @@ class PaymentsLedger extends Table {
    // 🌟 [السطر الجديد]: لقطة الأسعار التاريخية لحظة الدفع (تُحفظ كـ JSON)
   TextColumn get pricesSnapshot => text().withDefault(const Constant('{}'))(); 
 
-
   RealColumn get fees => real().withDefault(const Constant(0))(); 
   BoolColumn get isWhatsAppSent => boolean().withDefault(const Constant(false))();
   
   // 🌟 من المحاسب الذي استلم هذا المبلغ وقبضه؟ (مهم جداً للتدقيق المالي)
   TextColumn get userId => text()();
 
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  // 🌍 [تعديل التوقيت]: الحفظ بـ UTC
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))(); 
 
@@ -253,9 +281,12 @@ class AppDatabase extends _$AppDatabase {
   /// حذف عميل (يحذف معه آلياً: عقوده، أقساطه، ومدفوعاته)
   Future<void> softDeleteClient(String clientId) async {
     return transaction(() async {
+      // 🌍 التوقيت الحالي بـ UTC لتسجيل متى تم الحذف بدقة عالمية
+      final nowUtc = Value(DateTime.now().toUtc());
+
       // 1. حذف العميل نفسه
       await (update(clients)..where((t) => t.id.equals(clientId))).write(
-        ClientsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        ClientsCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
       );
 
       // 2. جلب كل عقود هذا العميل
@@ -264,17 +295,17 @@ class AppDatabase extends _$AppDatabase {
       for (final contract in clientContracts) {
         // أ. حذف العقد
         await (update(contracts)..where((t) => t.id.equals(contract.id))).write(
-          ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+          ContractsCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
         );
 
         // ب. حذف جدول استحقاقات هذا العقد
         await (update(installmentsSchedule)..where((t) => t.contractId.equals(contract.id))).write(
-          InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+          InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
         );
 
         // ج. حذف جميع مدفوعات هذا العقد (دفتر الأستاذ)
         await (update(paymentsLedger)..where((t) => t.contractId.equals(contract.id))).write(
-          PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+          PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
         );
       }
     });
@@ -299,8 +330,10 @@ class AppDatabase extends _$AppDatabase {
 
       // 2. توليد الأقساط وإضافتها فوراً داخل نفس العملية
       for (int i = 1; i <= installmentsCount; i++) {
+        // 🌍[تعديل التوقيت]: استخدمنا DateTime.utc بدلاً من DateTime العادي
         // (Dart ذكية جداً: إذا كان الشهر 12 وزدنا عليه 1، ستقوم تلقائياً بتحويله لشهر 1 السنة القادمة)
-        final dueDate = DateTime(startDate.year, startDate.month + i, startDate.day);
+        // هذا يضمن أن أيام الاستحقاق (dueDate) تُحفظ كـ UTC وتتطابق عند الاسترجاع أينما كان المستخدم
+        final dueDate = DateTime.utc(startDate.year, startDate.month + i, startDate.day);
         
         final entry = InstallmentsScheduleCompanion.insert(
           contractId: newContractId, 
@@ -313,27 +346,30 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+  
   Future<List<Contract>> getActiveContracts() => 
       (select(contracts)..where((t) => t.isDeleted.equals(false))).get();
-  
   
   
   /// حذف عقد (يحذف معه آلياً: أقساطه ومدفوعاته)
   Future<void> softDeleteContract(String contractId) async {
     return transaction(() async {
+      // 🌍 التوقيت الحالي بـ UTC
+      final nowUtc = Value(DateTime.now().toUtc());
+
       // 1. حذف العقد
       await (update(contracts)..where((t) => t.id.equals(contractId))).write(
-        ContractsCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        ContractsCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
       );
 
       // 2. حذف جدول استحقاقات العقد
       await (update(installmentsSchedule)..where((t) => t.contractId.equals(contractId))).write(
-        InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        InstallmentsScheduleCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
       );
 
       // 3. حذف جميع مدفوعات العقد
       await (update(paymentsLedger)..where((t) => t.contractId.equals(contractId))).write(
-        PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+        PaymentsLedgerCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
       );
     });
   }
@@ -358,8 +394,13 @@ class AppDatabase extends _$AppDatabase {
   }
   
   Future<int> markWhatsAppAsSent(String entryId) {
+    // 🌍 تسجيل وقت التحديث بصيغة UTC
     return (update(paymentsLedger)..where((t) => t.id.equals(entryId))).write(
-      PaymentsLedgerCompanion(isWhatsAppSent: const Value(true), updatedAt: Value(DateTime.now()), isSynced: const Value(false)),
+      PaymentsLedgerCompanion(
+        isWhatsAppSent: const Value(true), 
+        updatedAt: Value(DateTime.now().toUtc()), 
+        isSynced: const Value(false)
+      ),
     );
   }
 
@@ -405,10 +446,11 @@ class AppDatabase extends _$AppDatabase {
 
   // تحديث حالة القسط (مثلاً من pending إلى paid)
   Future<int> updateScheduleStatus(String id, String status) {
+    // 🌍 تسجيل وقت التحديث بصيغة UTC
     return (update(installmentsSchedule)..where((t) => t.id.equals(id))).write(
       InstallmentsScheduleCompanion(
         status: Value(status), 
-        updatedAt: Value(DateTime.now()), 
+        updatedAt: Value(DateTime.now().toUtc()), 
         isSynced: const Value(false)
       )
     );
@@ -416,10 +458,11 @@ class AppDatabase extends _$AppDatabase {
 
   // حذف قسط مجدول (Soft Delete)
   Future<int> softDeleteScheduleEntry(String id) {
+    // 🌍 تسجيل وقت الحذف الوهمي بصيغة UTC
     return (update(installmentsSchedule)..where((t) => t.id.equals(id))).write(
       InstallmentsScheduleCompanion(
         isDeleted: const Value(true), 
-        updatedAt: Value(DateTime.now()), 
+        updatedAt: Value(DateTime.now().toUtc()), 
         isSynced: const Value(false)
       )
     );
@@ -470,10 +513,11 @@ class AppDatabase extends _$AppDatabase {
 
   // 🌟 أهم دالة: تغيير حالة الشقة (مثلاً من available إلى sold عند توقيع العقد)
   Future<int> updateApartmentStatus(String apartmentId, String newStatus) {
+    // 🌍 تسجيل وقت التحديث بصيغة UTC
     return (update(apartments)..where((t) => t.id.equals(apartmentId))).write(
       ApartmentsCompanion(
         status: Value(newStatus), 
-        updatedAt: Value(DateTime.now()), 
+        updatedAt: Value(DateTime.now().toUtc()), 
         isSynced: const Value(false)
       )
     );
