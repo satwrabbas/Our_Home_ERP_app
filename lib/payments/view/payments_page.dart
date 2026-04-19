@@ -1,7 +1,8 @@
-//lib\payments\view\payments_page.dart
+// lib/payments/view/payments_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
+import 'package:local_storage_api/local_storage_api.dart'; // 🌟 التعديل هنا: ليتعرف على Apartment و Building
 import '../cubit/payments_cubit.dart';
 import '../../core/utils/ledger_pdf_helper.dart';
 import '../../core/utils/pdf_generator.dart';
@@ -46,9 +47,7 @@ class PaymentsView extends StatelessWidget {
 
           return Column(
             children:[
-              // ==========================================
               // --- القسم العلوي: اختيار العقد (الفلترة) ---
-              // ==========================================
               Container(
                 padding: const EdgeInsets.all(24.0),
                 color: Colors.orange.shade50,
@@ -77,46 +76,38 @@ class PaymentsView extends StatelessWidget {
                     const SizedBox(width: 16),
                     
                     if (state.selectedContractId != null) ...[
-                      
-                      // 🟢 زر تصدير الإكسل (يعمل كما هو)
+                      // زر الإكسل
                       ElevatedButton.icon(
                         onPressed: () async {
                           if (state.ledgerEntries.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يوجد حركات مالية لتصديرها!'), backgroundColor: Colors.red));
                             return;
                           }
-                          
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ملف الإكسل...')));
                           
                           final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
                           final client = state.clients.firstWhere((c) => c.id == contract.clientId);
 
                           final filePath = await ExcelExportHelper.exportLedgerToExcel(
-                            ledgerEntries: state.ledgerEntries,
-                            contract: contract,
-                            client: client,
+                            ledgerEntries: state.ledgerEntries, contract: contract, client: client,
                           );
 
                           if (context.mounted) {
                             if (filePath != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('تم الحفظ بنجاح في: $filePath'), backgroundColor: Colors.green, duration: const Duration(seconds: 6)),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم الحفظ بنجاح في: $filePath'), backgroundColor: Colors.green));
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('فشل تصدير الملف. تأكد من الصلاحيات.'), backgroundColor: Colors.red),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تصدير الملف.'), backgroundColor: Colors.red));
                             }
                           }
                         },
                         icon: const Icon(Icons.table_view),
-                        label: const Text('تصدير Excel', style: TextStyle(fontSize: 16)),
+                        label: const Text('تصدير Excel'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
                       
                       const SizedBox(width: 12),
                       
-                      // 🔴 زر طباعة كشف حساب PDF (الزر الجديد)
+                      // 🌟 زر الـ PDF (النسخة المحدثة) 🌟
                       ElevatedButton.icon(
                         onPressed: () async {
                           if (state.ledgerEntries.isEmpty) {
@@ -129,11 +120,28 @@ class PaymentsView extends StatelessWidget {
                           final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
                           final client = state.clients.firstWhere((c) => c.id == contract.clientId);
 
-                          // هنا سنستدعي دالة من ملف جديد سننشئه بعد قليل
+                          // 🌟 السحر هنا: البحث عن الشقة والمحضر 
+                          Apartment? selectedApartment;
+                          Building? selectedBuilding;
+
+                          if (contract.apartmentId != null) {
+                            final aptIndex = state.apartments.indexWhere((a) => a.id == contract.apartmentId);
+                            if (aptIndex != -1) {
+                              selectedApartment = state.apartments[aptIndex];
+                              final bldIndex = state.buildings.indexWhere((b) => b.id == selectedApartment!.buildingId);
+                              if (bldIndex != -1) {
+                                selectedBuilding = state.buildings[bldIndex];
+                              }
+                            }
+                          }
+
+                          // 🌟 تمرير كل شيء لملف الـ PDF
                           final pdfBytes = await LedgerPdfHelper.generateLedgerReportPdf(
                             ledgerEntries: state.ledgerEntries,
                             contract: contract,
                             client: client,
+                            apartment: selectedApartment, 
+                            building: selectedBuilding,   
                           );
 
                           if (context.mounted) {
@@ -146,17 +154,17 @@ class PaymentsView extends StatelessWidget {
                           }
                         },
                         icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('كشف حساب PDF', style: TextStyle(fontSize: 16)),
+                        label: const Text('كشف حساب PDF'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
 
                       const SizedBox(width: 12),
                       
-                      // 🟠 زر إدخال دفعة جديدة
+                      // زر إدخال دفعة
                       ElevatedButton.icon(
                         onPressed: () => _showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
-                        label: const Text('إدخال دفعة', style: TextStyle(fontSize: 16)),
+                        label: const Text('إدخال دفعة'),
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
                     ],
@@ -164,9 +172,7 @@ class PaymentsView extends StatelessWidget {
                 ),
               ),
 
-              // ==========================================
-              // --- القسم السفلي: جدول الحركات للعقد المحدد ---
-              // ==========================================
+              // --- القسم السفلي: جدول الحركات ---
               Expanded(
                 child: state.selectedContractId == null
                     ? const Center(child: Text('يرجى اختيار عقد من القائمة بالأعلى لعرض الدفعات.', style: TextStyle(fontSize: 18, color: Colors.grey)))
@@ -250,23 +256,18 @@ class PaymentsView extends StatelessWidget {
     );
   }
 
-  // 🌟 التعديل السحري هنا: تحويل النافذة إلى متفاعلة لتحديث الحسابات فوراً
   void _showAddPaymentDialog(BuildContext parentContext, String contractId) {
     final amountController = TextEditingController();
-    final discountController = TextEditingController(text: '0'); // حقل الخصم الجديد
+    final discountController = TextEditingController(text: '0'); 
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) {
-        // نستخدم StatefulBuilder لتحديث النافذة من الداخل أثناء الكتابة
         return StatefulBuilder(
           builder: (context, setState) {
             
-            // قراءة القيم أثناء الكتابة
             double amount = double.tryParse(amountController.text) ?? 0;
             double discountPct = double.tryParse(discountController.text) ?? 0;
-            
-            // حساب المبلغ المعتمد بعد الخصم (مثال: الدفعة 100 ألف والخصم 10%، يُعتبر كأنه دفع 110 آلاف)
             double effectiveAmount = amount + (amount * (discountPct / 100));
 
             return AlertDialog(
@@ -276,30 +277,26 @@ class PaymentsView extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children:[
-                    const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد (الأسعار الفعالة اليوم).', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    const Text('سيقوم النظام تلقائياً بحساب "الأمتار المحولة" بناءً على أحدث أسعار للمواد.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                     const SizedBox(height: 16),
-                    
                     TextField(
                       controller: amountController,
                       decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder()),
                       keyboardType: TextInputType.number,
-                      onChanged: (val) => setState(() {}), // تحديث الواجهة عند أي تعديل
+                      onChanged: (val) => setState(() {}), 
                     ),
                     const SizedBox(height: 16),
-                    
                     TextField(
                       controller: discountController,
                       decoration: const InputDecoration(
                         labelText: 'نسبة الخصم / البونص المئوية', 
                         border: OutlineInputBorder(),
-                        suffixText: '%', // وضع علامة % في نهاية الحقل
+                        suffixText: '%', 
                       ),
                       keyboardType: TextInputType.number,
-                      onChanged: (val) => setState(() {}), // تحديث الواجهة عند أي تعديل
+                      onChanged: (val) => setState(() {}), 
                     ),
-                    
                     const SizedBox(height: 16),
-                    // عرض النتيجة الفورية أسفل الحقول
                     if (amount > 0)
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -328,15 +325,13 @@ class PaymentsView extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
                   onPressed: amount > 0 ? () {
-                    // إرسال البيانات إلى الـ Cubit
                     parentContext.read<PaymentsCubit>().addLedgerEntry(
                       contractId: contractId,
                       amountPaid: amount,
-                      // 👇 تمرير نسبة الخصم (لاحظ الملاحظة بالأسفل)
                       discountPercentage: discountPct, 
                     );
                     Navigator.pop(dialogContext);
-                  } : null, // تعطيل الزر إذا كان المبلغ 0
+                  } : null, 
                   child: const Text('حفظ الدفعة وحساب الأمتار آلياً'),
                 ),
               ],

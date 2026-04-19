@@ -1,4 +1,4 @@
-//lib\payments\cubit\payments_state.dart
+// lib/payments/cubit/payments_state.dart
 part of 'payments_cubit.dart';
 
 enum PaymentsStatus { initial, loading, success, failure }
@@ -8,30 +8,38 @@ class PaymentsState extends Equatable {
     this.status = PaymentsStatus.initial,
     this.clients = const[],
     this.contracts = const [],
-    this.ledgerEntries = const[], // ✅ استخدمنا الاسم الجديد (دفتر الأستاذ) الذي يمثل المدفوعات الحقيقية
-    this.selectedContractId,      // 🌟 تم التحديث إلى String (UUID)
+    this.apartments = const [], // 🌟 أضفنا الشقق
+    this.buildings = const [],  // 🌟 أضفنا المحاضر
+    this.ledgerEntries = const[], 
+    this.selectedContractId,      
     this.errorMessage,
   });
 
   final PaymentsStatus status;
   final List<Client> clients;
   final List<Contract> contracts;
-  final List<PaymentsLedgerData> ledgerEntries; // ✅ النوع الجديد الذي يمثل الدفعة والأمتار المحولة
-  final String? selectedContractId;             // 🌟 String بدلاً من int
+  final List<Apartment> apartments; // 🌟 
+  final List<Building> buildings;   // 🌟 
+  final List<PaymentsLedgerData> ledgerEntries; 
+  final String? selectedContractId;             
   final String? errorMessage;
 
   PaymentsState copyWith({
     PaymentsStatus? status,
     List<Client>? clients,
     List<Contract>? contracts,
+    List<Apartment>? apartments, // 🌟
+    List<Building>? buildings,   // 🌟
     List<PaymentsLedgerData>? ledgerEntries,
-    String? selectedContractId, // 🌟 String
+    String? selectedContractId, 
     String? errorMessage,
   }) {
     return PaymentsState(
       status: status ?? this.status,
       clients: clients ?? this.clients,
       contracts: contracts ?? this.contracts,
+      apartments: apartments ?? this.apartments, // 🌟
+      buildings: buildings ?? this.buildings,    // 🌟
       ledgerEntries: ledgerEntries ?? this.ledgerEntries,
       selectedContractId: selectedContractId ?? this.selectedContractId,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -39,10 +47,12 @@ class PaymentsState extends Equatable {
   }
 
   @override
-  List<Object?> get props =>[
+  List<Object?> get props => [
         status,
         clients,
         contracts,
+        apartments, // 🌟
+        buildings,  // 🌟
         ledgerEntries,
         selectedContractId,
         errorMessage
