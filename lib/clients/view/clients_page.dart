@@ -23,6 +23,7 @@ class ClientsView extends StatelessWidget {
         backgroundColor: Colors.blueAccent,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => _showAddClientDialog(context),
         icon: const Icon(Icons.person_add),
         label: const Text('إضافة عميل'),

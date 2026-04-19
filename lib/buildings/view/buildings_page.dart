@@ -328,6 +328,7 @@ class BuildingsView extends StatelessWidget {
       ),
       // زر إضافة محضر جديد (الزر العائم)
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         backgroundColor: Colors.indigo,
         onPressed: () => showAddBuildingDialog(context),
         icon: const Icon(Icons.domain_add, color: Colors.white),

@@ -30,6 +30,7 @@ class ContractsView extends StatelessWidget {
         backgroundColor: Colors.teal,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () => _showAddContractDialog(context),
         icon: const Icon(Icons.add_home_work),
         label: const Text('عقد جديد'),
