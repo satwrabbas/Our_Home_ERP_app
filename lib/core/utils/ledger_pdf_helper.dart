@@ -48,8 +48,8 @@ class LedgerPdfHelper {
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       // تصغير الخطوط لتكون متناسقة
-                      pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 16, color: primaryColor)), 
-                      pw.Text('Our Home Real Estate ERP', style: pw.TextStyle(font: arabicFont, fontSize: 7, color: PdfColors.grey700)),
+                      pw.Text('بيتنا ', style: pw.TextStyle(font: arabicBoldFont, fontSize: 16, color: primaryColor)), 
+                      pw.Text('Our Home ', style: pw.TextStyle(font: arabicFont, fontSize: 7, color: PdfColors.grey700)),
                     ]
                   ),
                   pw.Column(
@@ -83,7 +83,7 @@ class LedgerPdfHelper {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('👤 هوية الفريق الثاني (العميل)', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
+                  pw.Text(' هوية الفريق الثاني (العميل)', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
                   pw.SizedBox(height: 6), 
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -116,7 +116,7 @@ class LedgerPdfHelper {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text('📄 تفاصيل العقد والمواصفات', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
+                  pw.Text(' تفاصيل العقد والمواصفات', style: pw.TextStyle(font: arabicBoldFont, color: primaryColor, fontSize: 10)),
                   pw.SizedBox(height: 6),
                   
                   pw.Row(
@@ -155,9 +155,8 @@ class LedgerPdfHelper {
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
                         pw.Text('مدة الأقساط: ${contract.installmentsCount} شهراً', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                         pw.SizedBox(height: 2),
-                        pw.Text('سعر الأساس: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                        pw.Text('سعر المتر عند التوقيع: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                         pw.SizedBox(height: 2),
-                        pw.Text('ملاحظات: ${contract.apartmentDetails}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                       ]),
                     ]
                   ),
