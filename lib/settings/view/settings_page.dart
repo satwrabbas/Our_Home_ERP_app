@@ -1,4 +1,4 @@
-//lib\settings\view\settings_page.dart
+// lib/settings/view/settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
@@ -32,7 +32,10 @@ class _SettingsViewState extends State<SettingsView> {
   final aggregatesController = TextEditingController();
   final workerController = TextEditingController();
 
-  bool _isProcessingBackup = false; // لمنع الضغط المزدوج أثناء النسخ
+  // 🌟 الحل: إنشاء ScrollController لربط الـ Scrollbar مع הـ ScrollView
+  final ScrollController _scrollController = ScrollController();
+
+  bool _isProcessingBackup = false; 
 
   @override
   void dispose() {
@@ -42,6 +45,7 @@ class _SettingsViewState extends State<SettingsView> {
     formworkController.dispose();
     aggregatesController.dispose();
     workerController.dispose();
+    _scrollController.dispose(); // 🌟 لا تنسَ التخلص منه
     super.dispose();
   }
 
@@ -80,13 +84,13 @@ class _SettingsViewState extends State<SettingsView> {
           }
 
           return Center(
-            child: Container(
+            child: SizedBox(
               width: 600, 
-              // 1. أزلنا الـ padding من الـ Container
               child: Scrollbar(
-                // 2. غلفنا المحتوى بـ Scrollbar ليظهر بشكل أجمل على الويندوز
+                controller: _scrollController, // 🌟 ربط الـ Scrollbar هنا
+                thumbVisibility: true, // اختياري: إبقاء شريط التمرير ظاهراً دائماً لسهولة الاستخدام على الكمبيوتر
                 child: SingleChildScrollView(
-                  // 3. 🌟 وضعنا الـ padding هنا! هذا سيبعد الشريط عن المحتوى
+                  controller: _scrollController, // 🌟 وربط הـ ScrollView هنا! (هذا ما يحل المشكلة)
                   padding: const EdgeInsets.all(24.0), 
                   child: FocusTraversalGroup(
                   policy: WidgetOrderTraversalPolicy(), 
@@ -230,7 +234,7 @@ class _SettingsViewState extends State<SettingsView> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20), // مساحة سفلية
+                      const SizedBox(height: 20), 
                     ],
                   ),
                 ),
@@ -277,7 +281,6 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Future<void> _handleRestore(BuildContext context) async {
-    // 🚨 تحذير المستخدم قبل الاستعادة
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -307,11 +310,10 @@ class _SettingsViewState extends State<SettingsView> {
     }
   }
 
-  // دالة مساعدة لإظهار نتيجة العمليات
   void _showResultDialog(BuildContext context, String title, String message) {
     showDialog(
       context: context,
-      barrierDismissible: false, // إجبار المستخدم على قراءة الرسالة
+      barrierDismissible: false, 
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Text(message, style: const TextStyle(fontSize: 16)),
