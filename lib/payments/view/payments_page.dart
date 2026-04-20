@@ -325,12 +325,23 @@ class PaymentsView extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
                   onPressed: amount > 0 ? () {
+                    // إغلاق الديالوج أولاً
+                    Navigator.pop(dialogContext);
+                    
+                    // إظهار رسالة للمستخدم
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('جاري إضافة الدفعة وتحديث السجلات...'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+
+                    // استدعاء دالة الحفظ
                     parentContext.read<PaymentsCubit>().addLedgerEntry(
                       contractId: contractId,
                       amountPaid: amount,
                       discountPercentage: discountPct, 
                     );
-                    Navigator.pop(dialogContext);
                   } : null, 
                   child: const Text('حفظ الدفعة وحساب الأمتار آلياً'),
                 ),
