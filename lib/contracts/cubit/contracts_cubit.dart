@@ -14,7 +14,6 @@ class ContractsCubit extends Cubit<ContractsState> {
 
   final ErpRepository _erpRepository;
 
-  /// جلب العملاء والعقود الفعالة (غير المحذوفة) لعرضها في الجدول
   Future<void> fetchData() async {
     if (state.status == ContractsStatus.initial) emit(state.copyWith(status: ContractsStatus.loading));
     try {
@@ -31,12 +30,21 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  /// 🌟 إضافة عقد جديد (مربوط بالكتالوج الذكي)
+  // 🌟 جلب العقود المحذوفة لسلة المهملات
+  Future<void> fetchDeletedContracts() async {
+    try {
+      final deleted = await _erpRepository.getDeletedContracts();
+      emit(state.copyWith(deletedContracts: deleted));
+    } catch (e) {
+      emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
   Future<void> addContract({
     required String clientId, 
     required String contractType, 
     required String details,
-    required String? apartmentId, // 🌟 الحقل الجديد (معرف الشقة)
+    required String? apartmentId, 
     required double area,
     required double basePrice,
     required int installmentsCount, 
@@ -50,22 +58,20 @@ class ContractsCubit extends Cubit<ContractsState> {
 
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
-        apartmentId: Value(apartmentId), // 🌟 ربط العقد بالشقة رقمياً
+        apartmentId: Value(apartmentId), 
         contractType: Value(contractType),
-        apartmentDetails: Value(details), // حفظنا التفاصيل لكي تعمل فواتير الـ PDF القديمة
+        apartmentDetails: Value(details), 
         totalArea: area,
         baseMeterPriceAtSigning: basePrice,
         installmentsCount: Value(installmentsCount), 
         coefficients: Value(jsonEncode(coefficients)),
-        contractDate: DateTime.now(),
+        contractDate: DateTime.now().toUtc(), // 🌍 تم التصحيح لـ UTC
         guarantorName: guarantorName, 
         userId: userId, 
       );
       
-      // 1. حفظ العقد
       await _erpRepository.addContract(newContract);
       
-      // 2. 🌟 السحر: إذا كانت شقة من الكتالوج، قم بتغيير حالتها إلى "مباعة"
       if (apartmentId != null && apartmentId.isNotEmpty) {
         await _erpRepository.changeApartmentStatus(apartmentId, 'sold');
       }
@@ -76,66 +82,73 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  /// 🌟 دالة جديدة: إرفاق ملف العقد (Word/PDF)
-  Future<void> attachContractFile({
-    required String contractId,
-    required String filePath,
-    required String extension,
-  }) async {
+  Future<void> attachContractFile({required String contractId, required String filePath, required String extension}) async {
     emit(state.copyWith(status: ContractsStatus.loading));
     try {
       final file = File(filePath);
-      
-      // استدعاء دالة الرفع التي أضفناها في المستودع
       await _erpRepository.attachFileToContract(contractId, file, extension);
-      
-      // إعادة جلب البيانات لكي يتحول الزر في الشاشة من (إرفاق) إلى (فتح العقد)
       await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: 'فشل إرفاق الملف: $e'));
     }
   }
 
-  /// إلغاء العقد وحذفه (وإرجاع الشقة للكتالوج إن وجدت)
   Future<void> deleteContract(String id) async { 
     emit(state.copyWith(status: ContractsStatus.loading));
     try {
-      // 1. 🔍 البحث عن العقد المراد حذفه لمعرفة ما إذا كان يمتلك شقة
       final contractToCancel = state.contracts.firstWhere((c) => c.id == id);
-
-      // 2. 🗑️ حذف العقد من قاعدة البيانات
       await _erpRepository.deleteContract(id);
 
-      // 3. 🔄 السحر: إذا كان العقد متخصصاً (مربوط بشقة)، أعد الشقة لحالة "متاحة"
       if (contractToCancel.apartmentId != null && contractToCancel.apartmentId!.isNotEmpty) {
         await _erpRepository.changeApartmentStatus(contractToCancel.apartmentId!, 'available');
       }
-
-      // 4. تحديث قائمة العقود في الشاشة
       await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
   }
 
+  // 🌟 استعادة عقد من سلة المحذوفات
+  Future<void> restoreContract(Contract contract) async {
+    try {
+      // 1. استعادة العقد مع أقساطه ودفعاته
+      await _erpRepository.restoreContract(contract.id);
 
-  /// 🌟 تعديل العقد الحالي
+      // 2. حجز الشقة مرة أخرى لكي لا تباع مرتين!
+      if (contract.apartmentId != null && contract.apartmentId!.isNotEmpty) {
+        await _erpRepository.changeApartmentStatus(contract.apartmentId!, 'sold');
+      }
+
+      await fetchDeletedContracts(); // تحديث شاشة المحذوفات
+      await fetchData(); // تحديث الشاشة الرئيسية
+    } catch (e) {
+      emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  // 🌟 الحذف النهائي (المدمر)
+  Future<void> forceHardDelete(String contractId) async {
+    try {
+      await _erpRepository.forceHardDeleteContract(contractId);
+      await fetchDeletedContracts(); // تحديث شاشة المحذوفات
+    } catch (e) {
+      emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
   Future<void> updateContract({
     required String id,
     required String details,
     required String guarantorName,
-    required int installmentsCount, // 🌟 لاحظ أننا حذفنا basePrice من هنا
+    required int installmentsCount,
   }) async {
     try {
-      // 🌟 استدعاء دالة المستودع بدون سعر المتر
       await _erpRepository.updateContract(
         id: id,
         apartmentDetails: details,
         guarantorName: guarantorName,
         installmentsCount: installmentsCount,
       );
-
-      // تحديث الشاشة بعد النجاح
       await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: 'حدث خطأ أثناء تعديل العقد: $e'));

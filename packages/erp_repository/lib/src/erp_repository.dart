@@ -30,6 +30,7 @@ class ErpRepository {
 
       // 🌟 السطر الجديد: تنظيف قاعدة البيانات المحلية من المهملات القديمة
       _localApi.autoCleanOldDeletedClients(); 
+      _localApi.autoCleanOldDeletedContracts(); 
     }
   }
 
@@ -512,7 +513,7 @@ class ErpRepository {
     // عبر الـ Cron Job بعد 7 أيام للحفاظ على الأداء.
   }
 
-  
+
   // ==========================================
   // 📄 العقود والتوليد الآلي للاستحقاقات
   // ==========================================
@@ -584,6 +585,20 @@ class ErpRepository {
 
     // 3. رفع التعديلات (العقد + الأقساط المحذوفة) للسحابة فوراً
     await syncPendingData();
+  }
+
+  // ==========================================
+  // 🗑️ إدارة سلة المحذوفات للعقود
+  // ==========================================
+  Future<List<Contract>> getDeletedContracts() => _localApi.getDeletedContracts();
+
+  Future<void> restoreContract(String contractId) async {
+    await _localApi.restoreContract(contractId);
+    await syncPendingData(); // 🌟 رفع الاستعادة للسحابة
+  }
+
+  Future<void> forceHardDeleteContract(String contractId) async {
+    await _localApi.hardDeleteContractLocal(contractId);
   }
 
   // ==========================================

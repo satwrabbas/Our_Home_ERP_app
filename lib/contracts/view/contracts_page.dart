@@ -28,6 +28,28 @@ class ContractsView extends StatelessWidget {
         title: const Text('إدارة العقود والشقق', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.teal,
+        actions:[
+          // 🌟 زر سلة المحذوفات الجديد للعقود
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.white, size: 30),
+              tooltip: 'سلة المحذوفات (العقود الملغاة)',
+              onPressed: () {
+                context.read<ContractsCubit>().fetchDeletedContracts(); // جلب البيانات
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<ContractsCubit>(),
+                      child: const DeletedContractsView(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
@@ -819,5 +841,158 @@ class ContractsView extends StatelessWidget {
     );
 
     return isAuthorized;
+  }
+}
+
+
+
+// ==============================================================
+// 🌟 الشاشة الجديدة: سلة المحذوفات (العقود الملغاة) -[محمية]
+// ==============================================================
+class DeletedContractsView extends StatelessWidget {
+  const DeletedContractsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('العقود الملغاة (تحذف نهائياً بعد 7 أيام)', style: TextStyle(fontSize: 18)),
+        backgroundColor: Colors.grey.shade800,
+        foregroundColor: Colors.white,
+      ),
+      body: BlocBuilder<ContractsCubit, ContractsState>(
+        builder: (context, state) {
+          if (state.deletedContracts.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children:[
+                  Icon(Icons.auto_delete_outlined, size: 80, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('لا توجد عقود ملغاة', style: TextStyle(fontSize: 20, color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: state.deletedContracts.length,
+            itemBuilder: (context, index) {
+              final contract = state.deletedContracts[index];
+              
+              // جلب اسم العميل من قائمة العملاء المخزنة في الـ state
+              final clientName = state.clients.firstWhere(
+                (c) => c.id == contract.clientId, 
+                orElse: () => state.clients.first
+              ).name;
+              
+              // حساب الأيام المتبقية للحذف النهائي
+              final deletionDate = contract.updatedAt.toLocal();
+              final daysPassed = DateTime.now().difference(deletionDate).inDays;
+              final daysLeft = 7 - daysPassed;
+
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(Icons.cancel_presentation, color: Colors.white)),
+                  title: Text('عقد $clientName (${contract.contractType})', style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
+                  subtitle: Text('الوصف: ${contract.apartmentDetails}\nباقي $daysLeft أيام على الحذف النهائي', style: const TextStyle(color: Colors.redAccent)),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children:[
+                      // ♻️ زر الاستعادة
+                      IconButton(
+                        icon: const Icon(Icons.restore, color: Colors.green, size: 30),
+                        tooltip: 'تراجع عن الإلغاء (استعادة)',
+                        onPressed: () {
+                          // استعادة العقد وإرجاع الشقة لحالة مباعة
+                          context.read<ContractsCubit>().restoreContract(contract);
+                          
+                          // تحديث الكتالوج إذا كنا نحتاج (استدعاء اختياري)
+                          context.read<BuildingsCubit>().loadData();
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استعادة العقد وحجز الشقة بنجاح.'), backgroundColor: Colors.green));
+                        },
+                      ),
+                      // 🗑️ زر الحذف النهائي الفوري (محمي برمز سري)
+                      IconButton(
+                        icon: const Icon(Icons.delete_forever, color: Colors.red),
+                        tooltip: 'حذف نهائي الآن',
+                        onPressed: () => _confirmHardDelete(context, contract, clientName),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // 🔐 نافذة تأكيد الحذف النهائي مع التحقق من الرمز
+  void _confirmHardDelete(BuildContext context, dynamic contract, String clientName) {
+    final pinController = TextEditingController();
+    final String correctPin = '0938457732'; 
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children:[
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('تحذير مالي نهائي!', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children:[
+            Text('أنت على وشك حذف عقد العميل "$clientName" نهائياً!\n\nسيؤدي هذا إلى حذف كل سجلات مدفوعاته وأقساطه المرتبطة به. الإجراء مدمر ولا يمكن التراجع عنه.\n\nيرجى إدخال رمز المدير للتأكيد:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pinController,
+              obscureText: true, 
+              keyboardType: TextInputType.number, 
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, letterSpacing: 4),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'رمز الأمان',
+              ),
+            ),
+          ],
+        ),
+        actions:[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const Text('إلغاء', style: TextStyle(color: Colors.grey))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () {
+              if (pinController.text == correctPin) {
+                context.read<ContractsCubit>().forceHardDelete(contract.id);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم محو العقد وسجلاته المالية بنجاح.'), backgroundColor: Colors.green)
+                );
+              } else {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('رمز الأمان غير صحيح! ❌'), backgroundColor: Colors.red)
+                );
+                pinController.clear();
+              }
+            },
+            child: const Text('حذف نهائي مدمر'),
+          ),
+        ],
+      ),
+    );
   }
 }

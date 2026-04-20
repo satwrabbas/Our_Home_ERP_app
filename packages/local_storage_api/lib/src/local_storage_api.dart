@@ -89,4 +89,12 @@ class LocalStorageApi {
   Future<void> hardDeleteClientLocal(String id) => _db.hardDeleteClient(id);
   Future<void> autoCleanOldDeletedClients() => _db.autoCleanOldDeletedClients();
   
+  // ==========================================
+  // 🗑️ دوال سلة المحذوفات (العقود)
+  // ==========================================
+  Future<List<Contract>> getDeletedContracts() => _db.getDeletedContracts();
+  Future<void> restoreContract(String id) => _db.restoreSoftDeletedContract(id);
+  Future<void> hardDeleteContractLocal(String id) => _db.hardDeleteContract(id);
+  Future<void> autoCleanOldDeletedContracts() => _db.autoCleanOldDeletedContracts();
+  
 }

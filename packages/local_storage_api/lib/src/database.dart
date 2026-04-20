@@ -600,6 +600,62 @@ class AppDatabase extends _$AppDatabase {
     )).go();
   }
       
+
+
+  // ==========================================
+  // 🗑️ سلة المحذوفات (Recycle Bin) - العقود
+  // ==========================================
+  
+  // 1. جلب العقود المحذوفة
+  Future<List<Contract>> getDeletedContracts() => 
+      (select(contracts)..where((t) => t.isDeleted.equals(true))).get();
+
+  // 2. استعادة عقد (ويستعيد معه جداول الأقساط والمدفوعات الخاصة به)
+  Future<void> restoreSoftDeletedContract(String contractId) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+
+      // أ. استعادة العقد
+      await (update(contracts)..where((t) => t.id.equals(contractId))).write(
+        ContractsCompanion(isDeleted: const Value(false), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+
+      // ب. استعادة جدول الاستحقاقات التابع له
+      await (update(installmentsSchedule)..where((t) => t.contractId.equals(contractId))).write(
+        InstallmentsScheduleCompanion(isDeleted: const Value(false), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+
+      // ج. استعادة الدفعات (دفتر الأستاذ) التابعة له
+      await (update(paymentsLedger)..where((t) => t.contractId.equals(contractId))).write(
+        PaymentsLedgerCompanion(isDeleted: const Value(false), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+    });
+  }
+
+  // 3. الحذف النهائي اليدوي لعقد (Hard Delete)
+  Future<void> hardDeleteContract(String contractId) async {
+    return transaction(() async {
+      // يجب حذف الأبناء أولاً (الأقساط والمدفوعات) لمنع الأخطاء
+      await (delete(paymentsLedger)..where((t) => t.contractId.equals(contractId))).go();
+      await (delete(installmentsSchedule)..where((t) => t.contractId.equals(contractId))).go();
+      
+      // ثم حذف الأب (العقد)
+      await (delete(contracts)..where((t) => t.id.equals(contractId))).go();
+    });
+  }
+
+  // 4. التنظيف التلقائي للعقود القديمة المحذوفة
+  Future<void> autoCleanOldDeletedContracts() async {
+    final sevenDaysAgo = DateTime.now().toUtc().subtract(const Duration(days: 7));
+    
+    // جلب العقود التي مر عليها 7 أيام في الحذف
+    final oldContracts = await (select(contracts)..where((t) => t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo))).get();
+    
+    // حذفها نهائياً مع توابعها
+    for (var c in oldContracts) {
+      await hardDeleteContract(c.id);
+    }
+  }
 }
 
 LazyDatabase _openConnection() {
