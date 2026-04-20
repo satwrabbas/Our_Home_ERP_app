@@ -84,6 +84,37 @@ class ClientsCubit extends Cubit<ClientsState> {
     }
   }
 
+  // 🌟 جلب قائمة المحذوفات
+  Future<void> fetchDeletedClients() async {
+    try {
+      final deleted = await _erpRepository.getDeletedClients();
+      emit(state.copyWith(deletedClients: deleted));
+    } catch (e) {
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  // 🌟 استعادة عميل
+  Future<void> restoreClient(String clientId) async {
+    try {
+      await _erpRepository.restoreClient(clientId);
+      await fetchDeletedClients(); // تحديث شاشة المحذوفات
+      await fetchClients(); // تحديث القائمة الرئيسية
+    } catch (e) {
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
+  // 🌟 حذف نهائي يدوي
+  Future<void> forceHardDelete(String clientId) async {
+    try {
+      await _erpRepository.forceHardDeleteClient(clientId);
+      await fetchDeletedClients(); // تحديث شاشة المحذوفات
+    } catch (e) {
+      emit(state.copyWith(status: ClientsStatus.failure, errorMessage: e.toString()));
+    }
+  }
+
   Future<void> deleteClient(String clientId) async {
     try {
       // 1. جلب عقود هذا العميل للتحقق

@@ -27,6 +27,9 @@ class ErpRepository {
 
       // 2. 🌟 نشغل النسخ الاحتياطي التلقائي الصامت
       autoBackupSilent();
+
+      // 🌟 السطر الجديد: تنظيف قاعدة البيانات المحلية من المهملات القديمة
+      _localApi.autoCleanOldDeletedClients(); 
     }
   }
 
@@ -492,6 +495,24 @@ class ErpRepository {
     await syncPendingData();
   }
 
+
+  // ==========================================
+  // 🗑️ إدارة سلة المحذوفات للعملاء
+  // ==========================================
+  Future<List<Client>> getDeletedClients() => _localApi.getDeletedClients();
+
+  Future<void> restoreClient(String clientId) async {
+    await _localApi.restoreClient(clientId);
+    await syncPendingData(); // 🌟 رفع أمر الاستعادة للسحابة فوراً
+  }
+
+  Future<void> forceHardDeleteClient(String clientId) async {
+    await _localApi.hardDeleteClientLocal(clientId);
+    // ملاحظة: لا نرفع هذا للسحابة، لأن السحابة ستقوم بحذفه تلقائياً
+    // عبر الـ Cron Job بعد 7 أيام للحفاظ على الأداء.
+  }
+
+  
   // ==========================================
   // 📄 العقود والتوليد الآلي للاستحقاقات
   // ==========================================

@@ -561,6 +561,45 @@ class AppDatabase extends _$AppDatabase {
       
   Future<void> syncApartment(ApartmentsCompanion entity) => 
       into(apartments).insert(entity, mode: InsertMode.insertOrReplace);
+
+
+      // ==========================================
+  // 🗑️ سلة المحذوفات (Recycle Bin) - العملاء
+  // ==========================================
+  
+  // 1. جلب العملاء المحذوفين
+  Future<List<Client>> getDeletedClients() => 
+      (select(clients)..where((t) => t.isDeleted.equals(true))).get();
+
+  // 2. استعادة عميل محذوف
+  Future<void> restoreSoftDeletedClient(String clientId) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+      await (update(clients)..where((t) => t.id.equals(clientId))).write(
+        ClientsCompanion(
+          isDeleted: const Value(false), // إرجاع للحياة
+          updatedAt: nowUtc, // تحديث الوقت
+          isSynced: const Value(false) // إجبار السحابة على المزامنة وإلغاء الحذف هناك
+        ),
+      );
+    });
+  }
+
+  // 3. الحذف النهائي اليدوي (Hard Delete)
+  Future<void> hardDeleteClient(String clientId) async {
+    await (delete(clients)..where((t) => t.id.equals(clientId))).go();
+  }
+
+  // 4. التنظيف التلقائي (مسح أي عنصر محذوف مر عليه 7 أيام)
+  Future<void> autoCleanOldDeletedClients() async {
+    // تحديد نقطة الزمن (منذ 7 أيام)
+    final sevenDaysAgo = DateTime.now().toUtc().subtract(const Duration(days: 7));
+    
+    await (delete(clients)..where((t) => 
+      t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
+    )).go();
+  }
+      
 }
 
 LazyDatabase _openConnection() {

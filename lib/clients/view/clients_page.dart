@@ -22,6 +22,29 @@ class ClientsView extends StatelessWidget {
         title: const Text('إدارة العملاء (الفريق الثاني)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
+        actions:[
+          // 🌟 زر سلة المحذوفات الجديد
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.white, size: 30),
+              tooltip: 'سلة المحذوفات',
+              onPressed: () {
+                // الانتقال لصفحة المحذوفات مع تمرير نفس الـ Cubit
+                context.read<ClientsCubit>().fetchDeletedClients(); // جلب البيانات قبل الفتح
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<ClientsCubit>(),
+                      child: const DeletedClientsView(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
@@ -281,5 +304,107 @@ class ClientsView extends StatelessWidget {
     );
 
     return isAuthorized;
+  }
+
+  
+}
+
+
+// ==============================================================
+// 🌟 الشاشة الجديدة: سلة المحذوفات (Recycle Bin)
+// ==============================================================
+class DeletedClientsView extends StatelessWidget {
+  const DeletedClientsView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('سلة المحذوفات (تحذف تلقائياً بعد 7 أيام)', style: TextStyle(fontSize: 18)),
+        backgroundColor: Colors.grey.shade800,
+        foregroundColor: Colors.white,
+      ),
+      body: BlocBuilder<ClientsCubit, ClientsState>(
+        builder: (context, state) {
+          if (state.deletedClients.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children:[
+                  Icon(Icons.auto_delete_outlined, size: 80, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('سلة المحذوفات فارغة', style: TextStyle(fontSize: 20, color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: state.deletedClients.length,
+            itemBuilder: (context, index) {
+              final client = state.deletedClients[index];
+              
+              // حساب الأيام المتبقية للحذف النهائي
+              final deletionDate = client.updatedAt.toLocal();
+              final daysPassed = DateTime.now().difference(deletionDate).inDays;
+              final daysLeft = 7 - daysPassed;
+
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(Icons.person_off, color: Colors.white)),
+                  title: Text(client.name, style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
+                  subtitle: Text('رقم الهاتف: ${client.phone}\nباقي $daysLeft أيام على الحذف النهائي', style: const TextStyle(color: Colors.redAccent)),
+                  isThreeLine: true,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children:[
+                      // ♻️ زر الاستعادة
+                      IconButton(
+                        icon: const Icon(Icons.restore, color: Colors.green, size: 30),
+                        tooltip: 'استعادة العميل',
+                        onPressed: () {
+                          context.read<ClientsCubit>().restoreClient(client.id);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الاستعادة بنجاح، وتتم مزامنتها الآن.'), backgroundColor: Colors.green));
+                        },
+                      ),
+                      // 🗑️ زر الحذف النهائي الفوري
+                      IconButton(
+                        icon: const Icon(Icons.delete_forever, color: Colors.red),
+                        tooltip: 'حذف نهائي الآن',
+                        onPressed: () => _confirmHardDelete(context, client),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmHardDelete(BuildContext context, dynamic client) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تحذير نهائي', style: TextStyle(color: Colors.red)),
+        content: Text('هل أنت متأكد من حذف العميل "${client.name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه من الجهاز.'),
+        actions:[
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () {
+              context.read<ClientsCubit>().forceHardDelete(client.id);
+              Navigator.pop(ctx);
+            },
+            child: const Text('نعم، احذف فوراً'),
+          ),
+        ],
+      ),
+    );
   }
 }

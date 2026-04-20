@@ -79,4 +79,14 @@ class LocalStorageApi {
   
   Future<void> syncBuilding(BuildingsCompanion c) => _db.into(_db.buildings).insertOnConflictUpdate(c);
   Future<void> syncApartment(ApartmentsCompanion c) => _db.into(_db.apartments).insertOnConflictUpdate(c);
+
+
+  // ==========================================
+  // 🗑️ دوال سلة المحذوفات (العملاء)
+  // ==========================================
+  Future<List<Client>> getDeletedClients() => _db.getDeletedClients();
+  Future<void> restoreClient(String id) => _db.restoreSoftDeletedClient(id);
+  Future<void> hardDeleteClientLocal(String id) => _db.hardDeleteClient(id);
+  Future<void> autoCleanOldDeletedClients() => _db.autoCleanOldDeletedClients();
+  
 }
