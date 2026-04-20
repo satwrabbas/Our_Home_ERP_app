@@ -487,7 +487,7 @@ class ContractsView extends StatelessWidget {
                         TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                          onPressed: () {
+                          onPressed: () async { // 🌟 1. تحويل الزر إلى async
                             if (isAllocated && selectedApartmentId == null) {
                               ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يرجى اختيار شقة من الكتالوج!'), backgroundColor: Colors.red));
                               return;
@@ -508,7 +508,20 @@ class ContractsView extends StatelessWidget {
                               generatedDetails = 'عقد $selectedContractType (غير مخصص / أسهم)';
                             }
 
-                            parentContext.read<ContractsCubit>().addContract(
+                            // 🌟 2. إغلاق النافذة فوراً لعدم تجميد واجهة المستخدم
+                            Navigator.pop(dialogContext);
+
+                            // 🌟 3. عرض رسالة الانتظار
+                            ScaffoldMessenger.of(parentContext).showSnackBar(
+                              const SnackBar(
+                                content: Text('جاري حفظ وتوقيع العقد وتحديث الكتالوج... ⏳'),
+                                duration: Duration(seconds: 1),
+                                backgroundColor: Colors.teal,
+                              )
+                            );
+
+                            // 🌟 4. انتظار انتهاء عملية الحفظ
+                            await parentContext.read<ContractsCubit>().addContract(
                               clientId: selectedClientId!,
                               contractType: selectedContractType,
                               details: generatedDetails, 
@@ -520,11 +533,23 @@ class ContractsView extends StatelessWidget {
                               coefficients: finalCoeffs, 
                             );
                             
-                            if (isAllocated) {
+                            if (isAllocated && parentContext.mounted) {
                               parentContext.read<BuildingsCubit>().loadData();
                             }
-                            
-                            Navigator.pop(dialogContext);
+
+                            // 🌟 5. عرض رسالة النجاح (نتأكد أولاً أنه لم يحدث خطأ في الـ Cubit)
+                            if (parentContext.mounted) {
+                              final currentState = parentContext.read<ContractsCubit>().state;
+                              if (currentState.status != ContractsStatus.failure) {
+                                ScaffoldMessenger.of(parentContext).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('تم توقيع العقد وحفظه بنجاح! ✅'),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 3),
+                                  )
+                                );
+                              }
+                            }
                           },
                           child: const Text('اعتماد وتوقيع العقد'),
                         ),
@@ -674,11 +699,25 @@ class ContractsView extends StatelessWidget {
                 bool isAuthorized = await _verifyPin(parentContext); 
                 
                 if (isAuthorized && parentContext.mounted) {
-                  // 1. إرسال طلب الحذف بصمت
-                  parentContext.read<ContractsCubit>().deleteContract(contract.id);
+                  // 🌟 إظهار رسالة تفيد ببدء الحذف
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(content: const Text('جاري إلغاء العقد وتحرير الشقة... ⏳'), backgroundColor: Colors.red.shade400, duration: const Duration(seconds: 1))
+                  );
+
+                  // 1. انتظار طلب الحذف
+                  await parentContext.read<ContractsCubit>().deleteContract(contract.id);
                   
-                  // 2. 🌟 خطوة هامة جداً: تحديث بيانات الكتالوج لأن الشقة أصبحت "متاحة" من جديد!
-                  parentContext.read<BuildingsCubit>().loadData();
+                  // 2. تحديث الكتالوج وعرض رسالة النجاح
+                  if (parentContext.mounted) {
+                    parentContext.read<BuildingsCubit>().loadData();
+                    
+                    final currentState = parentContext.read<ContractsCubit>().state;
+                    if (currentState.status != ContractsStatus.failure) {
+                      ScaffoldMessenger.of(parentContext).showSnackBar(
+                        const SnackBar(content: Text('تم إلغاء العقد بنجاح! ✅'), backgroundColor: Colors.green)
+                      );
+                    }
+                  }
                 }
               },
             ),
