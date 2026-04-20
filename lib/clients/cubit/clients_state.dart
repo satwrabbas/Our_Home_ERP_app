@@ -1,3 +1,4 @@
+//lib\clients\cubit\clients_state.dart
 part of 'clients_cubit.dart';
 
 enum ClientsStatus { initial, loading, success, failure }

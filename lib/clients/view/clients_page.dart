@@ -1,3 +1,4 @@
+//lib\clients\view\clients_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/clients_cubit.dart';
