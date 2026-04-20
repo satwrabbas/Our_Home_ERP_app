@@ -311,7 +311,7 @@ class ClientsView extends StatelessWidget {
 
 
 // ==============================================================
-// 🌟 الشاشة الجديدة: سلة المحذوفات (Recycle Bin)
+// 🌟 الشاشة الجديدة: سلة المحذوفات (Recycle Bin) -[نسخة محمية]
 // ==============================================================
 class DeletedClientsView extends StatelessWidget {
   const DeletedClientsView({super.key});
@@ -370,7 +370,7 @@ class DeletedClientsView extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الاستعادة بنجاح، وتتم مزامنتها الآن.'), backgroundColor: Colors.green));
                         },
                       ),
-                      // 🗑️ زر الحذف النهائي الفوري
+                      // 🗑️ زر الحذف النهائي الفوري (محمي برمز سري)
                       IconButton(
                         icon: const Icon(Icons.delete_forever, color: Colors.red),
                         tooltip: 'حذف نهائي الآن',
@@ -387,21 +387,64 @@ class DeletedClientsView extends StatelessWidget {
     );
   }
 
+  // 🔐 نافذة تأكيد الحذف النهائي مع التحقق من الرمز
   void _confirmHardDelete(BuildContext context, dynamic client) {
+    final pinController = TextEditingController();
+    final String correctPin = '0938457732'; // 🌟 رمز الأمان المخصص للحذف النهائي
+
     showDialog(
       context: context,
+      barrierDismissible: false, // لا يمكن إغلاقها بالنقر خارجها
       builder: (ctx) => AlertDialog(
-        title: const Text('تحذير نهائي', style: TextStyle(color: Colors.red)),
-        content: Text('هل أنت متأكد من حذف العميل "${client.name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه من الجهاز.'),
+        title: const Row(
+          children:[
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('تحذير نهائي', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children:[
+            Text('هل أنت متأكد من حذف العميل "${client.name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.\n\nيرجى إدخال رمز المدير للتأكيد:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: pinController,
+              obscureText: true, // إخفاء الرمز أثناء الكتابة
+              keyboardType: TextInputType.number, // عرض لوحة الأرقام فقط
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, letterSpacing: 4),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'رمز الأمان',
+              ),
+            ),
+          ],
+        ),
         actions:[
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const Text('إلغاء', style: TextStyle(color: Colors.grey))
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () {
-              context.read<ClientsCubit>().forceHardDelete(client.id);
-              Navigator.pop(ctx);
+              if (pinController.text == correctPin) {
+                // 🌟 الرمز صحيح -> قم بالحذف وأغلق النافذة
+                context.read<ClientsCubit>().forceHardDelete(client.id);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('تم الحذف النهائي بنجاح.'), backgroundColor: Colors.green)
+                );
+              } else {
+                // ❌ الرمز خاطئ -> أظهر رسالة خطأ وأفرغ الحقل
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('رمز الأمان غير صحيح! ❌'), backgroundColor: Colors.red)
+                );
+                pinController.clear();
+              }
             },
-            child: const Text('نعم، احذف فوراً'),
+            child: const Text('حذف نهائي'),
           ),
         ],
       ),
