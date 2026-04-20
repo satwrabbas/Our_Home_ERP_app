@@ -118,6 +118,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       
       final schedules = await _erpRepository.getContractSchedule(contractId);
 
+      // ... الأكواد السابقة الخاصة بحساب الأمتار والجداول تبقى كما هي
+
       for (var schedule in schedules) {
         String targetStatus = (schedule.installmentNumber <= fullyPaidMonths) ? 'paid' : 'pending';
         if (schedule.status != targetStatus) {
@@ -125,8 +127,14 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         }
       }
 
-      await _erpRepository.forceSyncWithCloud();
+      // 🌟 التعديل الجوهري هنا 🌟
+      // 1. تحديث الواجهة فوراً ليرى المستخدم الدفعة الجديدة
       await selectContract(contractId);
+      
+      // 2. عمل المزامنة السحابية في الخلفية بدون await حتى لا تتجمد الواجهة
+      _erpRepository.forceSyncWithCloud().catchError((syncError) {
+        print('حدث خطأ في المزامنة السحابية (لكن تم الحفظ محلياً): $syncError');
+      });
       
     } catch (e) {
       print('خطأ في إضافة الدفعة: $e');
