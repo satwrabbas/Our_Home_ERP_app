@@ -847,7 +847,7 @@ class ContractsView extends StatelessWidget {
 
 
 // ==============================================================
-// 🌟 الشاشة الجديدة: سلة المحذوفات (العقود الملغاة) -[محمية]
+// 🌟 الشاشة الجديدة: سلة المحذوفات (العقود الملغاة) -[محمية ومطورة]
 // ==============================================================
 class DeletedContractsView extends StatelessWidget {
   const DeletedContractsView({super.key});
@@ -875,11 +875,15 @@ class DeletedContractsView extends StatelessWidget {
             );
           }
 
+          // 🌟 1. ترتيب العقود من الأحدث إلى الأقدم بناءً على وقت الحذف (updatedAt)
+          final sortedContracts = List.from(state.deletedContracts)
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: state.deletedContracts.length,
+            itemCount: sortedContracts.length,
             itemBuilder: (context, index) {
-              final contract = state.deletedContracts[index];
+              final contract = sortedContracts[index];
               
               // جلب اسم العميل من قائمة العملاء المخزنة في الـ state
               final clientName = state.clients.firstWhere(
@@ -895,35 +899,68 @@ class DeletedContractsView extends StatelessWidget {
               return Card(
                 elevation: 3,
                 margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(Icons.cancel_presentation, color: Colors.white)),
-                  title: Text('عقد $clientName (${contract.contractType})', style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
-                  subtitle: Text('الوصف: ${contract.apartmentDetails}\nباقي $daysLeft أيام على الحذف النهائي', style: const TextStyle(color: Colors.redAccent)),
-                  isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children:[
-                      // ♻️ زر الاستعادة
-                      IconButton(
-                        icon: const Icon(Icons.restore, color: Colors.green, size: 30),
-                        tooltip: 'تراجع عن الإلغاء (استعادة)',
-                        onPressed: () {
-                          // استعادة العقد وإرجاع الشقة لحالة مباعة
-                          context.read<ContractsCubit>().restoreContract(contract);
-                          
-                          // تحديث الكتالوج إذا كنا نحتاج (استدعاء اختياري)
-                          context.read<BuildingsCubit>().loadData();
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استعادة العقد وحجز الشقة بنجاح.'), backgroundColor: Colors.green));
-                        },
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.redAccent, 
+                      child: Icon(Icons.cancel_presentation, color: Colors.white)
+                    ),
+                    title: Text(
+                      'عقد $clientName (${contract.contractType})', 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, decoration: TextDecoration.lineThrough)
+                    ),
+                    // 🌟 2. عرض تفاصيل أكثر بوضوح (الكفيل، الوصف، السعر، المدة)
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:[
+                          Text('الكفيل: ${contract.guarantorName}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                          const SizedBox(height: 4),
+                          Text('الوصف: ${contract.apartmentDetails}'),
+                          const SizedBox(height: 4),
+                          Text('السعر: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س | المدة: ${contract.installmentsCount} شهر', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
+                            child: Text(
+                              '⏳ باقي $daysLeft أيام على الحذف النهائي', 
+                              style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)
+                            ),
+                          ),
+                        ],
                       ),
-                      // 🗑️ زر الحذف النهائي الفوري (محمي برمز سري)
-                      IconButton(
-                        icon: const Icon(Icons.delete_forever, color: Colors.red),
-                        tooltip: 'حذف نهائي الآن',
-                        onPressed: () => _confirmHardDelete(context, contract, clientName),
-                      ),
-                    ],
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children:[
+                            // ♻️ زر الاستعادة
+                            IconButton(
+                              icon: const Icon(Icons.restore, color: Colors.green, size: 30),
+                              tooltip: 'تراجع عن الإلغاء (استعادة)',
+                              onPressed: () {
+                                context.read<ContractsCubit>().restoreContract(contract);
+                                context.read<BuildingsCubit>().loadData();
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم استعادة العقد وحجز الشقة بنجاح.'), backgroundColor: Colors.green));
+                              },
+                            ),
+                            // 🗑️ زر الحذف النهائي الفوري (محمي برمز سري)
+                            IconButton(
+                              icon: const Icon(Icons.delete_forever, color: Colors.red),
+                              tooltip: 'حذف نهائي الآن',
+                              onPressed: () => _confirmHardDelete(context, contract, clientName),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
