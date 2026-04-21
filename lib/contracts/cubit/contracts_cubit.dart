@@ -1,10 +1,10 @@
-//lib\contracts\cubit\contracts_cubit.dart
 import 'dart:io';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart' show ContractsCompanion, Contract, Client;
+// 🌟 جلبنا MaterialPricesHistoryCompanion لكي نتمكن من حفظ الأسعار
+import 'package:local_storage_api/local_storage_api.dart' show ContractsCompanion, Contract, Client, MaterialPricesHistoryCompanion;
 import 'package:drift/drift.dart' show Value;
 
 part 'contracts_state.dart';
@@ -30,7 +30,6 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  // 🌟 جلب العقود المحذوفة لسلة المهملات
   Future<void> fetchDeletedContracts() async {
     try {
       final deleted = await _erpRepository.getDeletedContracts();
@@ -50,12 +49,40 @@ class ContractsCubit extends Cubit<ContractsState> {
     required int installmentsCount, 
     required String guarantorName, 
     Map<String, double> coefficients = const {}, 
+    DateTime? customDate, // 🌟 التاريخ القديم
+    // 🌟 حقول أسعار المواد التاريخية
+    double? histIron,
+    double? histCement,
+    double? histBlock,
+    double? histFormwork,
+    double? histAggregates,
+    double? histWorker,
   }) async {
     emit(state.copyWith(status: ContractsStatus.loading)); 
     try {
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول أولاً لإنشاء العقود.');
 
+      final contractDateToSave = customDate?.toUtc() ?? DateTime.now().toUtc();
+
+      // 🌟 السحر هنا: إذا كان عقداً قديماً وتم إرسال أسعار معه، نحفظها في سجل الأسعار أولاً!
+      if (customDate != null && histIron != null) {
+        final historicalPrices = MaterialPricesHistoryCompanion.insert(
+          effectiveDate: Value(contractDateToSave), // نحفظها بتاريخ العقد القديم!
+          ironPrice: histIron,
+          cementPrice: histCement!,
+          block15Price: histBlock!,
+          formworkAndPouringWages: histFormwork!,
+          aggregateMaterialsPrice: histAggregates!,
+          ordinaryWorkerWage: histWorker!,
+          userId: userId, // 🌟 تم إضافة هذا السطر لحل الخطأ!
+        );
+        
+        // حفظ الأسعار في المستودع لتدخل في الإحصائيات وترتفع للسحابة
+        await _erpRepository.savePrices(historicalPrices);
+      }
+
+      // 🌟 ثم نحفظ العقد كالمعتاد
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
         apartmentId: Value(apartmentId), 
@@ -65,7 +92,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         baseMeterPriceAtSigning: basePrice,
         installmentsCount: Value(installmentsCount), 
         coefficients: Value(jsonEncode(coefficients)),
-        contractDate: DateTime.now().toUtc(), // 🌍 تم التصحيح لـ UTC
+        contractDate: contractDateToSave, 
         guarantorName: guarantorName, 
         userId: userId, 
       );
@@ -108,29 +135,23 @@ class ContractsCubit extends Cubit<ContractsState> {
     }
   }
 
-  // 🌟 استعادة عقد من سلة المحذوفات
   Future<void> restoreContract(Contract contract) async {
     try {
-      // 1. استعادة العقد مع أقساطه ودفعاته
       await _erpRepository.restoreContract(contract.id);
-
-      // 2. حجز الشقة مرة أخرى لكي لا تباع مرتين!
       if (contract.apartmentId != null && contract.apartmentId!.isNotEmpty) {
         await _erpRepository.changeApartmentStatus(contract.apartmentId!, 'sold');
       }
-
-      await fetchDeletedContracts(); // تحديث شاشة المحذوفات
-      await fetchData(); // تحديث الشاشة الرئيسية
+      await fetchDeletedContracts(); 
+      await fetchData(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
   }
 
-  // 🌟 الحذف النهائي (المدمر)
   Future<void> forceHardDelete(String contractId) async {
     try {
       await _erpRepository.forceHardDeleteContract(contractId);
-      await fetchDeletedContracts(); // تحديث شاشة المحذوفات
+      await fetchDeletedContracts(); 
     } catch (e) {
       emit(state.copyWith(status: ContractsStatus.failure, errorMessage: e.toString()));
     }
