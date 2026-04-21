@@ -8,9 +8,10 @@ class PaymentsState extends Equatable {
     this.status = PaymentsStatus.initial,
     this.clients = const[],
     this.contracts = const [],
-    this.apartments = const [], // 🌟 أضفنا الشقق
-    this.buildings = const [],  // 🌟 أضفنا المحاضر
+    this.apartments = const[], 
+    this.buildings = const [],  
     this.ledgerEntries = const[], 
+    this.deletedLedgerEntries = const[], // 🌟 سلة المحذوفات للمدفوعات
     this.selectedContractId,      
     this.errorMessage,
   });
@@ -18,9 +19,10 @@ class PaymentsState extends Equatable {
   final PaymentsStatus status;
   final List<Client> clients;
   final List<Contract> contracts;
-  final List<Apartment> apartments; // 🌟 
-  final List<Building> buildings;   // 🌟 
+  final List<Apartment> apartments; 
+  final List<Building> buildings;   
   final List<PaymentsLedgerData> ledgerEntries; 
+  final List<PaymentsLedgerData> deletedLedgerEntries; // 🌟
   final String? selectedContractId;             
   final String? errorMessage;
 
@@ -28,9 +30,10 @@ class PaymentsState extends Equatable {
     PaymentsStatus? status,
     List<Client>? clients,
     List<Contract>? contracts,
-    List<Apartment>? apartments, // 🌟
-    List<Building>? buildings,   // 🌟
+    List<Apartment>? apartments, 
+    List<Building>? buildings,   
     List<PaymentsLedgerData>? ledgerEntries,
+    List<PaymentsLedgerData>? deletedLedgerEntries, // 🌟
     String? selectedContractId, 
     String? errorMessage,
   }) {
@@ -38,22 +41,24 @@ class PaymentsState extends Equatable {
       status: status ?? this.status,
       clients: clients ?? this.clients,
       contracts: contracts ?? this.contracts,
-      apartments: apartments ?? this.apartments, // 🌟
-      buildings: buildings ?? this.buildings,    // 🌟
+      apartments: apartments ?? this.apartments, 
+      buildings: buildings ?? this.buildings,    
       ledgerEntries: ledgerEntries ?? this.ledgerEntries,
+      deletedLedgerEntries: deletedLedgerEntries ?? this.deletedLedgerEntries, // 🌟
       selectedContractId: selectedContractId ?? this.selectedContractId,
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [
+  List<Object?> get props =>[
         status,
         clients,
         contracts,
-        apartments, // 🌟
-        buildings,  // 🌟
+        apartments, 
+        buildings,  
         ledgerEntries,
+        deletedLedgerEntries, // 🌟
         selectedContractId,
         errorMessage
       ];

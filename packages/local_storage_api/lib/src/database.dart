@@ -656,6 +656,67 @@ class AppDatabase extends _$AppDatabase {
       await hardDeleteContract(c.id);
     }
   }
+
+  // ==========================================
+  // 🗑️ سلة المحذوفات وتعديل المدفوعات (Ledger)
+  // ==========================================
+
+  // 1. تعديل دفعة قديمة (تحديث المبلغ والخصم والأمتار)
+  Future<int> updateLedgerEntryAmount({
+    required String entryId,
+    required double newAmount,
+    required double newDiscount,
+    required double newConvertedMeters,
+  }) {
+    return (update(paymentsLedger)..where((t) => t.id.equals(entryId))).write(
+      PaymentsLedgerCompanion(
+        amountPaid: Value(newAmount),
+        fees: Value(newDiscount),
+        convertedMeters: Value(newConvertedMeters),
+        updatedAt: Value(DateTime.now().toUtc()), 
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  // 2. الحذف الوهمي لدفعة (Soft Delete)
+  Future<int> softDeleteLedgerEntry(String entryId) {
+    return (update(paymentsLedger)..where((t) => t.id.equals(entryId))).write(
+      PaymentsLedgerCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  // 3. جلب الدفعات المحذوفة
+  Future<List<PaymentsLedgerData>> getDeletedLedgerEntries() => 
+      (select(paymentsLedger)..where((t) => t.isDeleted.equals(true))).get();
+
+  // 4. استعادة دفعة من المحذوفات
+  Future<int> restoreLedgerEntry(String entryId) {
+    return (update(paymentsLedger)..where((t) => t.id.equals(entryId))).write(
+      PaymentsLedgerCompanion(
+        isDeleted: const Value(false),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  // 5. الحذف النهائي لدفعة (Hard Delete المدمر)
+  Future<int> forceHardDeleteLedgerEntry(String entryId) {
+    return (delete(paymentsLedger)..where((t) => t.id.equals(entryId))).go();
+  }
+
+  // 6. التنظيف التلقائي بعد 7 أيام (لتوفير المساحة)
+  Future<void> autoCleanOldDeletedLedgerEntries() async {
+    final sevenDaysAgo = DateTime.now().toUtc().subtract(const Duration(days: 7));
+    await (delete(paymentsLedger)..where((t) => 
+      t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
+    )).go();
+  }
 }
 
 LazyDatabase _openConnection() {

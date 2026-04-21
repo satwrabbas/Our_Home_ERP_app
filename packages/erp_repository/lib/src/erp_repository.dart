@@ -31,6 +31,7 @@ class ErpRepository {
       // 🌟 السطر الجديد: تنظيف قاعدة البيانات المحلية من المهملات القديمة
       _localApi.autoCleanOldDeletedClients(); 
       _localApi.autoCleanOldDeletedContracts(); 
+      _localApi.autoCleanOldDeletedLedgerEntries();
     }
   }
 
@@ -636,6 +637,38 @@ class ErpRepository {
   Future<void> markWhatsAppAsSent(String entryId) async { 
     await _localApi.updateWhatsAppStatus(entryId);
     syncPendingData();
+  }
+
+  // ==========================================
+  // 💰 إدارة التعديل وسلة المحذوفات للإيصالات
+  // ==========================================
+  Future<void> updateLedgerEntryAmount({
+    required String entryId,
+    required double newAmount,
+    required double newDiscount,
+    required double newConvertedMeters,
+  }) async {
+    await _localApi.updateLedgerEntryAmount(
+      entryId: entryId, 
+      newAmount: newAmount, 
+      newDiscount: newDiscount, 
+      newConvertedMeters: newConvertedMeters
+    );
+  }
+
+  Future<void> softDeleteLedgerEntry(String entryId) async {
+    await _localApi.softDeleteLedgerEntry(entryId);
+  }
+
+  Future<List<PaymentsLedgerData>> getDeletedLedgerEntries() => _localApi.getDeletedLedgerEntries();
+
+  Future<void> restoreLedgerEntry(String entryId) async {
+    await _localApi.restoreLedgerEntry(entryId);
+    await syncPendingData(); // رفع الاستعادة فوراً للسحابة
+  }
+
+  Future<void> forceHardDeleteLedgerEntry(String entryId) async {
+    await _localApi.forceHardDeleteLedgerEntry(entryId);
   }
 
   // ==========================================

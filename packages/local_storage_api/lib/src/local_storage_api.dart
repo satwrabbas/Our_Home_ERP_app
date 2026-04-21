@@ -97,4 +97,17 @@ class LocalStorageApi {
   Future<void> hardDeleteContractLocal(String id) => _db.hardDeleteContract(id);
   Future<void> autoCleanOldDeletedContracts() => _db.autoCleanOldDeletedContracts();
   
+
+
+  // ==========================================
+  // 💰 دوال التعديل وسلة محذوفات المدفوعات
+  // ==========================================
+  Future<int> updateLedgerEntryAmount({required String entryId, required double newAmount, required double newDiscount, required double newConvertedMeters}) =>
+      _db.updateLedgerEntryAmount(entryId: entryId, newAmount: newAmount, newDiscount: newDiscount, newConvertedMeters: newConvertedMeters);
+
+  Future<int> softDeleteLedgerEntry(String id) => _db.softDeleteLedgerEntry(id);
+  Future<List<PaymentsLedgerData>> getDeletedLedgerEntries() => _db.getDeletedLedgerEntries();
+  Future<int> restoreLedgerEntry(String id) => _db.restoreLedgerEntry(id);
+  Future<int> forceHardDeleteLedgerEntry(String id) => _db.forceHardDeleteLedgerEntry(id);
+  Future<void> autoCleanOldDeletedLedgerEntries() => _db.autoCleanOldDeletedLedgerEntries();
 }
