@@ -10,6 +10,9 @@ import 'dialogs/add_apartment_dialog.dart';
 import 'dialogs/apartment_details_dialog.dart';
 import 'dialogs/building_details_dialog.dart';
 import 'dialogs/copy_floor_dialog.dart';
+// 🌟 الاستيرادات الجديدة للنوافذ المنفصلة
+import 'dialogs/edit_building_dialog.dart';
+import 'dialogs/edit_apartment_dialog.dart';
 
 // 🌟 تحويلها إلى StatefulWidget لطلب البيانات بآمان دون إنشاء BlocProvider جديد
 class BuildingsPage extends StatefulWidget {
@@ -37,7 +40,6 @@ class _BuildingsPageState extends State<BuildingsPage> {
 class BuildingsView extends StatelessWidget {
   const BuildingsView({super.key});
 
-// ... باقي الكود كما هو تماماً (appBar و BlocConsumer الخ...)
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +68,6 @@ class BuildingsView extends StatelessWidget {
           }
 
           return ListView.builder(
-            // ... (باقي الكود يبقى كما هو)
             padding: const EdgeInsets.all(16),
             itemCount: state.buildings.length,
             itemBuilder: (context, index) {
@@ -86,27 +87,24 @@ class BuildingsView extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ExpansionTile(
-                  // 👈 تبقى الجوارير مقفلة عند الفتح
                   initiallyExpanded: false, 
                   
                   title: Row(
-                    children: [
+                    children:[
                       Text(
                         '🏢 ${building.name}', 
                         style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
                       ),
                       const Spacer(),
-                      // 🌟 الأزرار موضوعة في Row لترتيبها
                       Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 🌟 زر تعديل المحضر (الجديد)
+                        children:[
+                          // 🌟 استدعاء الدالة من الملف المفصول
                           IconButton(
                             icon: const Icon(Icons.edit_note, color: Colors.orange),
                             tooltip: 'تعديل اسم وموقع المحضر',
-                            onPressed: () => _showEditBuildingDialog(context, building),
+                            onPressed: () => showEditBuildingDialog(context, building), 
                           ),
-                          // 🌟 زر التفاصيل (القديم)
                           IconButton(
                             icon: const Icon(Icons.domain_verification, color: Colors.teal),
                             tooltip: 'عرض تفاصيل المحضر',
@@ -121,16 +119,14 @@ class BuildingsView extends StatelessWidget {
                     'الموقع: ${building.location} | إجمالي الشقق: ${bldApartments.length}',
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
-                  children: [
+                  children:[
                     if (availableFloors.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(16.0), 
                         child: Text('لم يتم إعداد طوابق لهذا المحضر بعد.'),
                       ),
                     
-                    // عرض الطوابق كقوائم داخلية
                     ...availableFloors.keys.map((floorName) {
-                      // شقق هذا الطابق تحديداً
                       final floorApts = bldApartments.where((a) => a.floorName == floorName).toList();
                       
                       return Container(
@@ -142,7 +138,7 @@ class BuildingsView extends StatelessWidget {
                         ),
                         child: ExpansionTile(
                           title: Row(
-                            children: [
+                            children:[
                               Icon(Icons.layers, color: Colors.indigo.shade300, size: 20),
                               const SizedBox(width: 8),
                               Text(
@@ -151,15 +147,13 @@ class BuildingsView extends StatelessWidget {
                               ),
                             ],
                           ),
-                          children: [
-                            // في حال لا يوجد شقق
+                          children:[
                             if (floorApts.isEmpty)
                               const Padding(
                                 padding: EdgeInsets.all(16.0), 
                                 child: Text('لا توجد شقق في هذا الطابق.', style: TextStyle(color: Colors.grey)),
                               ),
                             
-                            // 🌟 التصميم الحديث والجديد لجدول الشقق (SaaS Design)
                             if (floorApts.isNotEmpty)
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
@@ -170,7 +164,7 @@ class BuildingsView extends StatelessWidget {
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(color: Colors.indigo.shade50, width: 1.5),
-                                    boxShadow: [
+                                    boxShadow:[
                                       BoxShadow(
                                         color: Colors.indigo.withOpacity(0.04),
                                         blurRadius: 10,
@@ -194,7 +188,7 @@ class BuildingsView extends StatelessWidget {
                                         color: Color(0xFF475569), 
                                         fontSize: 14,
                                       ),
-                                      columns: const [
+                                      columns: const[
                                         DataColumn(label: Text('رقم الشقة')),
                                         DataColumn(label: Text('المساحة')),
                                         DataColumn(label: Text('الاتجاه')),
@@ -204,12 +198,11 @@ class BuildingsView extends StatelessWidget {
                                       rows: floorApts.map((apt) {
                                         final isAvailable = apt.status == 'available';
                                         return DataRow(
-                                          cells: [
-                                            // 1. رقم الشقة
+                                          cells:[
                                             DataCell(
                                               Row(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: [
+                                                children:[
                                                   Icon(Icons.door_front_door_outlined, size: 18, color: Colors.indigo.shade300),
                                                   const SizedBox(width: 8),
                                                   Text(
@@ -219,11 +212,8 @@ class BuildingsView extends StatelessWidget {
                                                 ],
                                               ),
                                             ),
-                                            // 2. المساحة
                                             DataCell(Text('${apt.area} م²', style: const TextStyle(fontWeight: FontWeight.w500))),
-                                            // 3. الاتجاه
                                             DataCell(Text(apt.directionName ?? '-', style: TextStyle(color: Colors.grey.shade700))),
-                                            // 4. الحالة (Badge)
                                             DataCell(
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -245,14 +235,12 @@ class BuildingsView extends StatelessWidget {
                                                 ),
                                               ),
                                             ),
-                                            // 5. إجراءات (الأزرار)
                                             DataCell(
                                               Row(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // 🌟 زر تعديل الشقة (الجديد)
+                                                children:[
                                                   Container(
-                                                    margin: const EdgeInsets.only(left: 8), // مسافة بين الزرين
+                                                    margin: const EdgeInsets.only(left: 8), 
                                                     decoration: BoxDecoration(
                                                       color: Colors.orange.shade50,
                                                       shape: BoxShape.circle,
@@ -260,10 +248,10 @@ class BuildingsView extends StatelessWidget {
                                                     child: IconButton(
                                                       icon: const Icon(Icons.edit_note, size: 20, color: Colors.orange),
                                                       tooltip: 'تعديل الشقة',
-                                                      onPressed: () => _showEditApartmentDialog(context, apt),
+                                                      // 🌟 استدعاء الدالة من الملف المفصول
+                                                      onPressed: () => showEditApartmentDialog(context, apt),
                                                     ),
                                                   ),
-                                                  // 🌟 زر التفاصيل (القديم)
                                                   Container(
                                                     decoration: BoxDecoration(
                                                       color: Colors.indigo.shade50,
@@ -286,7 +274,6 @@ class BuildingsView extends StatelessWidget {
                                 ),
                               ),
                             
-                            // أزرار التحكم الخاصة بالطابق (لم يتم حذف أي زر)
                             Container(
                               padding: const EdgeInsets.all(12.0),
                               decoration: BoxDecoration(
@@ -298,13 +285,12 @@ class BuildingsView extends StatelessWidget {
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
+                                children:[
                                   TextButton.icon(
                                     icon: const Icon(Icons.add_home),
                                     label: const Text('إضافة شقة هنا'),
                                     onPressed: () => showAddApartmentDialog(context, building, preSelectedFloor: floorName),
                                   ),
-                                  // زر النسخ (يظهر فقط إذا كان هناك شقق لنسخها)
                                   if (floorApts.isNotEmpty)
                                     TextButton.icon(
                                       icon: const Icon(Icons.copy_all, color: Colors.orange),
@@ -326,7 +312,6 @@ class BuildingsView extends StatelessWidget {
           );
         },
       ),
-      // زر إضافة محضر جديد (الزر العائم)
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
         backgroundColor: Colors.indigo,
@@ -336,166 +321,4 @@ class BuildingsView extends StatelessWidget {
       ),
     );
   }  
-
-  // ==========================================
-  // ✏️ نافذة تعديل المحضر (Building)
-  // ==========================================
-  void _showEditBuildingDialog(BuildContext parentContext, dynamic building) {
-    // تعبئة البيانات مسبقاً
-    final nameController = TextEditingController(text: building.name);
-    final locationController = TextEditingController(text: building.location ?? '');
-
-    showDialog(
-      context: parentContext,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('تعديل بيانات المحضر', style: TextStyle(color: Colors.indigo)),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController, 
-                  decoration: const InputDecoration(labelText: 'اسم المحضر', border: OutlineInputBorder())
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: locationController, 
-                  decoration: const InputDecoration(labelText: 'الموقع / العنوان', border: OutlineInputBorder())
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-              onPressed: () {
-                if (nameController.text.trim().isNotEmpty) {
-                  parentContext.read<BuildingsCubit>().updateBuilding(
-                    id: building.id,
-                    name: nameController.text.trim(),
-                    location: locationController.text.trim(),
-                  );
-                  Navigator.pop(dialogContext);
-                }
-              },
-              child: const Text('حفظ التعديلات'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-
-  // ==========================================
-  // ✏️ نافذة تعديل الشقة (Apartment)
-  // ==========================================
-  void _showEditApartmentDialog(BuildContext parentContext, dynamic apt) {
-    // تعبئة البيانات مسبقاً
-    final numberController = TextEditingController(text: apt.apartmentNumber);
-    final areaController = TextEditingController(text: apt.area.toString());
-    
-    // حفظ الاتجاه الحالي
-    String selectedDirection = apt.directionName ?? 'شمالي';
-    
-    // قائمة الاتجاهات المسموح بها لتجنب الأخطاء الإملائية
-    final List<String> directions = ['شمالي', 'جنوبي', 'شرقي', 'غربي', 'شمالي شرقي', 'شمالي غربي', 'جنوبي شرقي', 'جنوبي غربي'];
-    
-    // التأكد من أن الاتجاه الموجود في القاعدة موجود في القائمة، وإلا نختار أول عنصر
-    if (!directions.contains(selectedDirection)) {
-      selectedDirection = directions.first;
-    }
-
-    showDialog(
-      context: parentContext,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('تعديل الشقة ( ${apt.apartmentNumber} )', style: const TextStyle(color: Colors.indigo)),
-              content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // تنبيه هندسي
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      color: Colors.amber.shade50,
-                      child: const Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded, color: Colors.brown, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'لا يمكن تعديل معاملات التميز أو الطابق حفاظاً على سلامة الحسابات. لتغييرها يجب حذف الشقة وإضافتها من جديد.',
-                              style: TextStyle(color: Colors.brown, fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: numberController, 
-                            decoration: const InputDecoration(labelText: 'رقم الشقة', border: OutlineInputBorder())
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: areaController, 
-                            decoration: const InputDecoration(labelText: 'المساحة (م²)', border: OutlineInputBorder()),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    DropdownButtonFormField<String>(
-                      value: selectedDirection,
-                      decoration: const InputDecoration(labelText: 'الاتجاه', border: OutlineInputBorder()),
-                      items: directions.map((dir) => DropdownMenuItem(value: dir, child: Text(dir))).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          selectedDirection = val!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-                  onPressed: () {
-                    if (numberController.text.trim().isNotEmpty && areaController.text.trim().isNotEmpty) {
-                      parentContext.read<BuildingsCubit>().updateApartment(
-                        id: apt.id,
-                        apartmentNumber: numberController.text.trim(),
-                        area: double.tryParse(areaController.text.trim()) ?? apt.area,
-                        directionName: selectedDirection,
-                      );
-                      Navigator.pop(dialogContext);
-                    }
-                  },
-                  child: const Text('حفظ التعديلات'),
-                ),
-              ],
-            );
-          }
-        );
-      },
-    );
-  }
-
 }
