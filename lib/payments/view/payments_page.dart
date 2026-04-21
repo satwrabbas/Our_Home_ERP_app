@@ -92,19 +92,89 @@ class PaymentsView extends StatelessWidget {
                     const SizedBox(width: 16),
                     
                     if (state.selectedContractId != null) ...[
-                      // ... (أزرار الـ Excel والـ PDF كما هي بالضبط في كودك الأصلي) ...
+                      // زر الإكسل
                       ElevatedButton.icon(
-                        // كود الإكسل كما أرسلته أنت...
-                        onPressed: (){ /* نفس كودك */ }, icon: const Icon(Icons.table_view), label: const Text('تصدير Excel'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                        onPressed: () async {
+                          if (state.ledgerEntries.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يوجد حركات مالية لتصديرها!'), backgroundColor: Colors.red));
+                            return;
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز ملف الإكسل...')));
+                          
+                          final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                          final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+
+                          final filePath = await ExcelExportHelper.exportLedgerToExcel(
+                            ledgerEntries: state.ledgerEntries, contract: contract, client: client,
+                          );
+
+                          if (context.mounted) {
+                            if (filePath != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم الحفظ بنجاح في: $filePath'), backgroundColor: Colors.green));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل تصدير الملف.'), backgroundColor: Colors.red));
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.table_view),
+                        label: const Text('تصدير Excel'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
+                      
                       const SizedBox(width: 12),
+                      
+                      // 🌟 زر الـ PDF (النسخة المحدثة) 🌟
                       ElevatedButton.icon(
-                        // كود الـ PDF كما أرسلته أنت...
-                        onPressed: (){ /* نفس كودك */ }, icon: const Icon(Icons.picture_as_pdf), label: const Text('كشف حساب PDF'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+                        onPressed: () async {
+                          if (state.ledgerEntries.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لا يوجد حركات مالية لطباعتها!'), backgroundColor: Colors.red));
+                            return;
+                          }
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز كشف الحساب (PDF)...')));
+                          
+                          final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                          final client = state.clients.firstWhere((c) => c.id == contract.clientId);
+
+                          Apartment? selectedApartment;
+                          Building? selectedBuilding;
+
+                          if (contract.apartmentId != null) {
+                            final aptIndex = state.apartments.indexWhere((a) => a.id == contract.apartmentId);
+                            if (aptIndex != -1) {
+                              selectedApartment = state.apartments[aptIndex];
+                              final bldIndex = state.buildings.indexWhere((b) => b.id == selectedApartment!.buildingId);
+                              if (bldIndex != -1) {
+                                selectedBuilding = state.buildings[bldIndex];
+                              }
+                            }
+                          }
+
+                          final pdfBytes = await LedgerPdfHelper.generateLedgerReportPdf(
+                            ledgerEntries: state.ledgerEntries,
+                            contract: contract,
+                            client: client,
+                            apartment: selectedApartment, 
+                            building: selectedBuilding,   
+                          );
+
+                          if (context.mounted) {
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => PdfPreviewPage(
+                                pdfBytes: pdfBytes, 
+                                title: 'كشف_حساب_${client.name}'
+                              )
+                            ));
+                          }
+                        },
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('كشف حساب PDF'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
                       ),
+
                       const SizedBox(width: 12),
+                      
+                      // زر إدخال دفعة (🌟 استدعاء הדالة المفصولة)
                       ElevatedButton.icon(
                         onPressed: () => showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
@@ -155,9 +225,47 @@ class PaymentsView extends StatelessWidget {
                                       mainAxisSize: MainAxisSize.min,
                                       children:[
                                         // أزرار الطباعة والواتساب كما هي ...
-                                        IconButton(icon: const Icon(Icons.print, color: Colors.blue), onPressed: () { /* كود الطباعة */ }),
-                                        IconButton(icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green), onPressed: () { /* كود الواتساب */ }),
-                                        
+                                        IconButton(
+                                          icon: const Icon(Icons.print, color: Colors.blue),
+                                          tooltip: 'معاينة وطباعة الفاتورة',
+                                          onPressed: () async {
+                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                            if(contractIdx == -1) return;
+                                            final contract = state.contracts[contractIdx];
+
+                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                            if(clientIdx == -1) return;
+                                            final client = state.clients[clientIdx];
+                                            
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
+                                            final pdfBytes = await PdfGenerator.generateReceiptPdf(entry: entry, contract: contract, client: client);
+
+                                            if (context.mounted) {
+                                              Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id.split('-').first}_${client.name}')));
+                                            }
+                                          },
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
+                                          tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
+                                          onPressed: () async {
+                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                            if(contractIdx == -1) return;
+                                            final contract = state.contracts[contractIdx];
+
+                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                            if(clientIdx == -1) return;
+                                            final client = state.clients[clientIdx];
+                                            
+                                            final success = await WhatsAppHelper.sendReceiptMessage(entry: entry, contract: contract, client: client);
+
+                                            if (context.mounted && success) {
+                                              context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
+                                            }
+                                          },
+                                        ),
+
+
                                         // 🌟 زر التعديل (للكل - محمي برمز الإدارة)
                                         IconButton(
                                           icon: const Icon(Icons.edit_note, color: Colors.orange),
