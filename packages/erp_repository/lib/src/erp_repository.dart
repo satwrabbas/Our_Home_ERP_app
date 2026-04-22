@@ -616,20 +616,7 @@ class ErpRepository {
   // ==========================================
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
 
-  // 🌟 إضافة قسط استثنائي / بالوني
-  Future<void> addExceptionalInstallment({
-    required String contractId,
-    required DateTime dueDate,
-    required String note,
-  }) async {
-    final String? safeUserId = currentUserId;
-    if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
 
-    await _localApi.addExceptionalInstallment(contractId, dueDate, note, safeUserId);
-    
-    // تفعيل محرك المزامنة لرفع القسط الجديد وتعديل العقد
-    await syncPendingData(); 
-  }
   
   
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)

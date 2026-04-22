@@ -309,42 +309,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
 
-  // ==========================================
-  // 🎈 إضافة قسط استثنائي / بالوني
-  // ==========================================
-  Future<void> addExceptionalInstallment(String contractId, DateTime dueDate, String note, String userId) async {
-    return transaction(() async {
-      final nowUtc = Value(DateTime.now().toUtc());
 
-      // 1. إيجاد أعلى رقم قسط لكي نكمل الترقيم بشكل صحيح
-      final schedules = await (select(installmentsSchedule)..where((t) => t.contractId.equals(contractId))).get();
-      int maxNumber = 0;
-      for (var s in schedules) {
-        if (s.installmentNumber > maxNumber) maxNumber = s.installmentNumber;
-      }
-
-      // 2. إدخال القسط الاستثنائي الجديد
-      final entry = InstallmentsScheduleCompanion.insert(
-        contractId: contractId,
-        installmentNumber: maxNumber + 1, // يأخذ الرقم التالي
-        dueDate: dueDate.toUtc(), // 🌍 توقيت عالمي
-        status: const Value('pending'),
-        notes: Value(note), // 🌟 هنا يتم تمييزه
-        userId: userId,
-      );
-      await into(installmentsSchedule).insert(entry);
-
-      // 3. تحديث إجمالي عدد الأقساط في العقد 
-      final contract = await (select(contracts)..where((t) => t.id.equals(contractId))).getSingle();
-      await (update(contracts)..where((t) => t.id.equals(contractId))).write(
-        ContractsCompanion(
-          installmentsCount: Value(contract.installmentsCount + 1), // زيادة المدة بقسط
-          updatedAt: nowUtc,
-          isSynced: const Value(false),
-        ),
-      );
-    });
-  }
 
   // ==========================================
   // --- استعلامات العقود ---

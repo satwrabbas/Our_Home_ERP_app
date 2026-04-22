@@ -70,8 +70,6 @@ class LocalStorageApi {
   Future<void> restructureContractSchedule({required String contractId, required int newRemainingMonths, required DateTime newStartDate, required String userId}) =>
       _db.restructureContractSchedule(contractId: contractId, newRemainingMonths: newRemainingMonths, newStartDate: newStartDate, userId: userId);
 
-  Future<void> addExceptionalInstallment(String contractId, DateTime dueDate, String note, String userId) =>
-      _db.addExceptionalInstallment(contractId, dueDate, note, userId);
 
   // ==========================================
   // 🧹 فرمتة القاعدة

@@ -4,10 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/schedule_cubit.dart';
 import '../../../core/utils/whatsapp_helper.dart';
 
-// 🌟 استيرادات جميع النوافذ (Dialogs) التي برمجناها
 import '../dialogs/edit_schedule_dialog.dart';
 import '../dialogs/reschedule_dialog.dart';
-import '../dialogs/add_exceptional_installment_dialog.dart'; // 🌟 الاستيراد الذي كان مفقوداً
 import '../dialogs/edit_single_schedule_dialog.dart';
 
 class TraditionalScheduleTab extends StatelessWidget {
@@ -46,11 +44,10 @@ class TraditionalScheduleTab extends StatelessWidget {
                 ),
               ),
               
-              // 🌟 الأزرار تظهر فقط عند اختيار عقد
               if (state.selectedContractId != null) ...[
                 const SizedBox(width: 16),
                 
-                // 1. زر إعادة الجدولة (تغيير خطة الدفع)
+                // 1. زر إعادة الجدولة
                 Container(
                   decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.blue.shade300), borderRadius: BorderRadius.circular(8)),
                   child: IconButton(
@@ -65,22 +62,7 @@ class TraditionalScheduleTab extends StatelessWidget {
 
                 const SizedBox(width: 12),
                 
-                // 2. زر إضافة قسط استثنائي (بالوني)
-                Container(
-                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.purple.shade200), borderRadius: BorderRadius.circular(8)),
-                  child: IconButton(
-                    icon: const Icon(Icons.add_task, color: Colors.purple, size: 28),
-                    tooltip: 'إضافة قسط استثنائي / بالوني',
-                    onPressed: () {
-                      final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
-                      showAddExceptionalInstallmentDialog(context, contract);
-                    },
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-                
-                // 3. زر الإعدادات القديم (تعديل تفاصيل العقد)
+                // 2. زر الإعدادات القديم
                 Container(
                   decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.indigo.shade200), borderRadius: BorderRadius.circular(8)),
                   child: IconButton(
@@ -133,7 +115,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                               cells:[
                                 DataCell(Text(schedule.installmentNumber.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
                                 
-                                // عرض التاريخ + الملاحظات (إن وجدت)
                                 DataCell(
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +170,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                                             style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
                                           ),
                                           
-                                      // زر تعديل القسط الفردي
                                       if (!isPaid) ...[
                                         const SizedBox(width: 8),
                                         IconButton(
