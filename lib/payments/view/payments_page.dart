@@ -9,9 +9,17 @@ import '../../core/utils/pdf_preview_page.dart';
 import '../../core/utils/whatsapp_helper.dart';
 import '../../core/utils/excel_export_helper.dart';
 import 'dialogs/add_payment_dialog.dart'; 
-import 'dialogs/edit_payment_dialog.dart'; // 🌟 نافذة التعديل الجديدة
-import 'dialogs/delete_payment_dialog.dart'; // 🌟 نافذة الحذف الجديدة
-import 'deleted_payments_view.dart'; // 🌟 شاشة المحذوفات
+import 'dialogs/edit_payment_dialog.dart'; 
+import 'dialogs/delete_payment_dialog.dart'; 
+import 'deleted_payments_view.dart'; 
+
+// ==========================================
+// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل (للجدول)
+// ==========================================
+String formatWithCommas(num number) {
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
+}
 
 class PaymentsPage extends StatelessWidget {
   const PaymentsPage({super.key});
@@ -33,7 +41,6 @@ class PaymentsView extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.deepOrange,
         actions:[
-          // 🌟 زر سلة المحذوفات للإيصالات
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: IconButton(
@@ -123,7 +130,7 @@ class PaymentsView extends StatelessWidget {
                       
                       const SizedBox(width: 12),
                       
-                      // 🌟 زر الـ PDF (النسخة المحدثة) 🌟
+                      // زر الـ PDF 
                       ElevatedButton.icon(
                         onPressed: () async {
                           if (state.ledgerEntries.isEmpty) {
@@ -174,7 +181,7 @@ class PaymentsView extends StatelessWidget {
 
                       const SizedBox(width: 12),
                       
-                      // زر إدخال دفعة (🌟 استدعاء הדالة المفصولة)
+                      // زر إدخال دفعة
                       ElevatedButton.icon(
                         onPressed: () => showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
@@ -206,25 +213,25 @@ class PaymentsView extends StatelessWidget {
                                   DataColumn(label: Text('تاريخ الدفع', style: TextStyle(fontWeight: FontWeight.bold))),
                                   DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
                                 ],
-                                // 🌟 التعديل السحري هنا: استخدام asMap() لمعرفة الـ Index للدفعة
                                 rows: state.ledgerEntries.asMap().entries.map((mapEntry) {
                                   final int index = mapEntry.key;
                                   final entry = mapEntry.value;
                                   
-                                  // بما أن القائمة مرتبة من الأحدث للأقدم، العنصر رقم 0 هو الأحدث!
                                   final bool isLatestEntry = index == 0;
 
                                   return DataRow(cells:[
                                     DataCell(Text(entry.id.split('-').first, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
-                                    DataCell(Text('${entry.amountPaid.toStringAsFixed(0)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
-                                    DataCell(Text('${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س')),
+                                    
+                                    // 🌟 تطبيق الفواصل هنا 🌟
+                                    DataCell(Text('${formatWithCommas(entry.amountPaid)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                                    DataCell(Text('${formatWithCommas(entry.meterPriceAtPayment)} ل.س')),
+                                    
                                     DataCell(Text('${entry.convertedMeters.toStringAsFixed(3)} م2', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
                                     DataCell(Text('${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}')),
                                     
                                     DataCell(Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children:[
-                                        // أزرار الطباعة والواتساب كما هي ...
                                         IconButton(
                                           icon: const Icon(Icons.print, color: Colors.blue),
                                           tooltip: 'معاينة وطباعة الفاتورة',
@@ -264,16 +271,11 @@ class PaymentsView extends StatelessWidget {
                                             }
                                           },
                                         ),
-
-
-                                        // 🌟 زر التعديل (للكل - محمي برمز الإدارة)
                                         IconButton(
                                           icon: const Icon(Icons.edit_note, color: Colors.orange),
                                           tooltip: 'تعديل قيمة الدفعة (للإدارة فقط)',
                                           onPressed: () => showEditPaymentDialog(context, entry),
                                         ),
-
-                                        // 🌟 زر الحذف (للأخير فقط - محمي برمز عادي)
                                         IconButton(
                                           icon: Icon(Icons.delete_forever, color: isLatestEntry ? Colors.red : Colors.grey.shade400),
                                           tooltip: isLatestEntry ? 'إلغاء آخر دفعة' : 'لا يمكن حذف الدفعات القديمة، يمكنك تعديلها فقط',
