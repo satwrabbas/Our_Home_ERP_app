@@ -1,3 +1,4 @@
+//lib\schedule\cubit\schedule_state.dart
 part of 'schedule_cubit.dart';
 
 enum ScheduleStatus { initial, loading, success, failure }
