@@ -4,6 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/payments_cubit.dart';
 import 'dialogs/pin_verify_dialog.dart';
 
+// ==========================================
+// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل
+// ==========================================
+String formatWithCommas(num number) {
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
+}
+
 class DeletedPaymentsView extends StatelessWidget {
   const DeletedPaymentsView({super.key});
 
@@ -49,7 +57,12 @@ class DeletedPaymentsView extends StatelessWidget {
                 child: ListTile(
                   leading: const CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(Icons.money_off, color: Colors.white)),
                   title: Text('إيصال ملغى لـ: $clientName', style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
-                  subtitle: Text('المبلغ: ${entry.amountPaid.toStringAsFixed(0)} ل.س\nالأمتار المخصومة: ${entry.convertedMeters.toStringAsFixed(3)} م2\nتم الإلغاء في: ${entry.updatedAt.toLocal().toString().split(' ')[0]}', style: const TextStyle(color: Colors.redAccent)),
+                  
+                  // 🌟 تم تطبيق دالة formatWithCommas هنا لترتيب الملايين
+                  subtitle: Text(
+                    'المبلغ: ${formatWithCommas(entry.amountPaid)} ل.س\nالأمتار المخصومة: ${entry.convertedMeters.toStringAsFixed(3)} م2\nتم الإلغاء في: ${entry.updatedAt.toLocal().toString().split(' ')[0]}', 
+                    style: const TextStyle(color: Colors.redAccent)
+                  ),
                   isThreeLine: true,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
