@@ -34,8 +34,8 @@ class ScheduleView extends StatelessWidget {
             indicatorColor: Colors.orange,
             indicatorWeight: 4,
             tabs:[
-              Tab(icon: Icon(Icons.warning_amber_rounded), text: 'المتعثرين (ديون متراكمة)'), // 🌟
-              Tab(icon: Icon(Icons.radar), text: 'رادار التخصص (ذكاء مالي)'),
+              Tab(icon: Icon(Icons.warning_amber_rounded), text: 'المتعثرين '), // 🌟
+              Tab(icon: Icon(Icons.radar), text: 'رادار التخصص '),
               Tab(icon: Icon(Icons.table_chart), text: 'جدول الأقساط التقليدي'),
             ],
           ),
