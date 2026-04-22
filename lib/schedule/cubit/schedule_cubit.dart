@@ -113,4 +113,35 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: e.toString()));
     }
   }
+
+  // ==========================================
+  // ⚙️ دالة جديدة لتعديل خصائص العقد من شاشة الجدول
+  // ==========================================
+  Future<void> updateContractSettings({
+    required String id,
+    required String details,
+    required String guarantorName,
+    required int installmentsCount,
+    required DateTime contractDate,
+  }) async {
+    try {
+      // 1. إرسال التعديلات للمستودع (والذي سيقوم آلياً بحذف الأقساط الزائدة)
+      await _erpRepository.updateContract(
+        id: id,
+        apartmentDetails: details,
+        guarantorName: guarantorName,
+        installmentsCount: installmentsCount,
+        contractDate: contractDate,
+      );
+
+      // 2. إعادة تحميل البيانات الأساسية لتحديث (رادار التخصص الذكي)
+      await fetchInitialData();
+
+      // 3. تحديث جدول الأقساط المعروض حالياً لتظهر التغييرات فوراً
+      await selectContract(id);
+
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل تعديل الجدول: $e'));
+    }
+  }
 }

@@ -4,6 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/schedule_cubit.dart';
 import '../../../core/utils/whatsapp_helper.dart';
 
+// 🌟 استدعاء نافذة التعديل الجديدة
+import '../dialogs/edit_schedule_dialog.dart';
+
 class TraditionalScheduleTab extends StatelessWidget {
   final ScheduleState state;
 
@@ -39,6 +42,27 @@ class TraditionalScheduleTab extends StatelessWidget {
                   },
                 ),
               ),
+              
+              // 🌟 السطر الجديد: زر التعديل يظهر فقط عند اختيار عقد
+              if (state.selectedContractId != null) ...[
+                const SizedBox(width: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.indigo.shade200),
+                    borderRadius: BorderRadius.circular(8)
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.indigo, size: 28),
+                    tooltip: 'تعديل خصائص العقد والجدول (للمدير)',
+                    onPressed: () {
+                      final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                      showEditScheduleDialog(context, contract);
+                    },
+                  ),
+                ),
+              ],
+
             ],
           ),
         ),
