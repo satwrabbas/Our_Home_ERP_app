@@ -5,6 +5,14 @@ import '../../../buildings/cubit/buildings_cubit.dart';
 import '../cubit/contracts_cubit.dart';
 import 'dialogs/confirm_hard_delete_contract_dialog.dart';
 
+// ==========================================
+// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل
+// ==========================================
+String formatWithCommas(num number) {
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
+}
+
 class DeletedContractsPage extends StatelessWidget {
   const DeletedContractsPage({super.key});
 
@@ -74,7 +82,10 @@ class DeletedContractsPage extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text('الوصف: ${contract.apartmentDetails}'),
                           const SizedBox(height: 4),
-                          Text('السعر: ${contract.baseMeterPriceAtSigning.toStringAsFixed(0)} ل.س | المدة: ${contract.installmentsCount} شهر', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+                          
+                          // 🌟 تطبيق الفواصل هنا 🌟
+                          Text('السعر: ${formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س | المدة: ${contract.installmentsCount} شهر', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+                          
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -89,7 +100,7 @@ class DeletedContractsPage extends StatelessWidget {
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      children:[
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children:[

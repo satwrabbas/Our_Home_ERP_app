@@ -8,6 +8,14 @@ import 'deleted_contracts_page.dart';
 import 'dialogs/add_contract_dialog.dart';
 import 'dialogs/edit_contract_dialog.dart';
 
+// ==========================================
+// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل (للجدول)
+// ==========================================
+String formatWithCommas(num number) {
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
+}
+
 class ContractsPage extends StatelessWidget {
   const ContractsPage({super.key});
 
@@ -105,7 +113,10 @@ class ContractsView extends StatelessWidget {
                     DataCell(Text(contract.contractType, style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold))),
                     DataCell(Text(contract.apartmentDetails)),
                     DataCell(Text(contract.guarantorName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))), 
-                    DataCell(Text(contract.baseMeterPriceAtSigning.toStringAsFixed(0), style: const TextStyle(color: Colors.green))),
+                    
+                    // 🌟 تطبيق الفواصل هنا 🌟
+                    DataCell(Text('${formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س', style: const TextStyle(color: Colors.green))),
+                    
                     DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
                     
                     DataCell(
