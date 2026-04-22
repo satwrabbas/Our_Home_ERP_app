@@ -65,6 +65,8 @@ class LocalStorageApi {
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
   Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _db.getAllOverdueSchedules();
   // 🌟 السطر الجديد
+  Future<int> updateIndividualSchedule(String id, DateTime newDueDate, String? notes) => 
+      _db.updateIndividualSchedule(id, newDueDate, notes);
   Future<void> restructureContractSchedule({required String contractId, required int newRemainingMonths, required DateTime newStartDate, required String userId}) =>
       _db.restructureContractSchedule(contractId: contractId, newRemainingMonths: newRemainingMonths, newStartDate: newStartDate, userId: userId);
 

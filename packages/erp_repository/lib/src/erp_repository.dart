@@ -183,6 +183,8 @@ class ErpRepository {
           // 🌍 التعديل الضروري: UTC
           dueDate: DateTime.tryParse(s['due_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(), // تم التوحيد
           status: drift.Value(s['status']?.toString() ?? 'pending'),
+
+          notes: drift.Value(s['notes']?.toString()), 
           userId: s['user_id']?.toString() ?? '', // تم التوحيد
           isDeleted: drift.Value(s['is_deleted'] == true), // تم التوحيد
           // 🌍 التعديل الضروري: UTC
@@ -348,6 +350,7 @@ class ErpRepository {
           // 🌍 التعديل الضروري: UTC
           'due_date': s.dueDate.toUtc().toIso8601String(), 
           'status': s.status, 
+          'notes': s.notes,
           'user_id': s.userId, 
           'is_deleted': s.isDeleted, 
           'updated_at': s.updatedAt.toUtc().toIso8601String()
@@ -628,7 +631,14 @@ class ErpRepository {
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
   Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _localApi.getAllOverdueSchedules();
-  
+  Future<void> updateIndividualSchedule({
+    required String scheduleId,
+    required DateTime newDueDate,
+    String? notes,
+  }) async {
+    await _localApi.updateIndividualSchedule(scheduleId, newDueDate, notes);
+    await syncPendingData(); // رفع التعديل للسحابة
+  }
   
 
   // ==========================================

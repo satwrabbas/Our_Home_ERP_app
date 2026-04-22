@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/schedule_cubit.dart';
 import '../../../core/utils/whatsapp_helper.dart';
-
+import '../dialogs/edit_single_schedule_dialog.dart';
 import '../dialogs/edit_schedule_dialog.dart';
 // 🌟 استدعاء نافذة الجدولة الجديدة
 import '../dialogs/reschedule_dialog.dart';
@@ -88,13 +88,13 @@ class TraditionalScheduleTab extends StatelessWidget {
                       padding: const EdgeInsets.all(24.0),
                       child: SizedBox(
                         width: double.infinity,
-                        child: DataTable(
+                        child:DataTable(
                           headingRowColor: WidgetStateProperty.all(Colors.indigo.shade100),
                           columns: const[
                             DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('إجراءات (تواصل)', style: TextStyle(fontWeight: FontWeight.bold))), 
+                            DataColumn(label: Text('إجراءات (تواصل وتعديل)', style: TextStyle(fontWeight: FontWeight.bold))), 
                           ],
                           rows: state.scheduleList.map((schedule) {
                             final isPaid = schedule.status == 'paid';
@@ -115,7 +115,20 @@ class TraditionalScheduleTab extends StatelessWidget {
                               color: WidgetStateProperty.all(isOverdue ? Colors.red.shade50 : Colors.transparent),
                               cells:[
                                 DataCell(Text(schedule.installmentNumber.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                                DataCell(Text('${schedule.dueDate.year}/${schedule.dueDate.month}/${schedule.dueDate.day}', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                
+                                // 🌟 الخلية الجديدة لعرض التاريخ + الملاحظات
+                                DataCell(
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children:[
+                                      Text('${schedule.dueDate.year}/${schedule.dueDate.month}/${schedule.dueDate.day}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                      if (schedule.notes != null && schedule.notes!.isNotEmpty)
+                                        Text(schedule.notes!, style: const TextStyle(color: Colors.blueGrey, fontSize: 11, fontStyle: FontStyle.italic)),
+                                    ],
+                                  )
+                                ),
+
                                 DataCell(
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -123,37 +136,54 @@ class TraditionalScheduleTab extends StatelessWidget {
                                     child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
                                   )
                                 ),
+
+                                // 🌟 خلية الإجراءات (تواصل + تعديل القسط)
                                 DataCell(
-                                  isPaid
-                                    ? const Text('مُسددة في دفتر الأستاذ', style: TextStyle(color: Colors.grey))
-                                    : ElevatedButton.icon(
-                                        onPressed: () async {
-                                          final contractIdx = state.contracts.indexWhere((c) => c.id == schedule.contractId);
-                                          if(contractIdx == -1) return;
-                                          final contract = state.contracts[contractIdx];
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children:[
+                                      isPaid
+                                        ? const Text('مُسددة في الدفتر', style: TextStyle(color: Colors.grey))
+                                        : ElevatedButton.icon(
+                                            onPressed: () async {
+                                              final contractIdx = state.contracts.indexWhere((c) => c.id == schedule.contractId);
+                                              if(contractIdx == -1) return;
+                                              final contract = state.contracts[contractIdx];
 
-                                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                          if(clientIdx == -1) return;
-                                          final client = state.clients[clientIdx];
+                                              final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                              if(clientIdx == -1) return;
+                                              final client = state.clients[clientIdx];
+                                              
+                                              final success = await WhatsAppHelper.sendReminderMessage(
+                                                schedule: schedule,
+                                                contract: contract,
+                                                client: client,
+                                              );
+
+                                              if (context.mounted) {
+                                                if (success) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
+                                                } else {
+                                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب.'), backgroundColor: Colors.red));
+                                                }
+                                              }
+                                            },
+                                            icon: const Icon(Icons.chat),
+                                            label: const Text('تذكير'),
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                                          ),
                                           
-                                          final success = await WhatsAppHelper.sendReminderMessage(
-                                            schedule: schedule,
-                                            contract: contract,
-                                            client: client,
-                                          );
-
-                                          if (context.mounted) {
-                                            if (success) {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
-                                            } else {
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب.'), backgroundColor: Colors.red));
-                                            }
-                                          }
-                                        },
-                                        icon: const Icon(Icons.chat),
-                                        label: const Text('تذكير (واتساب)'),
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                                      ),
+                                      // 🌟 زر تعديل القسط الفردي (يظهر فقط إذا كان القسط معلقاً)
+                                      if (!isPaid) ...[
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_calendar, color: Colors.indigo),
+                                          tooltip: 'تأجيل أو تعديل هذا القسط',
+                                          onPressed: () => showEditSingleScheduleDialog(context, schedule),
+                                        ),
+                                      ]
+                                    ],
+                                  )
                                 ),
                               ],
                             );

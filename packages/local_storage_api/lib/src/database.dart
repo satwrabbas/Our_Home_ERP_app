@@ -175,30 +175,27 @@ class MaterialPricesHistory extends Table {
 // ==========================================
 @TableIndex(name: 'idx_schedules_sync', columns: {#isDeleted, #updatedAt, #contractId})
 
+// 1. في جدول الأقساط، أضف السطر الخاص بالملاحظات:
 class InstallmentsSchedule extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get contractId => text().references(Contracts, #id)(); 
-  
   IntColumn get installmentNumber => integer()(); 
-  
-  // 🌍 ملاحظة: الـ dueDate يتم إنشاؤه برمجياً (انظر دالة insertContractWithSchedules بالأسفل) 
-  // وتم التعديل هناك ليتم توليده كـ UTC
   DateTimeColumn get dueDate => dateTime()(); 
   TextColumn get status => text().withDefault(const Constant('pending'))();
   
-  // 🌟 تتبع من أدار هذا القسط
+  // 🌟 السطر الجديد: حقل الملاحظات
+  TextColumn get notes => text().nullable()(); 
+  
   TextColumn get userId => text()();
-
-  // 🌍[تعديل التوقيت]: الحفظ بـ UTC
   DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
   DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
-  
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
 }
+
 
 // ==========================================
 // 7. دفتر الأستاذ للمدفوعات (Payments Ledger) 🚨 الأهم!
@@ -478,7 +475,21 @@ class AppDatabase extends _$AppDatabase {
     ).get();
   }
 
-  
+
+  // ==========================================
+  // ✏️ تعديل قسط فردي (تأجيل + ملاحظات)
+  // ==========================================
+  Future<int> updateIndividualSchedule(String scheduleId, DateTime newDueDate, String? notes) {
+    return (update(installmentsSchedule)..where((t) => t.id.equals(scheduleId))).write(
+      InstallmentsScheduleCompanion(
+        dueDate: Value(newDueDate.toUtc()), // 🌍 توقيت عالمي
+        notes: Value(notes),
+        updatedAt: Value(DateTime.now().toUtc()), 
+        isSynced: const Value(false) // ليتم رفعه للسحابة
+      )
+    );
+  }
+
   // ==========================================
   // 🔄 إعادة الجدولة الذكية (Smart Restructuring)
   // ==========================================

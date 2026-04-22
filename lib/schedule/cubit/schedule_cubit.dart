@@ -227,4 +227,30 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل إعادة الجدولة: $e'));
     }
   }
+
+
+  // ==========================================
+  // ✏️ تعديل تاريخ قسط فردي وإضافة ملاحظة
+  // ==========================================
+  Future<void> updateIndividualSchedule({
+    required String scheduleId,
+    required String contractId,
+    required DateTime newDueDate,
+    String? notes,
+  }) async {
+    try {
+      await _erpRepository.updateIndividualSchedule(
+        scheduleId: scheduleId,
+        newDueDate: newDueDate,
+        notes: notes,
+      );
+      
+      // تحديث الجدول وإعادة حساب الرادارات (لأن التواريخ تغيرت)
+      await fetchInitialData();
+      await selectContract(contractId);
+
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل تعديل القسط: $e'));
+    }
+  }
 }

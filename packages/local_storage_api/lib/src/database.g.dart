@@ -3849,6 +3849,15 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String> userId = GeneratedColumn<String>(
@@ -3919,6 +3928,7 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
     installmentNumber,
     dueDate,
     status,
+    notes,
     userId,
     createdAt,
     updatedAt,
@@ -3971,6 +3981,12 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
       context.handle(
         _statusMeta,
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
     if (data.containsKey('user_id')) {
@@ -4037,6 +4053,10 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
       userId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
@@ -4073,6 +4093,7 @@ class InstallmentsScheduleData extends DataClass
   final int installmentNumber;
   final DateTime dueDate;
   final String status;
+  final String? notes;
   final String userId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -4084,6 +4105,7 @@ class InstallmentsScheduleData extends DataClass
     required this.installmentNumber,
     required this.dueDate,
     required this.status,
+    this.notes,
     required this.userId,
     required this.createdAt,
     required this.updatedAt,
@@ -4098,6 +4120,9 @@ class InstallmentsScheduleData extends DataClass
     map['installment_number'] = Variable<int>(installmentNumber);
     map['due_date'] = Variable<DateTime>(dueDate);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
     map['user_id'] = Variable<String>(userId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -4113,6 +4138,9 @@ class InstallmentsScheduleData extends DataClass
       installmentNumber: Value(installmentNumber),
       dueDate: Value(dueDate),
       status: Value(status),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
       userId: Value(userId),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -4132,6 +4160,7 @@ class InstallmentsScheduleData extends DataClass
       installmentNumber: serializer.fromJson<int>(json['installmentNumber']),
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
       status: serializer.fromJson<String>(json['status']),
+      notes: serializer.fromJson<String?>(json['notes']),
       userId: serializer.fromJson<String>(json['userId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -4148,6 +4177,7 @@ class InstallmentsScheduleData extends DataClass
       'installmentNumber': serializer.toJson<int>(installmentNumber),
       'dueDate': serializer.toJson<DateTime>(dueDate),
       'status': serializer.toJson<String>(status),
+      'notes': serializer.toJson<String?>(notes),
       'userId': serializer.toJson<String>(userId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -4162,6 +4192,7 @@ class InstallmentsScheduleData extends DataClass
     int? installmentNumber,
     DateTime? dueDate,
     String? status,
+    Value<String?> notes = const Value.absent(),
     String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -4173,6 +4204,7 @@ class InstallmentsScheduleData extends DataClass
     installmentNumber: installmentNumber ?? this.installmentNumber,
     dueDate: dueDate ?? this.dueDate,
     status: status ?? this.status,
+    notes: notes.present ? notes.value : this.notes,
     userId: userId ?? this.userId,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4192,6 +4224,7 @@ class InstallmentsScheduleData extends DataClass
           : this.installmentNumber,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       status: data.status.present ? data.status.value : this.status,
+      notes: data.notes.present ? data.notes.value : this.notes,
       userId: data.userId.present ? data.userId.value : this.userId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -4208,6 +4241,7 @@ class InstallmentsScheduleData extends DataClass
           ..write('installmentNumber: $installmentNumber, ')
           ..write('dueDate: $dueDate, ')
           ..write('status: $status, ')
+          ..write('notes: $notes, ')
           ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4224,6 +4258,7 @@ class InstallmentsScheduleData extends DataClass
     installmentNumber,
     dueDate,
     status,
+    notes,
     userId,
     createdAt,
     updatedAt,
@@ -4239,6 +4274,7 @@ class InstallmentsScheduleData extends DataClass
           other.installmentNumber == this.installmentNumber &&
           other.dueDate == this.dueDate &&
           other.status == this.status &&
+          other.notes == this.notes &&
           other.userId == this.userId &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -4253,6 +4289,7 @@ class InstallmentsScheduleCompanion
   final Value<int> installmentNumber;
   final Value<DateTime> dueDate;
   final Value<String> status;
+  final Value<String?> notes;
   final Value<String> userId;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -4265,6 +4302,7 @@ class InstallmentsScheduleCompanion
     this.installmentNumber = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.status = const Value.absent(),
+    this.notes = const Value.absent(),
     this.userId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4278,6 +4316,7 @@ class InstallmentsScheduleCompanion
     required int installmentNumber,
     required DateTime dueDate,
     this.status = const Value.absent(),
+    this.notes = const Value.absent(),
     required String userId,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4294,6 +4333,7 @@ class InstallmentsScheduleCompanion
     Expression<int>? installmentNumber,
     Expression<DateTime>? dueDate,
     Expression<String>? status,
+    Expression<String>? notes,
     Expression<String>? userId,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -4307,6 +4347,7 @@ class InstallmentsScheduleCompanion
       if (installmentNumber != null) 'installment_number': installmentNumber,
       if (dueDate != null) 'due_date': dueDate,
       if (status != null) 'status': status,
+      if (notes != null) 'notes': notes,
       if (userId != null) 'user_id': userId,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4322,6 +4363,7 @@ class InstallmentsScheduleCompanion
     Value<int>? installmentNumber,
     Value<DateTime>? dueDate,
     Value<String>? status,
+    Value<String?>? notes,
     Value<String>? userId,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -4335,6 +4377,7 @@ class InstallmentsScheduleCompanion
       installmentNumber: installmentNumber ?? this.installmentNumber,
       dueDate: dueDate ?? this.dueDate,
       status: status ?? this.status,
+      notes: notes ?? this.notes,
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4361,6 +4404,9 @@ class InstallmentsScheduleCompanion
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
     }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
@@ -4391,6 +4437,7 @@ class InstallmentsScheduleCompanion
           ..write('installmentNumber: $installmentNumber, ')
           ..write('dueDate: $dueDate, ')
           ..write('status: $status, ')
+          ..write('notes: $notes, ')
           ..write('userId: $userId, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -7955,6 +8002,7 @@ typedef $$InstallmentsScheduleTableCreateCompanionBuilder =
       required int installmentNumber,
       required DateTime dueDate,
       Value<String> status,
+      Value<String?> notes,
       required String userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7969,6 +8017,7 @@ typedef $$InstallmentsScheduleTableUpdateCompanionBuilder =
       Value<int> installmentNumber,
       Value<DateTime> dueDate,
       Value<String> status,
+      Value<String?> notes,
       Value<String> userId,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -8060,6 +8109,11 @@ class $$InstallmentsScheduleTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8166,6 +8220,11 @@ class $$InstallmentsScheduleTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get userId => $composableBuilder(
     column: $table.userId,
     builder: (column) => ColumnOrderings(column),
@@ -8237,6 +8296,9 @@ class $$InstallmentsScheduleTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 
   GeneratedColumn<String> get userId =>
       $composableBuilder(column: $table.userId, builder: (column) => column);
@@ -8343,6 +8405,7 @@ class $$InstallmentsScheduleTableTableManager
                 Value<int> installmentNumber = const Value.absent(),
                 Value<DateTime> dueDate = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8355,6 +8418,7 @@ class $$InstallmentsScheduleTableTableManager
                 installmentNumber: installmentNumber,
                 dueDate: dueDate,
                 status: status,
+                notes: notes,
                 userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -8369,6 +8433,7 @@ class $$InstallmentsScheduleTableTableManager
                 required int installmentNumber,
                 required DateTime dueDate,
                 Value<String> status = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
                 required String userId,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8381,6 +8446,7 @@ class $$InstallmentsScheduleTableTableManager
                 installmentNumber: installmentNumber,
                 dueDate: dueDate,
                 status: status,
+                notes: notes,
                 userId: userId,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
