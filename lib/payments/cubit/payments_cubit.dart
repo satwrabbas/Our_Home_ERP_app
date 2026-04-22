@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
 import 'package:local_storage_api/local_storage_api.dart'; 
 import 'package:drift/drift.dart' show Value;
+import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerCompanion, PaymentsLedgerData, Contract, Client, Apartment, Building, MaterialPricesHistoryCompanion, MaterialPricesHistoryData; 
 
 import '../../core/utils/calculator_helper.dart';
 
@@ -79,13 +80,18 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   }
 
   // ==========================================
-  // 2. إضافة دفعة جديدة
+  // 🌟 دالة الإضافة المعدلة لتدعم (الوضع الطبيعي / القديم السريع / القديم التفصيلي)
   // ==========================================
   Future<void> addLedgerEntry({
     required String contractId, 
     required double amountPaid,
     double discountPercentage = 0, 
     String? scheduleId, 
+    DateTime? customDate, // 🌟 تاريخ الدفعة القديمة
+    double? customMeterPrice, // 🌟 سعر المتر المُدخل يدوياً للسرعة
+    // 🌟 حقول المواد للحالة التفصيلية
+    double? histIron, double? histCement, double? histBlock, 
+    double? histFormwork, double? histAggregates, double? histWorker,
   }) async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
@@ -93,12 +99,10 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       if (contractIndex == -1) throw Exception('هذا العقد غير موجود.');
       final contract = state.contracts[contractIndex];
 
-      final currentPrices = await _erpRepository.getLatestPrices();
-      if (currentPrices == null) throw Exception('يرجى إضافة أسعار المواد أولاً.');
-
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول.');
 
+      // جلب معاملات العقد (التي تؤثر على سعر المتر)
       Map<String, double> contractCoefficients = {};
       try {
         if (contract.coefficients.isNotEmpty && contract.coefficients != '{}') {
@@ -106,31 +110,87 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         }
       } catch (_) {}
 
-      final calculations = CalculatorHelper.calculateContractValues(
-        area: contract.totalArea,
-        currentPrices: currentPrices,
-        coefficients: contractCoefficients,
-      );
+      // 🌍 تحديد تاريخ الدفعة الفعلي
+      final paymentDateToSave = customDate?.toUtc() ?? DateTime.now().toUtc();
       
-      final double meterPriceToday = calculations['pricePerSqm']!;
+      double meterPriceToUse = 0.0;
+      String pricesSnapshotJson = '{}';
+
+      // 🧠 المحرك الذكي لتحديد السعر واللقطة (Snapshot):
+      if (customDate != null && customMeterPrice != null && histIron == null) {
+        // ----------------------------------------------------
+        // 🚀 الحالة 1: دفعة قديمة (سريعة) - تم إدخال سعر المتر مباشرة
+        // ----------------------------------------------------
+        meterPriceToUse = customMeterPrice;
+        pricesSnapshotJson = jsonEncode({
+          'note': 'إدخال تاريخي سريع',
+          'manual_meter_price': customMeterPrice
+        });
+        
+      } else if (customDate != null && histIron != null) {
+        // ----------------------------------------------------
+        // 🛠️ الحالة 2: دفعة قديمة (تفصيلية) - تم إدخال مواد لتُحفظ في السجل
+        // ----------------------------------------------------
+        final historicalPrices = MaterialPricesHistoryCompanion.insert(
+          effectiveDate: Value(paymentDateToSave), 
+          ironPrice: histIron, cementPrice: histCement!, block15Price: histBlock!,
+          formworkAndPouringWages: histFormwork!, aggregateMaterialsPrice: histAggregates!,
+          ordinaryWorkerWage: histWorker!, userId: userId,
+        );
+        
+        // 1. حفظ التسعيرة رسمياً في الإعدادات
+        await _erpRepository.savePrices(historicalPrices);
+
+        // 2. إنشاء كائن وهمي لتمريره للحاسبة
+        final targetPrices = MaterialPricesHistoryData(
+          id: 'dummy', effectiveDate: paymentDateToSave, ironPrice: histIron,
+          cementPrice: histCement, block15Price: histBlock, formworkAndPouringWages: histFormwork,
+          aggregateMaterialsPrice: histAggregates, ordinaryWorkerWage: histWorker,
+          userId: userId, createdAt: DateTime.now(), updatedAt: DateTime.now(),
+          isDeleted: false, isSynced: false,
+        );
+
+        // 3. حساب السعر النهائي بناءً على معاملات العقد والمواد القديمة
+        final calculations = CalculatorHelper.calculateContractValues(
+          area: contract.totalArea, currentPrices: targetPrices, coefficients: contractCoefficients,
+        );
+        
+        meterPriceToUse = calculations['pricePerSqm']!;
+        pricesSnapshotJson = jsonEncode({
+          'iron': histIron, 'cement': histCement, 'block': histBlock,
+          'formwork': histFormwork, 'aggregates': histAggregates, 'worker': histWorker,
+        });
+
+      } else {
+        // ----------------------------------------------------
+        // 🟢 الحالة 3: الوضع الطبيعي (دفعة اليوم)
+        // ----------------------------------------------------
+        final currentPrices = await _erpRepository.getLatestPrices();
+        if (currentPrices == null) throw Exception('يرجى إضافة أسعار المواد أولاً في الإعدادات.');
+        
+        final calculations = CalculatorHelper.calculateContractValues(
+          area: contract.totalArea, currentPrices: currentPrices, coefficients: contractCoefficients,
+        );
+        
+        meterPriceToUse = calculations['pricePerSqm']!;
+        pricesSnapshotJson = jsonEncode({
+          'iron': currentPrices.ironPrice, 'cement': currentPrices.cementPrice, 'block': currentPrices.block15Price,
+          'formwork': currentPrices.formworkAndPouringWages, 'aggregates': currentPrices.aggregateMaterialsPrice,
+          'worker': currentPrices.ordinaryWorkerWage,
+        });
+      }
+
+      // 💰 الحساب المالي الموحد
       final double effectiveAmount = amountPaid + (amountPaid * (discountPercentage / 100));
-      final double convertedMeters = effectiveAmount / meterPriceToday;
+      final double convertedMeters = effectiveAmount / meterPriceToUse;
 
-      final String pricesSnapshotJson = jsonEncode({
-        'iron': currentPrices.ironPrice,
-        'cement': currentPrices.cementPrice,
-        'block': currentPrices.block15Price,
-        'formwork': currentPrices.formworkAndPouringWages,
-        'aggregates': currentPrices.aggregateMaterialsPrice,
-        'worker': currentPrices.ordinaryWorkerWage,
-      });
-
+      // 💾 حفظ الدفعة
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
-        paymentDate: DateTime.now().toUtc(),
+        paymentDate: paymentDateToSave, // 🌍 التاريخ المعالج
         amountPaid: amountPaid, 
-        meterPriceAtPayment: meterPriceToday, 
+        meterPriceAtPayment: meterPriceToUse, // 💰 السعر المعالج
         convertedMeters: convertedMeters, 
         pricesSnapshot: Value(pricesSnapshotJson), 
         fees: Value(discountPercentage), 
@@ -138,17 +198,16 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       );
       
       await _erpRepository.addLedgerEntry(newEntry);
-
-      // 🌟 تشغيل المحرك المركزي
       await _recalculateInstallmentsStatus(contractId, contract);
-
       await selectContract(contractId);
+      
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
       
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }
   }
+
 
   // ==========================================
   // 3. ✏️ تعديل دفعة (بصلاحيات الإدارة) - يُستخدم للقيود القديمة
