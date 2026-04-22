@@ -1,14 +1,52 @@
 // lib/contracts/view/dialogs/add_contract_dialog.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🌟 مكتبة الـ Formatters
 import 'package:flutter_bloc/flutter_bloc.dart';
-// 🌟 استيراد كامل للمكتبة للوصول لـ MaterialPricesHistoryData
 import 'package:local_storage_api/local_storage_api.dart'; 
 import '../../../core/utils/calculator_helper.dart';
 import '../../../settings/cubit/settings_cubit.dart';
 import '../../../buildings/cubit/buildings_cubit.dart';
 import '../../cubit/contracts_cubit.dart';
 import 'verify_pin_dialog.dart';
+
+// ==========================================
+// 🌟 أداة تنسيق الأرقام (تضع فاصلة لكل 3 أرقام أثناء الكتابة)
+// ==========================================
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    // مسح أي شيء ليس رقماً
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) return const TextEditingValue(text: '');
+    
+    String formatted = '';
+    int count = 0;
+    for (int i = digitsOnly.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) formatted = ',$formatted';
+      formatted = digitsOnly[i] + formatted;
+      count++;
+    }
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// 🌟 دالة مساعدة لتنسيق الأرقام برمجياً
+String formatNumberWithCommas(num number) {
+  String str = number.toInt().toString();
+  String formatted = '';
+  int count = 0;
+  for (int i = str.length - 1; i >= 0; i--) {
+    if (count != 0 && count % 3 == 0) formatted = ',$formatted';
+    formatted = str[i] + formatted;
+    count++;
+  }
+  return formatted;
+}
 
 void showAddContractDialog(BuildContext parentContext) {
   final state = parentContext.read<ContractsCubit>().state;
@@ -38,7 +76,7 @@ void showAddContractDialog(BuildContext parentContext) {
   final plumbingCoeffCtrl = TextEditingController(text: '0');
   final chimneysCoeffCtrl = TextEditingController(text: '0');
 
-  // 🌟 حقول أسعار المواد التاريخية
+  // حقول أسعار المواد التاريخية
   final histIronCtrl = TextEditingController();
   final histCementCtrl = TextEditingController();
   final histBlockCtrl = TextEditingController();
@@ -104,7 +142,7 @@ void showAddContractDialog(BuildContext parentContext) {
                   return AlertDialog(
                     title: const Text('توقيع عقد جديد', style: TextStyle(color: Colors.teal)),
                     content: SizedBox(
-                      width: 650, // 🌟 تم التوسيع قليلاً لاستيعاب الحقول الجديدة
+                      width: 650, 
                       child: SingleChildScrollView(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -126,6 +164,18 @@ void showAddContractDialog(BuildContext parentContext) {
                                     bool authorized = await showVerifyPinDialog(parentContext);
                                     if (authorized) {
                                       setState(() => isHistoricalContract = true);
+                                      
+                                      // 🌟 السحر هنا: فتح نافذة التاريخ تلقائياً بعد إدخال الرمز الصحيح!
+                                      final pickedDate = await showDatePicker(
+                                        context: dialogContext,
+                                        initialDate: selectedHistoricalDate,
+                                        firstDate: DateTime(2000), 
+                                        lastDate: DateTime.now(),
+                                        builder: (context, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: Colors.red)), child: child!),
+                                      );
+                                      if (pickedDate != null) {
+                                        setState(() => selectedHistoricalDate = pickedDate);
+                                      }
                                     }
                                   } else {
                                     setState(() {
@@ -138,21 +188,32 @@ void showAddContractDialog(BuildContext parentContext) {
                             ),
                             const SizedBox(height: 12),
 
-                            // 🌟 2. محدد التاريخ وحقول المواد (تظهر فقط إذا كان عقداً قديماً)
+                            // 🌟 2. محدد التاريخ وحقول المواد 
                             if (isHistoricalContract) ...[
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 margin: const EdgeInsets.only(bottom: 16),
                                 decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.red.shade300, width: 2), borderRadius: BorderRadius.circular(8)),
                                 child: Column(
-                                  children: [
+                                  children:[
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children:[
                                         const Text('📅 تاريخ التوقيع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                        TextButton.icon(
-                                          icon: const Icon(Icons.edit_calendar, color: Colors.red),
-                                          label: Text('${selectedHistoricalDate.year}/${selectedHistoricalDate.month}/${selectedHistoricalDate.day}', style: const TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.bold)),
+                                        // 🌟 زر التاريخ الأنيق والواضح
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red.shade50,
+                                            foregroundColor: Colors.red.shade700,
+                                            elevation: 0,
+                                            side: BorderSide(color: Colors.red.shade300, width: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          ),
+                                          icon: const Icon(Icons.calendar_month, size: 22),
+                                          label: Text(
+                                            '${selectedHistoricalDate.year}/${selectedHistoricalDate.month}/${selectedHistoricalDate.day}', 
+                                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                                          ),
                                           onPressed: () async {
                                             final pickedDate = await showDatePicker(
                                               context: dialogContext,
@@ -166,30 +227,33 @@ void showAddContractDialog(BuildContext parentContext) {
                                         )
                                       ],
                                     ),
+                                    const SizedBox(height: 12),
                                     const Divider(color: Colors.red),
                                     const Text('💰 أسعار المواد في ذلك التاريخ (ستُحفظ في السجل تلقائياً)', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 12),
+                                    
+                                    // 🌟 أضفنا inputFormatters لكل حقل ليفصل الأرقام بالفاصلة
                                     Row(
                                       children:[
-                                        Expanded(child: TextField(controller: histIronCtrl, decoration: const InputDecoration(labelText: 'الحديد', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histIronCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الحديد', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                         const SizedBox(width: 8),
-                                        Expanded(child: TextField(controller: histCementCtrl, decoration: const InputDecoration(labelText: 'الإسمنت', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histCementCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الإسمنت', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
                                       children:[
-                                        Expanded(child: TextField(controller: histBlockCtrl, decoration: const InputDecoration(labelText: 'البلوك 15', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histBlockCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'البلوك 15', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                         const SizedBox(width: 8),
-                                        Expanded(child: TextField(controller: histFormworkCtrl, decoration: const InputDecoration(labelText: 'الكوفراج', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histFormworkCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الكوفراج', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
                                       children:[
-                                        Expanded(child: TextField(controller: histAggregatesCtrl, decoration: const InputDecoration(labelText: 'المواد الحصوية', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histAggregatesCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'المواد الحصوية', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                         const SizedBox(width: 8),
-                                        Expanded(child: TextField(controller: histWorkerCtrl, decoration: const InputDecoration(labelText: 'أجرة العامل', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                        Expanded(child: TextField(controller: histWorkerCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'أجرة العامل', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       ],
                                     ),
                                   ],
@@ -383,7 +447,7 @@ void showAddContractDialog(BuildContext parentContext) {
                               const SizedBox(height: 16),
                             ],
 
-                            // 🌟 زر حساب السعر: الآن يعمل في الحالتين (القديم والحديث)
+                            // زر حساب السعر
                             SizedBox(
                               width: double.infinity,
                               height: 45,
@@ -397,28 +461,22 @@ void showAddContractDialog(BuildContext parentContext) {
                                   MaterialPricesHistoryData targetPrices;
 
                                   if (isHistoricalContract) {
-                                    // 🌟 إذا كان قديماً، نقوم بصنع كائن أسعار وهمي لحظي من الحقول
                                     if (histIronCtrl.text.isEmpty || histCementCtrl.text.isEmpty || histWorkerCtrl.text.isEmpty) {
                                        ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('الرجاء تعبئة جميع أسعار المواد التاريخية!'), backgroundColor: Colors.red));
                                        return;
                                     }
+                                    
+                                    // 🌟 مسح الفواصل قبل التحويل لرقم للعمليات الحسابية
                                     targetPrices = MaterialPricesHistoryData(
-                                      id: 'dummy',
-                                      effectiveDate: selectedHistoricalDate,
-                                      ironPrice: double.parse(histIronCtrl.text),
-                                      cementPrice: double.parse(histCementCtrl.text),
-                                      block15Price: double.parse(histBlockCtrl.text),
-                                      formworkAndPouringWages: double.parse(histFormworkCtrl.text),
-                                      aggregateMaterialsPrice: double.parse(histAggregatesCtrl.text),
-                                      ordinaryWorkerWage: double.parse(histWorkerCtrl.text),
-                                      userId: 'dummy',
-                                      createdAt: DateTime.now(),
-                                      updatedAt: DateTime.now(),
-                                      isDeleted: false,
-                                      isSynced: false,
+                                      id: 'dummy', effectiveDate: selectedHistoricalDate, userId: 'dummy', createdAt: DateTime.now(), updatedAt: DateTime.now(), isDeleted: false, isSynced: false,
+                                      ironPrice: double.parse(histIronCtrl.text.replaceAll(',', '')),
+                                      cementPrice: double.parse(histCementCtrl.text.replaceAll(',', '')),
+                                      block15Price: double.parse(histBlockCtrl.text.replaceAll(',', '')),
+                                      formworkAndPouringWages: double.parse(histFormworkCtrl.text.replaceAll(',', '')),
+                                      aggregateMaterialsPrice: double.parse(histAggregatesCtrl.text.replaceAll(',', '')),
+                                      ordinaryWorkerWage: double.parse(histWorkerCtrl.text.replaceAll(',', '')),
                                     );
                                   } else {
-                                    // 🌟 إذا كان جديداً، نأخذ أسعار اليوم من الإعدادات
                                     if (currentPrices == null) {
                                       ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يرجى ضبط أسعار المواد في الإعدادات أولاً.'), backgroundColor: Colors.red));
                                       return;
@@ -434,7 +492,9 @@ void showAddContractDialog(BuildContext parentContext) {
                                     coefficients: finalCoeffs, 
                                   );
 
-                                  priceController.text = calculations['pricePerSqm']!.toStringAsFixed(0);
+                                  // 🌟 السحر هنا: وضع الفواصل في السعر المحسوب
+                                  priceController.text = formatNumberWithCommas(calculations['pricePerSqm']!);
+                                  
                                   ScaffoldMessenger.of(dialogContext).showSnackBar(SnackBar(content: Text(isHistoricalContract ? 'تم الحساب بناءً على المواد التاريخية المدخلة ✅' : 'تم الحساب بناءً على أسعار اليوم ✅'), backgroundColor: Colors.green));
                                 },
                                 icon: const Icon(Icons.calculate),
@@ -444,10 +504,11 @@ void showAddContractDialog(BuildContext parentContext) {
                             ),
                             const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(thickness: 2)),
 
-                            // 🌟 حقل السعر النهائي (يُمكن تعديله يدوياً في الوضع القديم للمرونة)
+                            // حقل السعر النهائي 
                             TextField(
                               controller: priceController,
                               readOnly: !isHistoricalContract, 
+                              inputFormatters:[ThousandsFormatter()], // 🌟 إضافة التنسيق هنا أيضاً
                               decoration: InputDecoration(
                                 labelText: isHistoricalContract ? 'سعر المتر المربع (يمكنك تعديله يدوياً)' : 'سعر المتر المربع النهائي (يُحسب آلياً)', 
                                 border: const OutlineInputBorder(), 
@@ -475,7 +536,6 @@ void showAddContractDialog(BuildContext parentContext) {
                             return;
                           }
 
-                          // التحقق من أن جميع المواد التاريخية تم إدخالها
                           if (isHistoricalContract && (histIronCtrl.text.isEmpty || histCementCtrl.text.isEmpty || histWorkerCtrl.text.isEmpty)) {
                             ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('يجب إدخال جميع أسعار المواد لحفظها في السجل!'), backgroundColor: Colors.red));
                             return;
@@ -502,26 +562,25 @@ void showAddContractDialog(BuildContext parentContext) {
                             )
                           );
 
-                          // 🌟 الإرسال إلى Cubit مع بيانات المواد القديمة
+                          // 🌟 الإرسال إلى Cubit (مع مسح الفواصل قبل الإرسال)
                           await parentContext.read<ContractsCubit>().addContract(
                             clientId: selectedClientId!,
                             contractType: selectedContractType,
                             details: generatedDetails, 
                             apartmentId: isAllocated ? selectedApartmentId : null,
                             area: double.parse(areaController.text),
-                            basePrice: double.parse(priceController.text),
+                            basePrice: double.parse(priceController.text.replaceAll(',', '')), // 🌟 مسح الفاصلة
                             installmentsCount: int.parse(monthsController.text), 
                             guarantorName: guarantorController.text.trim().isEmpty ? 'بدون كفيل' : guarantorController.text.trim(),
                             coefficients: finalCoeffs, 
                             customDate: isHistoricalContract ? selectedHistoricalDate : null, 
                             
-                            // تمرير الأسعار ليتم حفظها رسمياً في قاعدة البيانات
-                            histIron: isHistoricalContract ? double.parse(histIronCtrl.text) : null,
-                            histCement: isHistoricalContract ? double.parse(histCementCtrl.text) : null,
-                            histBlock: isHistoricalContract ? double.parse(histBlockCtrl.text) : null,
-                            histFormwork: isHistoricalContract ? double.parse(histFormworkCtrl.text) : null,
-                            histAggregates: isHistoricalContract ? double.parse(histAggregatesCtrl.text) : null,
-                            histWorker: isHistoricalContract ? double.parse(histWorkerCtrl.text) : null,
+                            histIron: isHistoricalContract ? double.parse(histIronCtrl.text.replaceAll(',', '')) : null, // 🌟 مسح الفاصلة
+                            histCement: isHistoricalContract ? double.parse(histCementCtrl.text.replaceAll(',', '')) : null,
+                            histBlock: isHistoricalContract ? double.parse(histBlockCtrl.text.replaceAll(',', '')) : null,
+                            histFormwork: isHistoricalContract ? double.parse(histFormworkCtrl.text.replaceAll(',', '')) : null,
+                            histAggregates: isHistoricalContract ? double.parse(histAggregatesCtrl.text.replaceAll(',', '')) : null,
+                            histWorker: isHistoricalContract ? double.parse(histWorkerCtrl.text.replaceAll(',', '')) : null,
                           );
                           
                           if (isAllocated && parentContext.mounted) {
