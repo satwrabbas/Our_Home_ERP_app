@@ -12,171 +12,215 @@ void showEditContractDialog(BuildContext parentContext, Contract contract) {
   final guarantorController = TextEditingController(text: contract.guarantorName);
   final monthsController = TextEditingController(text: contract.installmentsCount.toString());
 
+  // 🌟 متغير لحفظ التاريخ المختار (ونعرض تاريخ العقد الحالي كقيمة افتراضية)
+  DateTime selectedDate = contract.contractDate.toLocal();
+
   showDialog(
     context: parentContext,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: const Text('تعديل تفاصيل العقد', style: TextStyle(color: Colors.blue)),
-        content: SizedBox(
-          width: 450, 
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.amber.shade50,
-                  child: const Row(
-                    children:[
-                      Icon(Icons.info_outline, color: Colors.brown, size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'لا يمكن تغيير العميل، العقار، أو سعر المتر بعد التوقيع. يمكنك فقط تحديث التفاصيل، الكفيل، المدة، أو استبدال ملف العقد.',
-                          style: TextStyle(color: Colors.brown, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'وصف العقد / التفاصيل (الشروط الإضافية)', border: OutlineInputBorder()), maxLines: 2),
-                const SizedBox(height: 16),
-                
-                Row(
+      // 🌟 أضفنا StatefulBuilder لكي نستطيع تحديث واجهة التاريخ عند تغييره
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('تعديل تفاصيل العقد', style: TextStyle(color: Colors.blue)),
+            content: SizedBox(
+              width: 450, 
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children:[
-                    Expanded(flex: 2, child: TextField(controller: guarantorController, decoration: const InputDecoration(labelText: 'اسم الكفيل', border: OutlineInputBorder()))),
-                    const SizedBox(width: 12),
-                    Expanded(flex: 1, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.amber.shade50,
+                      child: const Row(
                         children:[
-                          Icon(
-                            contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Icons.check_circle : Icons.warning_amber_rounded,
-                            color: contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Colors.green : Colors.orange,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'يوجد ملف مرفق' : 'لا يوجد ملف',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          Icon(Icons.info_outline, color: Colors.brown, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'لا يمكن تغيير العميل، العقار، أو سعر المتر بعد التوقيع. يمكنك فقط تحديث التفاصيل، الكفيل، المدة، التاريخ، أو استبدال ملف العقد.',
+                              style: TextStyle(color: Colors.brown, fontSize: 13),
+                            ),
                           ),
                         ],
                       ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.upload_file, color: Colors.blue),
-                        label: Text(contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'استبدال الملف' : 'إرفاق ملف'),
-                        onPressed: () async {
-                          bool isAuthorized = await showVerifyPinDialog(parentContext);
-                          if (!isAuthorized) return; 
-                          
-                          FilePickerResult? result = await FilePicker.platform.pickFiles(
-                            type: FileType.custom,
-                            allowedExtensions: ['doc', 'docx', 'pdf'], 
-                          );
+                    ),
+                    const SizedBox(height: 16),
 
-                          if (result != null && result.files.single.path != null) {
-                            final filePath = result.files.single.path!;
-                            final extension = result.files.single.extension ?? 'docx';
-                            
-                            if(parentContext.mounted) {
-                              ScaffoldMessenger.of(parentContext).showSnackBar(
-                                const SnackBar(content: Text('جاري رفع الملف الجديد للسحابة... ⏳'), backgroundColor: Colors.orange)
-                              );
-
-                              await parentContext.read<ContractsCubit>().attachContractFile(
-                                contractId: contract.id,
-                                filePath: filePath,
-                                extension: extension,
-                              );
-
-                              if(parentContext.mounted) {
-                                ScaffoldMessenger.of(parentContext).showSnackBar(
-                                  const SnackBar(content: Text('تم استبدال/إرفاق الملف بنجاح! ✅'), backgroundColor: Colors.green)
-                                );
-                                Navigator.pop(dialogContext); 
-                              }
-                            }
-                          }
-                        },
+                    // 🌟 السطر الجديد: تعديل تاريخ العقد
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween, 
-        actions:[
-          TextButton.icon(
-            icon: const Icon(Icons.delete_forever, color: Colors.red),
-            label: const Text('إلغاء العقد نهائياً', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              Navigator.pop(dialogContext); 
-              
-              bool isAuthorized = await showVerifyPinDialog(parentContext); 
-              
-              if (isAuthorized && parentContext.mounted) {
-                ScaffoldMessenger.of(parentContext).showSnackBar(
-                  SnackBar(content: const Text('جاري إلغاء العقد وتحرير الشقة... ⏳'), backgroundColor: Colors.red.shade400, duration: const Duration(seconds: 1))
-                );
-
-                await parentContext.read<ContractsCubit>().deleteContract(contract.id);
-                
-                if (parentContext.mounted) {
-                  parentContext.read<BuildingsCubit>().loadData();
-                  
-                  final currentState = parentContext.read<ContractsCubit>().state;
-                  if (currentState.status != ContractsStatus.failure) {
-                    ScaffoldMessenger.of(parentContext).showSnackBar(
-                      const SnackBar(content: Text('تم إلغاء العقد بنجاح! ✅'), backgroundColor: Colors.green)
-                    );
-                  }
-                }
-              }
-            },
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children:[
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                onPressed: () async {
-                  if (monthsController.text.isNotEmpty) {
-                    Navigator.pop(dialogContext); 
-
-                    bool isAuthorized = await showVerifyPinDialog(parentContext);
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children:[
+                          const Text('📅 تاريخ التوقيع:', style: TextStyle(fontWeight: FontWeight.bold)),
+                          TextButton.icon(
+                            icon: const Icon(Icons.edit_calendar, color: Colors.blue),
+                            label: Text(
+                              '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}', 
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)
+                            ),
+                            onPressed: () async {
+                              final pickedDate = await showDatePicker(
+                                context: dialogContext,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime.now(),
+                              );
+                              if (pickedDate != null) {
+                                setState(() => selectedDate = pickedDate);
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     
-                    if (isAuthorized && parentContext.mounted) {
-                      parentContext.read<ContractsCubit>().updateContract(
-                        id: contract.id,
-                        details: detailsController.text,
-                        guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
-                        installmentsCount: int.parse(monthsController.text),
-                      );
+                    TextField(controller: detailsController, decoration: const InputDecoration(labelText: 'وصف العقد / التفاصيل (الشروط الإضافية)', border: OutlineInputBorder()), maxLines: 2),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      children:[
+                        Expanded(flex: 2, child: TextField(controller: guarantorController, decoration: const InputDecoration(labelText: 'اسم الكفيل', border: OutlineInputBorder()))),
+                        const SizedBox(width: 12),
+                        Expanded(flex: 1, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children:[
+                          Row(
+                            children:[
+                              Icon(
+                                contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Icons.check_circle : Icons.warning_amber_rounded,
+                                color: contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? Colors.green : Colors.orange,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'يوجد ملف مرفق' : 'لا يوجد ملف',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.upload_file, color: Colors.blue),
+                            label: Text(contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty ? 'استبدال الملف' : 'إرفاق ملف'),
+                            onPressed: () async {
+                              bool isAuthorized = await showVerifyPinDialog(parentContext);
+                              if (!isAuthorized) return; 
+                              
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['doc', 'docx', 'pdf'], 
+                              );
+
+                              if (result != null && result.files.single.path != null) {
+                                final filePath = result.files.single.path!;
+                                final extension = result.files.single.extension ?? 'docx';
+                                
+                                if(parentContext.mounted) {
+                                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                                    const SnackBar(content: Text('جاري رفع الملف الجديد للسحابة... ⏳'), backgroundColor: Colors.orange)
+                                  );
+
+                                  await parentContext.read<ContractsCubit>().attachContractFile(
+                                    contractId: contract.id,
+                                    filePath: filePath,
+                                    extension: extension,
+                                  );
+
+                                  if(parentContext.mounted) {
+                                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                                      const SnackBar(content: Text('تم استبدال/إرفاق الملف بنجاح! ✅'), backgroundColor: Colors.green)
+                                    );
+                                    Navigator.pop(dialogContext); 
+                                  }
+                                }
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.spaceBetween, 
+            actions:[
+              TextButton.icon(
+                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                label: const Text('إلغاء العقد نهائياً', style: TextStyle(color: Colors.red)),
+                onPressed: () async {
+                  Navigator.pop(dialogContext); 
+                  
+                  bool isAuthorized = await showVerifyPinDialog(parentContext); 
+                  
+                  if (isAuthorized && parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      SnackBar(content: const Text('جاري إلغاء العقد وتحرير الشقة... ⏳'), backgroundColor: Colors.red.shade400, duration: const Duration(seconds: 1))
+                    );
+
+                    await parentContext.read<ContractsCubit>().deleteContract(contract.id);
+                    
+                    if (parentContext.mounted) {
+                      parentContext.read<BuildingsCubit>().loadData();
+                      
+                      final currentState = parentContext.read<ContractsCubit>().state;
+                      if (currentState.status != ContractsStatus.failure) {
+                        ScaffoldMessenger.of(parentContext).showSnackBar(
+                          const SnackBar(content: Text('تم إلغاء العقد بنجاح! ✅'), backgroundColor: Colors.green)
+                        );
+                      }
                     }
                   }
                 },
-                child: const Text('حفظ التعديلات النصية'),
               ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children:[
+                  TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                    onPressed: () async {
+                      if (monthsController.text.isNotEmpty) {
+                        Navigator.pop(dialogContext); 
+
+                        bool isAuthorized = await showVerifyPinDialog(parentContext);
+                        
+                        if (isAuthorized && parentContext.mounted) {
+                          // 🌟 قمنا بتمرير التاريخ الجديد للـ Cubit
+                          parentContext.read<ContractsCubit>().updateContract(
+                            id: contract.id,
+                            details: detailsController.text,
+                            guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
+                            installmentsCount: int.parse(monthsController.text),
+                            contractDate: selectedDate, // 🌟 التعديل هنا
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('حفظ التعديلات النصية'),
+                  ),
+                ],
+              )
             ],
-          )
-        ],
+          );
+        }
       );
     },
   );

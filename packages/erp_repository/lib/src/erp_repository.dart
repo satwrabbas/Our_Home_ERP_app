@@ -555,6 +555,7 @@ class ErpRepository {
     required String apartmentDetails,
     required String guarantorName,
     required int installmentsCount,
+    required DateTime contractDate, // 🌟 إضافة هذا السطر
   }) async {
     final db = _localApi.database;
 
@@ -563,28 +564,26 @@ class ErpRepository {
       ContractsCompanion(
         apartmentDetails: drift.Value(apartmentDetails),
         guarantorName: drift.Value(guarantorName),
-        installmentsCount: drift.Value(installmentsCount), // 🌟 حفظ العدد الجديد
-        // 🌍 التعديل الضروري: UTC
+        installmentsCount: drift.Value(installmentsCount),
+        contractDate: drift.Value(contractDate.toUtc()), // 🌟 🌍 حفظ التاريخ بالـ UTC 
         updatedAt: drift.Value(DateTime.now().toUtc()),
         isSynced: const drift.Value(false), 
       )
     );
 
-    // 2. 🌟 السحر المحاسبي: تسوية لوحة المراقبة (حذف الأقساط الزائدة)
-    // نقوم بالبحث عن الأقساط التي رقمها "أكبر" من المدة الجديدة للعقد، ونقوم بحذفها، 
-    // بشرط أن تكون حالتها (pending) لحماية الأقساط التي تم دفعها مسبقاً!
+    // 2. السحر المحاسبي (تسوية لوحة المراقبة)
     await (db.update(db.installmentsSchedule)
       ..where((t) => t.contractId.equals(id))
-      ..where((t) => t.installmentNumber.isBiggerThanValue(installmentsCount)) // إذا القسط رقم 50 والعقد صار 48
-      ..where((t) => t.status.equals('pending')) // حماية مالية 🛡️
+      ..where((t) => t.installmentNumber.isBiggerThanValue(installmentsCount)) 
+      ..where((t) => t.status.equals('pending')) 
     ).write(
       const InstallmentsScheduleCompanion(
-        isDeleted: drift.Value(true), // حذف مؤقت لكي يختفي من النظام
-        isSynced: drift.Value(false), // إجبار السحابة على مسحه أيضاً
+        isDeleted: drift.Value(true), 
+        isSynced: drift.Value(false), 
       )
     );
 
-    // 3. رفع التعديلات (العقد + الأقساط المحذوفة) للسحابة فوراً
+    // 3. رفع التعديلات للسحابة فوراً
     await syncPendingData();
   }
 

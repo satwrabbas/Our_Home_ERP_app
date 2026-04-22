@@ -162,6 +162,7 @@ class ContractsCubit extends Cubit<ContractsState> {
     required String details,
     required String guarantorName,
     required int installmentsCount,
+    required DateTime contractDate, // 🌟 إضافة هذا السطر
   }) async {
     try {
       await _erpRepository.updateContract(
@@ -169,6 +170,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         apartmentDetails: details,
         guarantorName: guarantorName,
         installmentsCount: installmentsCount,
+        contractDate: contractDate, // 🌟 تمريره للمستودع
       );
       await fetchData(); 
     } catch (e) {
