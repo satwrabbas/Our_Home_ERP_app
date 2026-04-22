@@ -89,22 +89,28 @@ class ErpRepository {
   }
 
   // ==========================================
-  // 📥 محرك السحب الشبحي (Pull from Cloud) - النسخة المصححة
+  // 📥 محرك السحب الشبحي (Pull from Cloud) - النسخة فائقة الذكاء
   // ==========================================
   Future<void> pullDataFromCloud() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       
-      // 1. 🌟 السطر الأهم: تعريف المتغير وجلب القيمة من الإعدادات
+      // 1. جلب وقت آخر مزامنة من الذاكرة
       final String? lastSyncStr = prefs.getString('last_pull_timestamp');
-      DateTime? lastSyncTime; // تعريف المتغير هنا
+      DateTime? lastSyncTime; 
       
-      if (lastSyncStr != null) {
-        // 🌍 التعديل الضروري: التأكد من معاملة الوقت المسترجع كـ UTC
+      // 🛡️ 2. حماية ذكية جداً: التحقق مما إذا كانت القاعدة المحلية فارغة (بسبب فورمات أو تغيير اسم الملف)
+      final existingClients = await _localApi.getClients();
+      final isDatabaseEmpty = existingClients.isEmpty;
+
+      // 3. اتخاذ القرار: سحب تزايدي أم سحب شامل؟
+      if (lastSyncStr != null && !isDatabaseEmpty) {
         lastSyncTime = DateTime.parse(lastSyncStr).toUtc();
         print('⏳ جاري سحب التعديلات فقط منذ: $lastSyncTime');
       } else {
-        print('⏳ أول مرة مزامنة: جاري سحب كامل البيانات...');
+        // إذا كانت القاعدة فارغة، نتجاهل الوقت القديم لنجبر السحابة على إرسال كل شيء!
+        print('⏳ القاعدة فارغة أو مزامنة أولى: جاري سحب كامل البيانات من السحابة...');
+        lastSyncTime = null; 
       }
 
       // 1. سحب العملاء
@@ -114,10 +120,9 @@ class ErpRepository {
           id: drift.Value(c['id'].toString()), 
           name: c['name'].toString(), 
           phone: c['phone'].toString(), 
-          nationalId: drift.Value(c['national_id']?.toString()), // تم التوحيد
-          userId: c['user_id']?.toString() ?? '', // تم التوحيد
-          isDeleted: drift.Value(c['is_deleted'] == true), // تم التوحيد
-          // 🌍 التعديل الضروري: تحويل الوقت المقروء من السحابة إلى UTC بشكل صريح
+          nationalId: drift.Value(c['national_id']?.toString()), 
+          userId: c['user_id']?.toString() ?? '', 
+          isDeleted: drift.Value(c['is_deleted'] == true), 
           updatedAt: drift.Value(DateTime.tryParse(c['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()), 
           isSynced: const drift.Value(true), 
         );
@@ -129,29 +134,27 @@ class ErpRepository {
       for (var c in cloudContracts) {
         final contract = ContractsCompanion.insert(
           id: drift.Value(c['id'].toString()), 
-          clientId: c['client_id'].toString(), // تم التوحيد
-          apartmentId: drift.Value(c['apartment_id']?.toString()), // تم التوحيد
+          clientId: c['client_id'].toString(), 
+          apartmentId: drift.Value(c['apartment_id']?.toString()), 
           contractType: drift.Value(c['contract_type']?.toString() ?? 'لاحق التخصص'),
           apartmentDetails: drift.Value(c['apartment_details']?.toString() ?? ''),
           totalArea: double.tryParse(c['total_area']?.toString() ?? '0') ?? 0.0,
           baseMeterPriceAtSigning: double.tryParse(c['base_meter_price_at_signing']?.toString() ?? '0') ?? 0.0,
           installmentsCount: drift.Value(int.tryParse(c['installments_count']?.toString() ?? '48') ?? 48),
           coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
-          // 🌍 التعديل الضروري: UTC
           contractDate: DateTime.tryParse(c['contract_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(),
           guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', 
           contractFileUrl: drift.Value(c['contract_file_url']?.toString()), 
           userId: c['user_id']?.toString() ?? '',
           isCompleted: drift.Value(c['is_completed'] == true),
           isDeleted: drift.Value(c['is_deleted'] == true),
-          // 🌍 التعديل الضروري: UTC
           updatedAt: drift.Value(DateTime.tryParse(c['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
           isSynced: const drift.Value(true),
         );
         await _localApi.syncContract(contract);
       }
 
-      // 3. سحب أسعار المواد (المعدل ليتوافق مع snake_case)
+      // 3. سحب أسعار المواد
       final cloudPrices = await _cloudApi.getMaterialPrices();
       for (var p in cloudPrices) {
         final price = MaterialPricesHistoryCompanion.insert(
@@ -162,33 +165,27 @@ class ErpRepository {
           formworkAndPouringWages: double.tryParse(p['formwork_and_pouring_wages']?.toString() ?? '0') ?? 0.0,
           aggregateMaterialsPrice: double.tryParse(p['aggregate_materials_price']?.toString() ?? '0') ?? 0.0, 
           ordinaryWorkerWage: double.tryParse(p['ordinary_worker_wage']?.toString() ?? '0') ?? 0.0,
-          // 🌍 التعديل الضروري: إزالة toLocal() واستبدالها بـ toUtc() لأن السحابة والقاعدة المحلية تعملان بـ UTC
           effectiveDate: drift.Value(DateTime.tryParse(p['effective_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
           userId: p['user_id']?.toString() ?? '',
           isDeleted: drift.Value(p['is_deleted'] == true),
           isSynced: const drift.Value(true),
         );
-        // استخدام syncPrice بدلاً من savePrices لمنع تكرار الـ ID
         await _localApi.syncPrice(price); 
       }
 
-
-      // 4. سحب جدول الاستحقاقات
+      // 4. سحب جدول الاستحقاقات (مع دعم حقل الملاحظات notes الجديد)
       final cloudSchedules = await _cloudApi.getSchedules(lastSync: lastSyncTime);
       for (var s in cloudSchedules) {
         final schedule = InstallmentsScheduleCompanion.insert(
           id: drift.Value(s['id'].toString()), 
-          contractId: s['contract_id'].toString(), // تم التوحيد
-          installmentNumber: int.tryParse(s['installment_number']?.toString() ?? '1') ?? 1, // تم التوحيد
-          // 🌍 التعديل الضروري: UTC
-          dueDate: DateTime.tryParse(s['due_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(), // تم التوحيد
+          contractId: s['contract_id'].toString(), 
+          installmentNumber: int.tryParse(s['installment_number']?.toString() ?? '1') ?? 1, 
+          dueDate: DateTime.tryParse(s['due_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(), 
           status: drift.Value(s['status']?.toString() ?? 'pending'),
-
-          notes: drift.Value(s['notes']?.toString()), 
-          userId: s['user_id']?.toString() ?? '', // تم التوحيد
-          isDeleted: drift.Value(s['is_deleted'] == true), // تم التوحيد
-          // 🌍 التعديل الضروري: UTC
-          updatedAt: drift.Value(DateTime.tryParse(s['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()), // تم التوحيد
+          notes: drift.Value(s['notes']?.toString()), // 🌟 قراءة الملاحظات من السحابة
+          userId: s['user_id']?.toString() ?? '', 
+          isDeleted: drift.Value(s['is_deleted'] == true), 
+          updatedAt: drift.Value(DateTime.tryParse(s['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()), 
           isSynced: const drift.Value(true),
         );
         await _localApi.syncSchedule(schedule);
@@ -201,27 +198,22 @@ class ErpRepository {
           id: drift.Value(p['id'].toString()), 
           contractId: p['contract_id'].toString(), 
           scheduleId: drift.Value(p['schedule_id']?.toString()), 
-          // 🌍 التعديل الضروري: UTC
           paymentDate: DateTime.tryParse(p['payment_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(), 
           amountPaid: double.tryParse(p['amount_paid']?.toString() ?? '0') ?? 0.0, 
           meterPriceAtPayment: double.tryParse(p['meter_price_at_payment']?.toString() ?? '0') ?? 0.0,
           convertedMeters: double.tryParse(p['converted_meters']?.toString() ?? '0') ?? 0.0, 
-          
-          // 🌟 السطر الجديد: سحب لقطة الأسعار من السحابة
           pricesSnapshot: drift.Value(p['prices_snapshot']?.toString() ?? '{}'),
-          
           fees: drift.Value(double.tryParse(p['fees']?.toString() ?? '0') ?? 0.0),
           isWhatsAppSent: drift.Value(p['is_whatsapp_sent'] == true), 
           userId: p['user_id']?.toString() ?? '', 
           isDeleted: drift.Value(p['is_deleted'] == true), 
-          // 🌍 التعديل الضروري: UTC
           updatedAt: drift.Value(DateTime.tryParse(p['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()), 
           isSynced: const drift.Value(true),
         );
         await _localApi.syncPayment(payment);
       }
 
-      // 6. سحب المحاضر (Buildings)
+      // 6. سحب المحاضر
       final cloudBuildings = await _cloudApi.getBuildings();
       for (var b in cloudBuildings) {
         final building = BuildingsCompanion.insert(
@@ -232,14 +224,13 @@ class ErpRepository {
           directionCoefficients: drift.Value(b['direction_coefficients']?.toString() ?? '{}'),
           userId: drift.Value(b['user_id']?.toString() ?? ''),
           isDeleted: drift.Value(b['is_deleted'] == true),
-          // 🌍 التعديل الضروري: UTC
           updatedAt: drift.Value(DateTime.tryParse(b['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
           isSynced: const drift.Value(true),
         );
         await _localApi.syncBuilding(building);
       }
 
-      // 7. سحب الشقق (Apartments)
+      // 7. سحب الشقق
       final cloudApartments = await _cloudApi.getApartments();
       for (var a in cloudApartments) {
         final apartment = ApartmentsCompanion.insert(
@@ -248,23 +239,18 @@ class ErpRepository {
           apartmentNumber: a['apartment_number'].toString(),
           area: double.tryParse(a['area']?.toString() ?? '0') ?? 0.0,
           floorName: a['floor_name'].toString(),
-          
-          // 🌟 تم تصحيح هذا السطر: تمرير String مباشر بدلاً من drift.Value
           directionName: a['direction_name']?.toString() ?? '-', 
-          
           customCoefficients: drift.Value(a['custom_coefficients']?.toString() ?? '{}'),
           status: drift.Value(a['status']?.toString() ?? 'available'),
           userId: drift.Value(a['user_id']?.toString() ?? ''),
           isDeleted: drift.Value(a['is_deleted'] == true),
-          // 🌍 التعديل الضروري: UTC
           updatedAt: drift.Value(DateTime.tryParse(a['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
           isSynced: const drift.Value(true),
         );
         await _localApi.syncApartment(apartment);
       }
 
-      // 🌍 التعديل الضروري (حفظ الوقت): لكي لا يسحب كامل البيانات المرة القادمة!
-      // نقوم بتخزين الوقت الحالي كـ UTC لتُبنى عليه المزامنة التزايدية القادمة
+      // 🌍 حفظ الوقت الحالي للعمليات القادمة
       await prefs.setString('last_pull_timestamp', DateTime.now().toUtc().toIso8601String());
 
       print('✅ تم تحديث كافة البيانات المحلية من السحابة بنجاح');
