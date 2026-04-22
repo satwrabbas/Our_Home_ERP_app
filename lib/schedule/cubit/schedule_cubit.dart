@@ -253,4 +253,29 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل تعديل القسط: $e'));
     }
   }
+
+
+  // ==========================================
+  // 🎈 إضافة قسط بالوني (استثنائي)
+  // ==========================================
+  Future<void> addExceptionalInstallment({
+    required String contractId,
+    required DateTime dueDate,
+    required String note,
+  }) async {
+    try {
+      await _erpRepository.addExceptionalInstallment(
+        contractId: contractId,
+        dueDate: dueDate,
+        note: note,
+      );
+
+      // تحديث الرادار والجدول فوراً لرؤية القسط الجديد
+      await fetchInitialData();
+      await selectContract(contractId);
+
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل إضافة القسط الاستثنائي: $e'));
+    }
+  }
 }
