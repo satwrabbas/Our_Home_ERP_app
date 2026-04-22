@@ -1,21 +1,45 @@
 // lib/payments/view/dialogs/add_payment_dialog.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🌟 مكتبة Formatters
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/payments_cubit.dart';
-import '../../../contracts/view/dialogs/verify_pin_dialog.dart'; // 🌟 جلب ديالوج رمز الإدارة
+import '../../../contracts/view/dialogs/verify_pin_dialog.dart'; 
+
+// ==========================================
+// 🌟 أداة تنسيق الأرقام (تضع فاصلة لكل 3 أرقام أثناء الكتابة)
+// ==========================================
+class ThousandsFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) return const TextEditingValue(text: '');
+    
+    String formatted = '';
+    int count = 0;
+    for (int i = digitsOnly.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) formatted = ',$formatted';
+      formatted = digitsOnly[i] + formatted;
+      count++;
+    }
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 void showAddPaymentDialog(BuildContext parentContext, String contractId) {
   final amountController = TextEditingController();
   final discountController = TextEditingController(text: '0'); 
 
-  // 🌟 متغيرات الدفعة القديمة
   bool isHistoricalPayment = false;
-  bool isDetailedMode = false; // false = سعر المتر مباشر (سريع) | true = إدخال تفصيلي 6 مواد
+  bool isDetailedMode = false; 
   DateTime selectedHistoricalDate = DateTime.now();
   
-  final meterPriceCtrl = TextEditingController(); // للوضع السريع
+  final meterPriceCtrl = TextEditingController(); 
   
-  final histIronCtrl = TextEditingController(); // للوضع التفصيلي
+  final histIronCtrl = TextEditingController(); 
   final histCementCtrl = TextEditingController();
   final histBlockCtrl = TextEditingController();
   final histFormworkCtrl = TextEditingController();
@@ -28,18 +52,18 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
       return StatefulBuilder(
         builder: (context, setState) {
           
-          double amount = double.tryParse(amountController.text) ?? 0;
+          // 🌟 السحر هنا: قراءة الأرقام بدون فواصل لحساب المعاينة الحية
+          double amount = double.tryParse(amountController.text.replaceAll(',', '')) ?? 0;
           double discountPct = double.tryParse(discountController.text) ?? 0;
           double effectiveAmount = amount + (amount * (discountPct / 100));
 
-          // للحساب المبدئي للأمتار (فقط في حالة إدخال سعر المتر يدوياً للسرعة)
-          double customMeterPrice = double.tryParse(meterPriceCtrl.text) ?? 0;
+          double customMeterPrice = double.tryParse(meterPriceCtrl.text.replaceAll(',', '')) ?? 0;
           double previewMeters = customMeterPrice > 0 ? (effectiveAmount / customMeterPrice) : 0;
 
           return AlertDialog(
             title: const Text('إدخال دفعة جديدة', style: TextStyle(color: Colors.deepOrange)),
             content: SizedBox(
-              width: 500, // وسعنا النافذة لتناسب الحقول
+              width: 500, 
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -61,6 +85,18 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                             bool authorized = await showVerifyPinDialog(parentContext);
                             if (authorized) {
                               setState(() => isHistoricalPayment = true);
+                              
+                              // 🌟 فتح نافذة التاريخ تلقائياً
+                              final pickedDate = await showDatePicker(
+                                context: dialogContext, 
+                                initialDate: selectedHistoricalDate,
+                                firstDate: DateTime(2000), 
+                                lastDate: DateTime.now(),
+                                builder: (context, child) => Theme(data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: Colors.red)), child: child!),
+                              );
+                              if (pickedDate != null) {
+                                setState(() => selectedHistoricalDate = pickedDate);
+                              }
                             }
                           } else {
                             setState(() {
@@ -81,14 +117,24 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children:[
-                            // التاريخ
+                            // التاريخ 🌟 (زر محدث وأنيق)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children:[
                                 const Text('📅 تاريخ الدفع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                TextButton.icon(
-                                  icon: const Icon(Icons.edit_calendar, color: Colors.red),
-                                  label: Text('${selectedHistoricalDate.year}/${selectedHistoricalDate.month}/${selectedHistoricalDate.day}', style: const TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.bold)),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade50,
+                                    foregroundColor: Colors.red.shade700,
+                                    elevation: 0,
+                                    side: BorderSide(color: Colors.red.shade300, width: 2),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.calendar_month, size: 22),
+                                  label: Text(
+                                    '${selectedHistoricalDate.year}/${selectedHistoricalDate.month}/${selectedHistoricalDate.day}', 
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                                  ),
                                   onPressed: () async {
                                     final pickedDate = await showDatePicker(
                                       context: dialogContext, initialDate: selectedHistoricalDate,
@@ -100,6 +146,7 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                                 )
                               ],
                             ),
+                            const SizedBox(height: 12),
                             const Divider(color: Colors.red),
                             
                             // اختيار طريقة الإدخال
@@ -131,10 +178,11 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                             ),
                             const SizedBox(height: 8),
 
-                            // الحقول بناءً على الطريقة
+                            // 🌟 الحقول مع إضافة الفواصل
                             if (!isDetailedMode)
                               TextField(
                                 controller: meterPriceCtrl,
+                                inputFormatters: [ThousandsFormatter()], // 🌟 إضافة الفواصل
                                 decoration: const InputDecoration(labelText: 'سعر المتر المربع في ذلك الوقت (ل.س)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.speed, color: Colors.red), filled: true, fillColor: Colors.white),
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setState(() {}),
@@ -144,25 +192,25 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                                 children: [
                                   Row(
                                     children:[
-                                      Expanded(child: TextField(controller: histIronCtrl, decoration: const InputDecoration(labelText: 'الحديد', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histIronCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الحديد', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       const SizedBox(width: 8),
-                                      Expanded(child: TextField(controller: histCementCtrl, decoration: const InputDecoration(labelText: 'الإسمنت', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histCementCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الإسمنت', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
                                     children:[
-                                      Expanded(child: TextField(controller: histBlockCtrl, decoration: const InputDecoration(labelText: 'البلوك 15', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histBlockCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'البلوك 15', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       const SizedBox(width: 8),
-                                      Expanded(child: TextField(controller: histFormworkCtrl, decoration: const InputDecoration(labelText: 'الكوفراج', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histFormworkCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'الكوفراج', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
                                     children:[
-                                      Expanded(child: TextField(controller: histAggregatesCtrl, decoration: const InputDecoration(labelText: 'المواد الحصوية', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histAggregatesCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'المواد الحصوية', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                       const SizedBox(width: 8),
-                                      Expanded(child: TextField(controller: histWorkerCtrl, decoration: const InputDecoration(labelText: 'أجرة العامل', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
+                                      Expanded(child: TextField(controller: histWorkerCtrl, inputFormatters: [ThousandsFormatter()], decoration: const InputDecoration(labelText: 'أجرة العامل', border: OutlineInputBorder(), isDense: true), keyboardType: TextInputType.number)),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
@@ -181,6 +229,7 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                     // 🌟 3. حقول المبلغ والخصم الأساسية
                     TextField(
                       controller: amountController,
+                      inputFormatters:[ThousandsFormatter()], // 🌟 إضافة الفواصل للمبلغ
                       decoration: const InputDecoration(labelText: 'المبلغ المدفوع الفعلي (ل.س)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.attach_money)),
                       keyboardType: TextInputType.number,
                       onChanged: (val) => setState(() {}), 
@@ -214,7 +263,7 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                           children:[
                             const Text('المبلغ المعتمد للتحويل:', style: TextStyle(fontSize: 12, color: Colors.grey)),
                             Text(
-                              '${effectiveAmount.toStringAsFixed(0)} ل.س',
+                              '${effectiveAmount.toStringAsFixed(0)} ل.س', // نتركها بدون فواصل هنا أو يمكنك إنشاء دالة فرمتة
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: discountPct > 0 ? Colors.green.shade700 : Colors.deepOrange),
                             ),
                             if (isHistoricalPayment && !isDetailedMode && previewMeters > 0) ...[
@@ -238,7 +287,6 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
                 onPressed: amount > 0 ? () {
                   
-                  // التحقق من الحقول إذا كان الوضع قديماً
                   if (isHistoricalPayment) {
                     if (!isDetailedMode && meterPriceCtrl.text.isEmpty) {
                       ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('الرجاء إدخال سعر المتر!'), backgroundColor: Colors.red));
@@ -256,20 +304,20 @@ void showAddPaymentDialog(BuildContext parentContext, String contractId) {
                     const SnackBar(content: Text('جاري إضافة الدفعة وتحديث السجلات...'), duration: Duration(seconds: 1)),
                   );
 
-                  // إرسال البيانات للكيوبت
+                  // 🌟 إرسال البيانات للكيوبت مع إزالة الفواصل `replaceAll(',', '')`
                   parentContext.read<PaymentsCubit>().addLedgerEntry(
                     contractId: contractId,
-                    amountPaid: amount,
+                    amountPaid: amount, // محول وممسوح الفواصل مسبقاً في الأعلى
                     discountPercentage: discountPct, 
                     customDate: isHistoricalPayment ? selectedHistoricalDate : null,
-                    customMeterPrice: isHistoricalPayment && !isDetailedMode ? double.parse(meterPriceCtrl.text) : null,
+                    customMeterPrice: isHistoricalPayment && !isDetailedMode ? double.parse(meterPriceCtrl.text.replaceAll(',', '')) : null,
                     
-                    histIron: isHistoricalPayment && isDetailedMode ? double.parse(histIronCtrl.text) : null,
-                    histCement: isHistoricalPayment && isDetailedMode ? double.parse(histCementCtrl.text) : null,
-                    histBlock: isHistoricalPayment && isDetailedMode ? double.parse(histBlockCtrl.text) : null,
-                    histFormwork: isHistoricalPayment && isDetailedMode ? double.parse(histFormworkCtrl.text) : null,
-                    histAggregates: isHistoricalPayment && isDetailedMode ? double.parse(histAggregatesCtrl.text) : null,
-                    histWorker: isHistoricalPayment && isDetailedMode ? double.parse(histWorkerCtrl.text) : null,
+                    histIron: isHistoricalPayment && isDetailedMode ? double.parse(histIronCtrl.text.replaceAll(',', '')) : null,
+                    histCement: isHistoricalPayment && isDetailedMode ? double.parse(histCementCtrl.text.replaceAll(',', '')) : null,
+                    histBlock: isHistoricalPayment && isDetailedMode ? double.parse(histBlockCtrl.text.replaceAll(',', '')) : null,
+                    histFormwork: isHistoricalPayment && isDetailedMode ? double.parse(histFormworkCtrl.text.replaceAll(',', '')) : null,
+                    histAggregates: isHistoricalPayment && isDetailedMode ? double.parse(histAggregatesCtrl.text.replaceAll(',', '')) : null,
+                    histWorker: isHistoricalPayment && isDetailedMode ? double.parse(histWorkerCtrl.text.replaceAll(',', '')) : null,
                   );
                 } : null, 
                 child: const Text('حفظ الدفعة'),
