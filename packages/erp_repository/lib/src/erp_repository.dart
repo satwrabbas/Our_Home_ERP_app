@@ -605,7 +605,8 @@ class ErpRepository {
   // 📅 جدول الاستحقاقات (المراقبة)
   // ==========================================
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
-
+  // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
+  Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _localApi.getAllOverdueSchedules();
   
 
   // ==========================================

@@ -19,14 +19,18 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       final clients = await _erpRepository.getClients();
       final contracts = await _erpRepository.getAllContracts();
       
-      // 🌟 تشغيل محرك الرادار بصمت
-      final alerts = await _generateAllocationRadar(contracts, clients);
+      // 🌟 1. تشغيل محرك رادار التخصص بصمت
+      final allocationAlerts = await _generateAllocationRadar(contracts, clients);
+
+      // 🌟 2. تشغيل محرك المتعثرين (الديون المتراكمة) بصمت
+      final overdueAlerts = await _generateOverdueRadar(contracts, clients);
 
       emit(state.copyWith(
         status: ScheduleStatus.success,
         clients: clients,
         contracts: contracts,
-        allocationAlerts: alerts, // 🌟 حفظ التنبيهات
+        allocationAlerts: allocationAlerts, // 🌟 حفظ تنبيهات التخصص
+        overdueAlerts: overdueAlerts,       // 🌟 حفظ تنبيهات المتعثرين
       ));
     } catch (e) {
       emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: e.toString()));
@@ -34,7 +38,59 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   }
 
   // ==========================================
-  // 🧠 محرك التنبؤ الذكي (Predictive Engine)
+  // 🚨 محرك المتعثرين والمتأخرين (Overdue Radar Engine)
+  // ==========================================
+  Future<List<OverdueContractAlert>> _generateOverdueRadar(List<Contract> allContracts, List<Client> allClients) async {
+    // 1. جلب جميع الأقساط المعلقة المتأخرة عن موعدها من المستودع
+    final allOverdueSchedules = await _erpRepository.getAllOverdueSchedules();
+    
+    // 2. تجميع الأقساط لكل عقد على حدة
+    Map<String, List<InstallmentsScheduleData>> grouped = {};
+    for (var s in allOverdueSchedules) {
+       grouped.putIfAbsent(s.contractId, () =>[]).add(s);
+    }
+
+    List<OverdueContractAlert> alerts =[];
+    final now = DateTime.now().toUtc();
+
+    grouped.forEach((contractId, schedules) {
+       final contractIdx = allContracts.indexWhere((c) => c.id == contractId);
+       if (contractIdx == -1) return;
+       final contract = allContracts[contractIdx];
+
+       final clientIdx = allClients.indexWhere((c) => c.id == contract.clientId);
+       if (clientIdx == -1) return;
+       final client = allClients[clientIdx];
+
+       // أقدم قسط متأخر (القائمة تأتي مرتبة، فالأول هو الأقدم)
+       final oldestSchedule = schedules.first;
+       final maxDaysOverdue = now.difference(oldestSchedule.dueDate).inDays;
+
+       // تصنيف الخطورة
+       String severity = 'notice'; // 🟡 أيام قليلة
+       if (maxDaysOverdue >= 60) {
+         severity = 'critical'; // 🔴 أكثر من شهرين
+       } else if (maxDaysOverdue >= 30) {
+         severity = 'warning'; // 🟠 أكثر من شهر
+       }
+
+       alerts.add(OverdueContractAlert(
+          contract: contract,
+          client: client,
+          overdueSchedules: schedules,
+          maxDaysOverdue: maxDaysOverdue,
+          severity: severity,
+       ));
+    });
+
+    // 3. الترتيب بحيث يظهر الأسوأ والأكثر تأخراً في أعلى القائمة
+    alerts.sort((a, b) => b.maxDaysOverdue.compareTo(a.maxDaysOverdue));
+    
+    return alerts;
+  }
+
+  // ==========================================
+  // 🧠 محرك التنبؤ الذكي للتخصص (Predictive Engine)
   // ==========================================
   Future<List<AllocationAlertData>> _generateAllocationRadar(List<Contract> allContracts, List<Client> allClients) async {
     List<AllocationAlertData> radarList =[];
@@ -89,7 +145,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       );
     }
 
-    // 8. ترتيب القائمة بحيث يظهر الأكثر خطورة (الأقل أشهراً متبقية) في الأعلى
+    // 8. ترتيب القائمة بحيث يظهر الأكثر خطورة في الأعلى
     radarList.sort((a, b) => a.estimatedMonthsLeft.compareTo(b.estimatedMonthsLeft));
 
     return radarList;
@@ -134,7 +190,7 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         contractDate: contractDate,
       );
 
-      // 2. إعادة تحميل البيانات الأساسية لتحديث (رادار التخصص الذكي)
+      // 2. إعادة تحميل البيانات الأساسية لتحديث (الرادارات)
       await fetchInitialData();
 
       // 3. تحديث جدول الأقساط المعروض حالياً لتظهر التغييرات فوراً

@@ -62,6 +62,8 @@ class LocalStorageApi {
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _db.getScheduleForContract(contractId);
   Future<int> updateScheduleStatus(String id, String status) => _db.updateScheduleStatus(id, status);
   Future<int> deleteScheduleEntry(String id) => _db.softDeleteScheduleEntry(id);
+  // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
+  Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _db.getAllOverdueSchedules();
 
   // ==========================================
   // 🧹 فرمتة القاعدة

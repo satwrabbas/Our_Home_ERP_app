@@ -468,6 +468,17 @@ class AppDatabase extends _$AppDatabase {
     );
   }
   
+
+  // 🌟 جلب كل الأقساط المتأخرة في كامل النظام
+  Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() {
+    final nowUtc = DateTime.now().toUtc();
+    return (select(installmentsSchedule)
+      ..where((t) => t.isDeleted.equals(false) & t.status.equals('pending') & t.dueDate.isSmallerThanValue(nowUtc))
+      ..orderBy([(t) => OrderingTerm.asc(t.dueDate)])
+    ).get();
+  }
+
+  
   // ==========================================
   // --- البث الحي للأسعار (Stream) ---
   // ==========================================
