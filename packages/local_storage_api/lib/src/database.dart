@@ -480,6 +480,71 @@ class AppDatabase extends _$AppDatabase {
 
   
   // ==========================================
+  // 🔄 إعادة الجدولة الذكية (Smart Restructuring)
+  // ==========================================
+  Future<void> restructureContractSchedule({
+    required String contractId,
+    required int newRemainingMonths,
+    required DateTime newStartDate,
+    required String userId,
+  }) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+
+      // 1. جلب جميع الأقساط المدفوعة لمعرفة أين توقفنا في الترقيم
+      final paidSchedules = await (select(installmentsSchedule)
+            ..where((t) => t.contractId.equals(contractId) & t.status.equals('paid') & t.isDeleted.equals(false)))
+          .get();
+
+      // إيجاد أعلى رقم قسط مدفوع (إذا لم يدفع شيئاً، سيكون 0)
+      int lastPaidNumber = 0;
+      for (var s in paidSchedules) {
+        if (s.installmentNumber > lastPaidNumber) {
+          lastPaidNumber = s.installmentNumber;
+        }
+      }
+
+      // 2. الحذف الوهمي (Soft Delete) لجميع الأقساط "المعلقة" الحالية
+      await (update(installmentsSchedule)
+            ..where((t) => t.contractId.equals(contractId) & t.status.equals('pending') & t.isDeleted.equals(false)))
+          .write(
+        InstallmentsScheduleCompanion(
+          isDeleted: const Value(true),
+          updatedAt: nowUtc,
+          isSynced: const Value(false), // إجبار السحابة على مسحهم
+        ),
+      );
+
+      // 3. توليد الأقساط الجديدة المتبقية بالتاريخ الجديد
+      for (int i = 1; i <= newRemainingMonths; i++) {
+        // نستخدم DateTime.utc لضمان التوقيت العالمي، والـ Dart ذكية ستعالج زيادة الأشهر تلقائياً للسنوات القادمة
+        final dueDate = DateTime.utc(newStartDate.year, newStartDate.month + (i - 1), newStartDate.day);
+
+        final entry = InstallmentsScheduleCompanion.insert(
+          contractId: contractId,
+          installmentNumber: lastPaidNumber + i, // إكمال الترقيم من حيث انتهى
+          dueDate: dueDate,
+          status: const Value('pending'),
+          userId: userId,
+        );
+        await into(installmentsSchedule).insert(entry);
+      }
+
+      // 4. تحديث مدة العقد الإجمالية في جدول العقود لتتوافق مع الجدولة الجديدة
+      final int newTotalInstallments = lastPaidNumber + newRemainingMonths;
+      await (update(contracts)..where((t) => t.id.equals(contractId))).write(
+        ContractsCompanion(
+          installmentsCount: Value(newTotalInstallments),
+          updatedAt: nowUtc,
+          isSynced: const Value(false), // إجبار المزامنة للعقد
+        ),
+      );
+    });
+  }
+  
+
+
+  // ==========================================
   // --- البث الحي للأسعار (Stream) ---
   // ==========================================
   Stream<MaterialPricesHistoryData?> watchLatestPrices() {

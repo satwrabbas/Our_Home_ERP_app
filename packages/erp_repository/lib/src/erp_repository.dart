@@ -587,6 +587,27 @@ class ErpRepository {
     await syncPendingData();
   }
 
+  // 🌟 دالة إعادة الجدولة الذكية (تنفذ محلياً وترفع للسحابة فوراً)
+  Future<void> restructureContractSchedule({
+    required String contractId,
+    required int newRemainingMonths,
+    required DateTime newStartDate,
+  }) async {
+    final String? safeUserId = currentUserId;
+    if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً لإجراء التعديلات المالية.');
+
+    // 1. تنفيذ العملية الجراحية في القاعدة المحلية
+    await _localApi.restructureContractSchedule(
+      contractId: contractId,
+      newRemainingMonths: newRemainingMonths,
+      newStartDate: newStartDate.toUtc(), // ضمان تحويل البداية لـ UTC
+      userId: safeUserId,
+    );
+
+    // 2. تفعيل المزامنة الشبحية لرفع (الأقساط الملغاة + الأقساط الجديدة + تعديل مدة العقد)
+    await syncPendingData();
+  }
+
   // ==========================================
   // 🗑️ إدارة سلة المحذوفات للعقود
   // ==========================================
@@ -607,6 +628,7 @@ class ErpRepository {
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
   Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _localApi.getAllOverdueSchedules();
+  
   
 
   // ==========================================

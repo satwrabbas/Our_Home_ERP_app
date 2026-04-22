@@ -4,8 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/schedule_cubit.dart';
 import '../../../core/utils/whatsapp_helper.dart';
 
-// 🌟 استدعاء نافذة التعديل الجديدة
 import '../dialogs/edit_schedule_dialog.dart';
+// 🌟 استدعاء نافذة الجدولة الجديدة
+import '../dialogs/reschedule_dialog.dart';
 
 class TraditionalScheduleTab extends StatelessWidget {
   final ScheduleState state;
@@ -43,18 +44,31 @@ class TraditionalScheduleTab extends StatelessWidget {
                 ),
               ),
               
-              // 🌟 السطر الجديد: زر التعديل يظهر فقط عند اختيار عقد
+              // الأزرار تظهر فقط عند اختيار عقد
               if (state.selectedContractId != null) ...[
                 const SizedBox(width: 16),
+                
+                // 🌟 الزر الجديد: إعادة الجدولة (مستقل وبطابع مميز)
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.indigo.shade200),
-                    borderRadius: BorderRadius.circular(8)
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.blue.shade300), borderRadius: BorderRadius.circular(8)),
+                  child: IconButton(
+                    icon: const Icon(Icons.autorenew, color: Colors.blue, size: 28),
+                    tooltip: 'إعادة جدولة الأقساط المتبقية (تغيير الخطة)',
+                    onPressed: () {
+                      final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
+                      showRescheduleDialog(context, contract);
+                    },
                   ),
+                ),
+
+                const SizedBox(width: 12),
+                
+                // زر الإعدادات القديم
+                Container(
+                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.indigo.shade200), borderRadius: BorderRadius.circular(8)),
                   child: IconButton(
                     icon: const Icon(Icons.settings, color: Colors.indigo, size: 28),
-                    tooltip: 'تعديل خصائص العقد والجدول (للمدير)',
+                    tooltip: 'تعديل خصائص العقد (للمدير)',
                     onPressed: () {
                       final contract = state.contracts.firstWhere((c) => c.id == state.selectedContractId);
                       showEditScheduleDialog(context, contract);
@@ -62,7 +76,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                   ),
                 ),
               ],
-
             ],
           ),
         ),

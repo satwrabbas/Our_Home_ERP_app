@@ -200,4 +200,31 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل تعديل الجدول: $e'));
     }
   }
+
+  // ==========================================
+  // 🔄 دالة إعادة الجدولة الذكية (Smart Restructuring)
+  // ==========================================
+  Future<void> restructureSchedule({
+    required String contractId,
+    required int newRemainingMonths,
+    required DateTime newStartDate,
+  }) async {
+    try {
+      // 1. استدعاء العملية الجراحية من المستودع
+      await _erpRepository.restructureContractSchedule(
+        contractId: contractId,
+        newRemainingMonths: newRemainingMonths,
+        newStartDate: newStartDate,
+      );
+
+      // 2. تحديث الإحصائيات والرادارات لأن مدة العقد الإجمالية تغيرت
+      await fetchInitialData();
+
+      // 3. تحديث جدول الأقساط المعروض حالياً لتظهر الأقساط الجديدة فوراً
+      await selectContract(contractId);
+
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل إعادة الجدولة: $e'));
+    }
+  }
 }

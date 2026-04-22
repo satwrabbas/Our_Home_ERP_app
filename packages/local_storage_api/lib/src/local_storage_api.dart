@@ -64,6 +64,9 @@ class LocalStorageApi {
   Future<int> deleteScheduleEntry(String id) => _db.softDeleteScheduleEntry(id);
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
   Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _db.getAllOverdueSchedules();
+  // 🌟 السطر الجديد
+  Future<void> restructureContractSchedule({required String contractId, required int newRemainingMonths, required DateTime newStartDate, required String userId}) =>
+      _db.restructureContractSchedule(contractId: contractId, newRemainingMonths: newRemainingMonths, newStartDate: newStartDate, userId: userId);
 
   // ==========================================
   // 🧹 فرمتة القاعدة
