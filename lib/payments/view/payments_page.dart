@@ -76,29 +76,53 @@ class PaymentsView extends StatelessWidget {
             children:[
               // --- القسم العلوي: الفلترة والأزرار ---
               Container(
-                padding: const EdgeInsets.all(24.0),
-                color: Colors.orange.shade50,
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  border: Border(bottom: BorderSide(color: Colors.orange.shade200, width: 2)),
+                ),
                 child: Row(
                   children:[
-                    const Text('اختر العقد المطلوب: ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.account_balance_wallet, color: Colors.deepOrange, size: 36),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
-                        decoration: const InputDecoration(border: OutlineInputBorder(), filled: true, fillColor: Colors.white),
-                        items: state.contracts.map((contract) {
-                          final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                          final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل محذوف';
-                          return DropdownMenuItem(value: contract.id, child: Text('العميل: $clientName (${contract.apartmentDetails})'));
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) context.read<PaymentsCubit>().selectContract(val);
-                        },
-                      ),
-                    ),
+                    const Text('اختر العقد المطلوب: ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
                     const SizedBox(width: 16),
                     
+                    // 🌟 محرك البحث الحديث (DropdownMenu)
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return DropdownMenu<String>(
+                            width: constraints.maxWidth, 
+                            enableSearch: true, // 🌟 تفعيل البحث
+                            enableFilter: true, // 🌟 تفعيل الفلترة أثناء الكتابة
+                            hintText: '🔍 اكتب اسم العميل أو العقار للبحث السريع...',
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            inputDecorationTheme: InputDecorationTheme(
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            initialSelection: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
+                            onSelected: (val) {
+                              if (val != null) context.read<PaymentsCubit>().selectContract(val);
+                            },
+                            dropdownMenuEntries: state.contracts.map((contract) {
+                              final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                              final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
+                              return DropdownMenuEntry<String>(
+                                value: contract.id, 
+                                label: '$clientName (${contract.apartmentDetails})',
+                              );
+                            }).toList(),
+                          );
+                        }
+                      ),
+                    ),
+                    
                     if (state.selectedContractId != null) ...[
+                      const SizedBox(width: 16),
                       // زر الإكسل
                       ElevatedButton.icon(
                         onPressed: () async {
@@ -125,7 +149,7 @@ class PaymentsView extends StatelessWidget {
                         },
                         icon: const Icon(Icons.table_view),
                         label: const Text('تصدير Excel'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                       ),
                       
                       const SizedBox(width: 12),
@@ -176,7 +200,7 @@ class PaymentsView extends StatelessWidget {
                         },
                         icon: const Icon(Icons.picture_as_pdf),
                         label: const Text('كشف حساب PDF'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                       ),
 
                       const SizedBox(width: 12),
@@ -186,7 +210,7 @@ class PaymentsView extends StatelessWidget {
                         onPressed: () => showAddPaymentDialog(context, state.selectedContractId!),
                         icon: const Icon(Icons.payment),
                         label: const Text('إدخال دفعة'),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18)),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                       ),
                     ],
                   ],
@@ -203,88 +227,94 @@ class PaymentsView extends StatelessWidget {
                             padding: const EdgeInsets.all(24.0),
                             child: SizedBox(
                               width: double.infinity,
-                              child: DataTable(
-                                headingRowColor: WidgetStateProperty.all(Colors.orange.shade100),
-                                columns: const[
-                                  DataColumn(label: Text('رقم الإيصال', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('المبلغ المدفوع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('الأمتار المحولة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
-                                  DataColumn(label: Text('تاريخ الدفع', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
-                                ],
-                                rows: state.ledgerEntries.asMap().entries.map((mapEntry) {
-                                  final int index = mapEntry.key;
-                                  final entry = mapEntry.value;
-                                  
-                                  final bool isLatestEntry = index == 0;
-
-                                  return DataRow(cells:[
-                                    DataCell(Text(entry.id.split('-').first, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                              child: Card(
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                clipBehavior: Clip.antiAlias,
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(Colors.orange.shade100),
+                                  dataRowMaxHeight: 65,
+                                  columns: const[
+                                    DataColumn(label: Text('رقم الإيصال', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('المبلغ المدفوع', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('الأمتار المحولة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
+                                    DataColumn(label: Text('تاريخ الدفع', style: TextStyle(fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  ],
+                                  rows: state.ledgerEntries.asMap().entries.map((mapEntry) {
+                                    final int index = mapEntry.key;
+                                    final entry = mapEntry.value;
                                     
-                                    // 🌟 تطبيق الفواصل هنا 🌟
-                                    DataCell(Text('${formatWithCommas(entry.amountPaid)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
-                                    DataCell(Text('${formatWithCommas(entry.meterPriceAtPayment)} ل.س')),
-                                    
-                                    DataCell(Text('${entry.convertedMeters.toStringAsFixed(3)} م2', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
-                                    DataCell(Text('${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}')),
-                                    
-                                    DataCell(Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children:[
-                                        IconButton(
-                                          icon: const Icon(Icons.print, color: Colors.blue),
-                                          tooltip: 'معاينة وطباعة الفاتورة',
-                                          onPressed: () async {
-                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
-                                            if(contractIdx == -1) return;
-                                            final contract = state.contracts[contractIdx];
+                                    final bool isLatestEntry = index == 0;
 
-                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                            if(clientIdx == -1) return;
-                                            final client = state.clients[clientIdx];
-                                            
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
-                                            final pdfBytes = await PdfGenerator.generateReceiptPdf(entry: entry, contract: contract, client: client);
+                                    return DataRow(cells:[
+                                      DataCell(Text(entry.id.split('-').first, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))),
+                                      
+                                      // 🌟 تطبيق الفواصل
+                                      DataCell(Text('${formatWithCommas(entry.amountPaid)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15))),
+                                      DataCell(Text('${formatWithCommas(entry.meterPriceAtPayment)} ل.س')),
+                                      
+                                      DataCell(Text('${entry.convertedMeters.toStringAsFixed(3)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 16))),
+                                      DataCell(Text('${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}')),
+                                      
+                                      DataCell(Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children:[
+                                          IconButton(
+                                            icon: const Icon(Icons.print, color: Colors.blue),
+                                            tooltip: 'معاينة وطباعة الفاتورة',
+                                            onPressed: () async {
+                                              final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                              if(contractIdx == -1) return;
+                                              final contract = state.contracts[contractIdx];
 
-                                            if (context.mounted) {
-                                              Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id.split('-').first}_${client.name}')));
-                                            }
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
-                                          tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
-                                          onPressed: () async {
-                                            final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
-                                            if(contractIdx == -1) return;
-                                            final contract = state.contracts[contractIdx];
+                                              final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                              if(clientIdx == -1) return;
+                                              final client = state.clients[clientIdx];
+                                              
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
+                                              final pdfBytes = await PdfGenerator.generateReceiptPdf(entry: entry, contract: contract, client: client);
 
-                                            final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                            if(clientIdx == -1) return;
-                                            final client = state.clients[clientIdx];
-                                            
-                                            final success = await WhatsAppHelper.sendReceiptMessage(entry: entry, contract: contract, client: client);
+                                              if (context.mounted) {
+                                                Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id.split('-').first}_${client.name}')));
+                                              }
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.chat, color: entry.isWhatsAppSent ? Colors.grey : Colors.green),
+                                            tooltip: entry.isWhatsAppSent ? 'تم الإرسال (إعادة إرسال)' : 'إرسال الفاتورة عبر واتساب',
+                                            onPressed: () async {
+                                              final contractIdx = state.contracts.indexWhere((c) => c.id == entry.contractId);
+                                              if(contractIdx == -1) return;
+                                              final contract = state.contracts[contractIdx];
 
-                                            if (context.mounted && success) {
-                                              context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
-                                            }
-                                          },
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.edit_note, color: Colors.orange),
-                                          tooltip: 'تعديل قيمة الدفعة (للإدارة فقط)',
-                                          onPressed: () => showEditPaymentDialog(context, entry),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.delete_forever, color: isLatestEntry ? Colors.red : Colors.grey.shade400),
-                                          tooltip: isLatestEntry ? 'إلغاء آخر دفعة' : 'لا يمكن حذف الدفعات القديمة، يمكنك تعديلها فقط',
-                                          onPressed: isLatestEntry ? () => showDeletePaymentDialog(context, entry) : null,
-                                        ),
-                                      ],
-                                    )),
-                                  ]);
-                                }).toList(),
+                                              final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                              if(clientIdx == -1) return;
+                                              final client = state.clients[clientIdx];
+                                              
+                                              final success = await WhatsAppHelper.sendReceiptMessage(entry: entry, contract: contract, client: client);
+
+                                              if (context.mounted && success) {
+                                                context.read<PaymentsCubit>().markAsSent(entry.id, contract.id);
+                                              }
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_note, color: Colors.orange),
+                                            tooltip: 'تعديل قيمة الدفعة (للإدارة فقط)',
+                                            onPressed: () => showEditPaymentDialog(context, entry),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.delete_forever, color: isLatestEntry ? Colors.red : Colors.grey.shade400),
+                                            tooltip: isLatestEntry ? 'إلغاء آخر دفعة' : 'لا يمكن حذف الدفعات القديمة، يمكنك تعديلها فقط',
+                                            onPressed: isLatestEntry ? () => showDeletePaymentDialog(context, entry) : null,
+                                          ),
+                                        ],
+                                      )),
+                                    ]);
+                                  }).toList(),
+                                ),
                               ),
                             ),
                           ),
