@@ -629,6 +629,17 @@ class ErpRepository {
     await _localApi.updateIndividualSchedule(scheduleId, newDueDate, notes);
     await syncPendingData(); // رفع التعديل للسحابة
   }
+  Future<void> updateContractDateOnly({required String id, required DateTime contractDate}) async {
+    final db = _localApi.database;
+    await (db.update(db.contracts)..where((t) => t.id.equals(id))).write(
+      ContractsCompanion(
+        contractDate: drift.Value(contractDate.toUtc()),
+        updatedAt: drift.Value(DateTime.now().toUtc()),
+        isSynced: const drift.Value(false), 
+      )
+    );
+    await syncPendingData();
+  }
   
 
   // ==========================================

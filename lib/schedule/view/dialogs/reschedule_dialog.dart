@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:local_storage_api/local_storage_api.dart' show Contract;
 import '../../cubit/schedule_cubit.dart';
-// 🌟 استدعاء ديالوج الأمان
-import '../../../contracts/view/dialogs/verify_pin_dialog.dart';
 
 void showRescheduleDialog(BuildContext parentContext, Contract contract) {
   final monthsController = TextEditingController();
-  DateTime selectedStartDate = DateTime.now(); // تاريخ بداية القسط الجديد (الافتراضي: اليوم)
+  final pinController = TextEditingController(); // 🌟 حقل الرمز السري
+  DateTime selectedStartDate = DateTime.now(); 
 
   showDialog(
     context: parentContext,
@@ -38,7 +37,7 @@ void showRescheduleDialog(BuildContext parentContext, Contract contract) {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'هذه العملية ستقوم بحذف جميع الأقساط المعلقة (التي لم تُدفع بعد) واستبدالها بأقساط جديدة. الأقساط القديمة المدفوعة لن تتأثر للحفاظ على السجل المالي.',
+                            'هذه العملية ستقوم بحذف جميع الأقساط المعلقة واستبدالها بأقساط جديدة. الأقساط القديمة (المدفوعة) لن تتأثر إطلاقاً للحفاظ على السجل المالي.',
                             style: TextStyle(color: Colors.brown, fontSize: 13),
                           ),
                         ),
@@ -47,7 +46,6 @@ void showRescheduleDialog(BuildContext parentContext, Contract contract) {
                   ),
                   const SizedBox(height: 24),
 
-                  // 📅 محدد تاريخ بداية الجدولة الجديدة
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(border: Border.all(color: Colors.blue.shade300, width: 2), borderRadius: BorderRadius.circular(8)),
@@ -68,9 +66,7 @@ void showRescheduleDialog(BuildContext parentContext, Contract contract) {
                               firstDate: DateTime(2000),
                               lastDate: DateTime(2100),
                             );
-                            if (pickedDate != null) {
-                              setState(() => selectedStartDate = pickedDate);
-                            }
+                            if (pickedDate != null) setState(() => selectedStartDate = pickedDate);
                           },
                         ),
                       ],
@@ -78,17 +74,31 @@ void showRescheduleDialog(BuildContext parentContext, Contract contract) {
                   ),
                   const SizedBox(height: 16),
 
-                  // ⏱️ عدد الأشهر المتبقية
                   TextField(
                     controller: monthsController,
                     decoration: const InputDecoration(
-                      labelText: 'على كم شهر تريد تقسيط المبلغ/الأمتار المتبقية؟',
+                      labelText: 'على كم شهر تريد تقسيط الأمتار المتبقية؟',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.timelapse),
                       filled: true,
                       fillColor: Colors.white,
                     ),
                     keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 🌟 إجبار إدخال الرمز السري الصارم
+                  TextField(
+                    controller: pinController,
+                    obscureText: true,
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(letterSpacing: 8, fontSize: 20, fontWeight: FontWeight.bold),
+                    decoration: const InputDecoration(
+                      labelText: 'رمز الإدارة السري للتأكيد',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.lock, color: Colors.red),
+                    ),
                   ),
                 ],
               ),
@@ -100,23 +110,24 @@ void showRescheduleDialog(BuildContext parentContext, Contract contract) {
                 icon: const Icon(Icons.check_circle),
                 label: const Text('اعتماد الجدولة الجديدة'),
                 onPressed: () async {
+                  if (pinController.text != '0938457732') {
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('رمز الإدارة غير صحيح! ❌'), backgroundColor: Colors.red));
+                    return;
+                  }
+
                   final int? newMonths = int.tryParse(monthsController.text);
                   if (newMonths == null || newMonths <= 0) {
                     ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('الرجاء إدخال عدد أشهر صحيح!'), backgroundColor: Colors.red));
                     return;
                   }
 
-                  Navigator.pop(dialogContext); // إغلاق النافذة
+                  Navigator.pop(dialogContext); 
 
-                  // 🛡️ حماية العملية الجراحية برمز الإدارة
-                  bool isAuthorized = await showVerifyPinDialog(parentContext);
-                  
-                  if (isAuthorized && parentContext.mounted) {
+                  if (parentContext.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
                       const SnackBar(content: Text('جاري إعادة هيكلة الأقساط وتسوية السجلات... ⏳'), backgroundColor: Colors.blue)
                     );
 
-                    // استدعاء دالة الكيوبت
                     await parentContext.read<ScheduleCubit>().restructureSchedule(
                       contractId: contract.id,
                       newRemainingMonths: newMonths,

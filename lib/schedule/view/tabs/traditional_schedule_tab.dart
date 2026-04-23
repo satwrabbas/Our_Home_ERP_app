@@ -1,7 +1,7 @@
 // lib/schedule/view/tabs/traditional_schedule_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:local_storage_api/local_storage_api.dart' show Contract; // 🌟 استدعاء Contract
+import 'package:local_storage_api/local_storage_api.dart' show Contract; 
 import '../../cubit/schedule_cubit.dart';
 import '../../../core/utils/whatsapp_helper.dart';
 
@@ -16,7 +16,6 @@ class TraditionalScheduleTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 حساب الإحصائيات السريعة والقيمة بالأمتار إذا كان هناك عقد محدد
     int totalInstallments = 0;
     int paidInstallments = 0;
     int pendingInstallments = 0;
@@ -31,7 +30,6 @@ class TraditionalScheduleTab extends StatelessWidget {
       pendingInstallments = state.scheduleList.where((s) => s.status != 'paid').length;
       overdueInstallments = state.scheduleList.where((s) => s.status != 'paid' && s.dueDate.isBefore(DateTime.now())).length;
       
-      // 🌟 جلب العقد لحساب الأمتار لكل قسط
       final idx = state.contracts.indexWhere((c) => c.id == state.selectedContractId);
       if (idx != -1) {
         currentContract = state.contracts[idx];
@@ -43,9 +41,6 @@ class TraditionalScheduleTab extends StatelessWidget {
 
     return Column(
       children:[
-        // ==========================================
-        // 1. القسم العلوي: شريط الفلترة والأزرار الإدارية
-        // ==========================================
         Container(
           padding: const EdgeInsets.all(24.0),
           decoration: BoxDecoration(
@@ -91,7 +86,6 @@ class TraditionalScheduleTab extends StatelessWidget {
               if (state.selectedContractId != null) ...[
                 const SizedBox(width: 24),
                 
-                // زر إعادة الجدولة
                 Expanded(
                   flex: 1,
                   child: Column(
@@ -112,14 +106,13 @@ class TraditionalScheduleTab extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 4),
-                      const Text('تغيير خطة الدفع للمستقبل', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
+                      const Text('تغيير خطة الدفع للمستقبل فقط', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
                     ],
                   ),
                 ),
 
                 const SizedBox(width: 12),
                 
-                // زر الإعدادات
                 Expanded(
                   flex: 1,
                   child: Column(
@@ -131,8 +124,8 @@ class TraditionalScheduleTab extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                           minimumSize: const Size(double.infinity, 50),
                         ),
-                        icon: const Icon(Icons.settings),
-                        label: const Text('خصائص العقد', style: TextStyle(fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.edit_calendar),
+                        label: const Text('تعديل التاريخ', style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () {
                           if (currentContract != null) {
                             showEditScheduleDialog(context, currentContract);
@@ -140,7 +133,7 @@ class TraditionalScheduleTab extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 4),
-                      const Text('تعديل الوصف، المدة، أو الكفيل', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
+                      const Text('تغيير تاريخ بداية العقد الأساسي', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
                     ],
                   ),
                 ),
@@ -149,9 +142,6 @@ class TraditionalScheduleTab extends StatelessWidget {
           ),
         ),
 
-        // ==========================================
-        // 2. القسم السفلي: المحتوى المتغير بناءً على التحديد
-        // ==========================================
         Expanded(
           child: state.selectedContractId == null
               ? _buildEmptyState() 
@@ -159,13 +149,11 @@ class TraditionalScheduleTab extends StatelessWidget {
                   ? const Center(child: Text('لم يتم توليد أي جدول أقساط لهذا العقد.', style: TextStyle(fontSize: 18)))
                   : Column(
                       children:[
-                        // 🌟 بطاقة الملخص الإحصائي ودليل الألوان
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           color: Colors.white,
                           child: Column(
                             children:[
-                              // دليل الألوان (Legend)
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children:[
@@ -177,8 +165,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              
-                              // بطاقة الإحصائيات (Summary Card)
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
@@ -193,9 +179,7 @@ class TraditionalScheduleTab extends StatelessWidget {
                                     _buildStatItem('تم السداد', paidInstallments.toString(), Colors.green),
                                     _buildStatItem('المتبقي', pendingInstallments.toString(), Colors.orange),
                                     _buildStatItem('المتأخر الآن', overdueInstallments.toString(), Colors.red, isAlert: overdueInstallments > 0),
-                                    
-                                    // 🌟 العنصر الجديد: قيمة القسط بالأمتار
-                                    _buildStatItem('القسط الشهري', '${metersPerInstallment.toStringAsFixed(2)} م²', Colors.teal),
+                                    _buildStatItem('متوسط القسط', '~ ${metersPerInstallment.toStringAsFixed(2)} م²', Colors.teal),
                                   ],
                                 ),
                               ),
@@ -203,7 +187,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                           ),
                         ),
                         
-                        // 🌟 جدول الاستحقاقات الفعلي
                         Expanded(
                           child: SingleChildScrollView(
                             padding: const EdgeInsets.all(24.0),
@@ -219,7 +202,7 @@ class TraditionalScheduleTab extends StatelessWidget {
                                   columns: const[
                                     DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
                                     DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('الكمية (م²)', style: TextStyle(fontWeight: FontWeight.bold))), // 🌟 العمود الجديد
+                                    DataColumn(label: Text('الكمية (م²)', style: TextStyle(fontWeight: FontWeight.bold))), 
                                     DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
                                     DataColumn(label: Text('إجراءات (تواصل وتعديل)', style: TextStyle(fontWeight: FontWeight.bold))), 
                                   ],
@@ -255,12 +238,11 @@ class TraditionalScheduleTab extends StatelessWidget {
                                           )
                                         ),
 
-                                        // 🌟 خلية الكمية (الأمتار) لكل قسط
+                                        // 🌟 الحل السحري للحفاظ على ثبات الأقساط المدفوعة
                                         DataCell(
-                                          Text(
-                                            '${metersPerInstallment.toStringAsFixed(2)} م²', 
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)
-                                          )
+                                          isPaid 
+                                            ? const Text('مُثبتة 🔒', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))
+                                            : Text('~ ${metersPerInstallment.toStringAsFixed(2)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))
                                         ),
 
                                         DataCell(
@@ -333,10 +315,6 @@ class TraditionalScheduleTab extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // 🛠️ دوال مساعدة لرسم واجهة الملخص
-  // ==========================================
-  
   Widget _buildLegendItem(Color color, String text) {
     return Row(
       children:[
@@ -372,12 +350,12 @@ class TraditionalScheduleTab extends StatelessWidget {
         children:[
           Icon(Icons.query_stats, size: 100, color: Colors.indigo.shade200),
           const SizedBox(height: 24),
-          const Text('نظام متابعة الأقساط التقليدي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo)),
+          const Text('نظام متابعة الأقساط والجدولة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo)),
           const SizedBox(height: 12),
           SizedBox(
             width: 400,
             child: Text(
-              'اختر عميلاً من القائمة العلوية لعرض خطة الدفع الخاصة به.\n\nمن هنا يمكنك: \n✅ مراقبة الدفعات المتأخرة.\n🔄 إعادة جدولة الأقساط المستقبلية.\n📝 تأجيل قسط محدد لظروف العميل.\n📲 إرسال رسائل مطالبة عبر واتساب.',
+              'اختر عميلاً من القائمة العلوية لعرض خطة الدفع الخاصة به.\n\nمن هنا يمكنك: \n✅ مراقبة الدفعات المتأخرة.\n🔄 إعادة جدولة الأقساط المستقبلية بأمان.\n📝 تأجيل قسط محدد لظروف العميل.\n📲 إرسال رسائل مطالبة عبر واتساب.',
               style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.5),
               textAlign: TextAlign.center,
             ),
