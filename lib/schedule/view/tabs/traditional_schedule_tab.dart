@@ -41,136 +41,134 @@ class TraditionalScheduleTab extends StatelessWidget {
 
     return Column(
       children:[
+        // ==========================================
+        // 1. القسم العلوي الثابت: البحث المتقدم والأزرار المصغرة
+        // ==========================================
         Container(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           decoration: BoxDecoration(
             color: Colors.indigo.shade50,
-            border: Border(bottom: BorderSide(color: Colors.indigo.shade100, width: 2)),
+            border: Border(bottom: BorderSide(color: Colors.indigo.shade200, width: 2)),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              const Icon(Icons.person_search, color: Colors.indigo, size: 40),
+              const Icon(Icons.person_search, color: Colors.indigo, size: 36),
               const SizedBox(width: 16),
+              
+              // 🌟 محرك البحث الحديث (DropdownMenu)
               Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
-                    const Text('متابعة أقساط العميل:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo)),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(), 
-                        filled: true, 
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return DropdownMenu<String>(
+                      width: constraints.maxWidth, // ليتمدد ويأخذ العرض المتاح
+                      enableSearch: true, // 🌟 تفعيل البحث
+                      enableFilter: true, // 🌟 تفعيل الفلترة أثناء الكتابة
+                      hintText: '🔍 اكتب اسم العميل أو العقار للبحث السريع...',
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      inputDecorationTheme: InputDecorationTheme(
+                        filled: true,
                         fillColor: Colors.white,
-                        hintText: 'ابحث واختر العميل من هنا...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
-                      items: state.contracts.map((contract) {
-                        final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                        final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
-                        return DropdownMenuItem(
-                          value: contract.id, 
-                          child: Text('$clientName (${contract.apartmentDetails})')
-                        );
-                      }).toList(),
-                      onChanged: (val) {
+                      initialSelection: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
+                      onSelected: (val) {
                         if (val != null) context.read<ScheduleCubit>().selectContract(val);
                       },
-                    ),
-                  ],
+                      dropdownMenuEntries: state.contracts.map((contract) {
+                        final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                        final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل غير معروف (محذوف)';
+                        return DropdownMenuEntry<String>(
+                          value: contract.id, 
+                          label: '$clientName (${contract.apartmentDetails})',
+                        );
+                      }).toList(),
+                    );
+                  }
                 ),
               ),
               
+              // 🌟 أزرار التحكم المصغرة والجانبية
               if (state.selectedContractId != null) ...[
-                const SizedBox(width: 24),
+                const SizedBox(width: 16),
                 
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    children:[
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        icon: const Icon(Icons.autorenew),
-                        label: const Text('إعادة الجدولة', style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          if (currentContract != null) {
-                            showRescheduleDialog(context, currentContract);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('تغيير خطة الدفع للمستقبل فقط', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
-                    ],
+                // زر خصائص العقد (مصغر)
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.indigo,
+                    side: const BorderSide(color: Colors.indigo, width: 1.5),
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
+                  icon: const Icon(Icons.settings, size: 20),
+                  label: const Text('خصائص العقد', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    if (currentContract != null) showEditScheduleDialog(context, currentContract);
+                  },
                 ),
 
                 const SizedBox(width: 12),
                 
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    children:[
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        icon: const Icon(Icons.edit_calendar),
-                        label: const Text('تعديل التاريخ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          if (currentContract != null) {
-                            showEditScheduleDialog(context, currentContract);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('تغيير تاريخ بداية العقد الأساسي', style: TextStyle(fontSize: 11, color: Colors.blueGrey), textAlign: TextAlign.center),
-                    ],
+                // زر إعادة الجدولة (مصغر وبارز)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
+                  icon: const Icon(Icons.autorenew, size: 20),
+                  label: const Text('إعادة الجدولة', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    if (currentContract != null) showRescheduleDialog(context, currentContract);
+                  },
                 ),
               ],
             ],
           ),
         ),
 
+        // ==========================================
+        // 2. القسم السفلي القابل للتمرير (Scrollable)
+        // الإحصائيات + الجدول معاً ليصعدا للأعلى عند التمرير
+        // ==========================================
         Expanded(
           child: state.selectedContractId == null
               ? _buildEmptyState() 
               : state.scheduleList.isEmpty
                   ? const Center(child: Text('لم يتم توليد أي جدول أقساط لهذا العقد.', style: TextStyle(fontSize: 18)))
-                  : Column(
+                  : ListView( // 🌟 تم استبدال Column بـ ListView لكي يصعد الملخص للأعلى!
+                      padding: const EdgeInsets.all(24.0),
                       children:[
+                        // 🌟 بطاقة الملخص الإحصائي ودليل الألوان
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          color: Colors.white,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                          ),
                           child: Column(
                             children:[
+                              // دليل الألوان (Legend)
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children:[
                                   _buildLegendItem(Colors.green, 'مُسدد ✓'),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 24),
                                   _buildLegendItem(Colors.orange, 'معلق / قادم ⏳'),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 24),
                                   _buildLegendItem(Colors.red, 'متأخر 🚨'),
                                 ],
                               ),
                               const SizedBox(height: 16),
+                              
+                              // بطاقة الإحصائيات (Summary Card)
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade300),
+                                  border: Border.all(color: Colors.grey.shade200),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -187,123 +185,123 @@ class TraditionalScheduleTab extends StatelessWidget {
                           ),
                         ),
                         
-                        Expanded(
+                        const SizedBox(height: 24), // مسافة بين الملخص والجدول
+
+                        // 🌟 جدول الاستحقاقات الفعلي
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          clipBehavior: Clip.antiAlias,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.all(24.0),
+                            scrollDirection: Axis.horizontal, // 🌟 للتمرير الأفقي في حال كانت الشاشة صغيرة
                             child: SizedBox(
-                              width: double.infinity,
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                clipBehavior: Clip.antiAlias,
-                                child: DataTable(
-                                  headingRowColor: WidgetStateProperty.all(Colors.indigo.shade100),
-                                  dataRowMaxHeight: 65,
-                                  columns: const[
-                                    DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('الكمية (م²)', style: TextStyle(fontWeight: FontWeight.bold))), 
-                                    DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('إجراءات (تواصل وتعديل)', style: TextStyle(fontWeight: FontWeight.bold))), 
-                                  ],
-                                  rows: state.scheduleList.map((schedule) {
-                                    final isPaid = schedule.status == 'paid';
-                                    final isOverdue = !isPaid && schedule.dueDate.isBefore(DateTime.now());
+                              width: MediaQuery.of(context).size.width - 60, // ملء الشاشة تقريباً
+                              child: DataTable(
+                                headingRowColor: WidgetStateProperty.all(Colors.indigo.shade100),
+                                dataRowMaxHeight: 70, // تكبير مساحة السطر لراحة العين
+                                columns: const[
+                                  DataColumn(label: Text('رقم القسط', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('الكمية (م²)', style: TextStyle(fontWeight: FontWeight.bold))), 
+                                  DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
+                                  DataColumn(label: Text('إجراءات (تواصل وتعديل)', style: TextStyle(fontWeight: FontWeight.bold))), 
+                                ],
+                                rows: state.scheduleList.map((schedule) {
+                                  final isPaid = schedule.status == 'paid';
+                                  final isOverdue = !isPaid && schedule.dueDate.isBefore(DateTime.now());
 
-                                    String statusText = 'قادم / معلق';
-                                    Color statusColor = Colors.orange;
+                                  String statusText = 'قادم / معلق';
+                                  Color statusColor = Colors.orange;
 
-                                    if (isPaid) {
-                                      statusText = 'تم التسديد ✓';
-                                      statusColor = Colors.green;
-                                    } else if (isOverdue) {
-                                      statusText = 'متأخر جداً 🚨';
-                                      statusColor = Colors.red;
-                                    }
+                                  if (isPaid) {
+                                    statusText = 'تم التسديد ✓';
+                                    statusColor = Colors.green;
+                                  } else if (isOverdue) {
+                                    statusText = 'متأخر جداً 🚨';
+                                    statusColor = Colors.red;
+                                  }
 
-                                    return DataRow(
-                                      color: WidgetStateProperty.all(isOverdue ? Colors.red.shade50 : Colors.transparent),
-                                      cells:[
-                                        DataCell(Text(schedule.installmentNumber.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
-                                        
-                                        DataCell(
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children:[
-                                              Text('${schedule.dueDate.year}/${schedule.dueDate.month}/${schedule.dueDate.day}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                                              if (schedule.notes != null && schedule.notes!.isNotEmpty)
-                                                Text(schedule.notes!, style: const TextStyle(color: Colors.blueGrey, fontSize: 12, fontStyle: FontStyle.italic)),
-                                            ],
-                                          )
-                                        ),
+                                  return DataRow(
+                                    color: WidgetStateProperty.all(isOverdue ? Colors.red.shade50 : Colors.transparent),
+                                    cells:[
+                                      DataCell(Text(schedule.installmentNumber.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                                      
+                                      DataCell(
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children:[
+                                            Text('${schedule.dueDate.year}/${schedule.dueDate.month}/${schedule.dueDate.day}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                            if (schedule.notes != null && schedule.notes!.isNotEmpty)
+                                              Text(schedule.notes!, style: const TextStyle(color: Colors.blueGrey, fontSize: 12, fontStyle: FontStyle.italic)),
+                                          ],
+                                        )
+                                      ),
 
-                                        // 🌟 الحل السحري للحفاظ على ثبات الأقساط المدفوعة
-                                        DataCell(
-                                          isPaid 
-                                            ? const Text('مُثبتة 🔒', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))
-                                            : Text('~ ${metersPerInstallment.toStringAsFixed(2)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))
-                                        ),
+                                      DataCell(
+                                        isPaid 
+                                          ? const Text('مُثبتة 🔒', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey))
+                                          : Text('~ ${metersPerInstallment.toStringAsFixed(2)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))
+                                      ),
 
-                                        DataCell(
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
-                                            child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
-                                          )
-                                        ),
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)),
+                                          child: Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+                                        )
+                                      ),
 
-                                        DataCell(
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children:[
-                                              isPaid
-                                                ? const Text('سُددت عبر الإيصالات', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
-                                                : ElevatedButton.icon(
-                                                    onPressed: () async {
-                                                      final contractIdx = state.contracts.indexWhere((c) => c.id == schedule.contractId);
-                                                      if(contractIdx == -1) return;
-                                                      final contract = state.contracts[contractIdx];
+                                      DataCell(
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children:[
+                                            isPaid
+                                              ? const Text('سُددت عبر الإيصالات', style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
+                                              : ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    final contractIdx = state.contracts.indexWhere((c) => c.id == schedule.contractId);
+                                                    if(contractIdx == -1) return;
+                                                    final contract = state.contracts[contractIdx];
 
-                                                      final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
-                                                      if(clientIdx == -1) return;
-                                                      final client = state.clients[clientIdx];
-                                                      
-                                                      final success = await WhatsAppHelper.sendReminderMessage(
-                                                        schedule: schedule, contract: contract, client: client,
-                                                      );
+                                                    final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
+                                                    if(clientIdx == -1) return;
+                                                    final client = state.clients[clientIdx];
+                                                    
+                                                    final success = await WhatsAppHelper.sendReminderMessage(
+                                                      schedule: schedule, contract: contract, client: client,
+                                                    );
 
-                                                      if (context.mounted) {
-                                                        if (success) {
-                                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
-                                                        } else {
-                                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب.'), backgroundColor: Colors.red));
-                                                        }
-                                                    }
-                                                    },
-                                                    icon: const Icon(Icons.chat, size: 18),
-                                                    label: const Text('تذكير'),
-                                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12)),
-                                                  ),
-                                                  
-                                              if (!isPaid) ...[
-                                                const SizedBox(width: 12),
-                                                Container(
-                                                  decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(8)),
-                                                  child: IconButton(
-                                                    icon: const Icon(Icons.edit_calendar, color: Colors.indigo),
-                                                    tooltip: 'تأجيل أو تعديل تاريخ هذا القسط وإضافة ملاحظة',
-                                                    onPressed: () => showEditSingleScheduleDialog(context, schedule),
-                                                  ),
+                                                    if (context.mounted) {
+                                                      if (success) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب لإرسال التذكير!'), backgroundColor: Colors.green));
+                                                      } else {
+                                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب.'), backgroundColor: Colors.red));
+                                                      }
+                                                  }
+                                                  },
+                                                  icon: const Icon(Icons.chat, size: 18),
+                                                  label: const Text('تذكير'),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12)),
                                                 ),
-                                              ]
-                                            ],
-                                          )
-                                        ),
-                                      ],
-                                    );
-                                  }).toList(),
-                                ),
+                                                
+                                            if (!isPaid) ...[
+                                              const SizedBox(width: 12),
+                                              Container(
+                                                decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(8)),
+                                                child: IconButton(
+                                                  icon: const Icon(Icons.edit_calendar, color: Colors.indigo),
+                                                  tooltip: 'تأجيل أو تعديل تاريخ هذا القسط وإضافة ملاحظة',
+                                                  onPressed: () => showEditSingleScheduleDialog(context, schedule),
+                                                ),
+                                              ),
+                                            ]
+                                          ],
+                                        )
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
                               ),
                             ),
                           ),
@@ -315,6 +313,10 @@ class TraditionalScheduleTab extends StatelessWidget {
     );
   }
 
+  // ==========================================
+  // 🛠️ دوال مساعدة لرسم واجهة الملخص
+  // ==========================================
+  
   Widget _buildLegendItem(Color color, String text) {
     return Row(
       children:[
@@ -329,14 +331,14 @@ class TraditionalScheduleTab extends StatelessWidget {
     return Column(
       children:[
         Text(title, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           value, 
           style: TextStyle(
-            fontSize: 24, 
+            fontSize: 26, // 🌟 تكبير الأرقام لتبدو كالداشبورد
             fontWeight: FontWeight.bold, 
             color: color,
-            shadows: isAlert ?[BoxShadow(color: Colors.red.shade200, blurRadius: 10)] : null,
+            shadows: isAlert ?[BoxShadow(color: Colors.red.shade300, blurRadius: 12)] : null,
           )
         ),
       ],
@@ -355,7 +357,7 @@ class TraditionalScheduleTab extends StatelessWidget {
           SizedBox(
             width: 400,
             child: Text(
-              'اختر عميلاً من القائمة العلوية لعرض خطة الدفع الخاصة به.\n\nمن هنا يمكنك: \n✅ مراقبة الدفعات المتأخرة.\n🔄 إعادة جدولة الأقساط المستقبلية بأمان.\n📝 تأجيل قسط محدد لظروف العميل.\n📲 إرسال رسائل مطالبة عبر واتساب.',
+              'استخدم محرك البحث بالأعلى لاختيار عميل.\n\nمن هنا يمكنك: \n✅ مراقبة الدفعات المتأخرة.\n🔄 إعادة جدولة الأقساط المستقبلية بأمان.\n📝 تأجيل قسط محدد لظروف العميل.\n📲 إرسال رسائل مطالبة عبر واتساب.',
               style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.5),
               textAlign: TextAlign.center,
             ),
