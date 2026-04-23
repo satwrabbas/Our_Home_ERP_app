@@ -2125,6 +2125,29 @@ class $ContractsTable extends Contracts
     requiredDuringInsert: false,
     clientDefault: () => DateTime.now().toUtc(),
   );
+  static const VerificationMeta _lastActionDateMeta = const VerificationMeta(
+    'lastActionDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastActionDate =
+      GeneratedColumn<DateTime>(
+        'last_action_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastActionNoteMeta = const VerificationMeta(
+    'lastActionNote',
+  );
+  @override
+  late final GeneratedColumn<String> lastActionNote = GeneratedColumn<String>(
+    'last_action_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
   );
@@ -2173,6 +2196,8 @@ class $ContractsTable extends Contracts
     isCompleted,
     createdAt,
     updatedAt,
+    lastActionDate,
+    lastActionNote,
     isDeleted,
     isSynced,
   ];
@@ -2323,6 +2348,24 @@ class $ContractsTable extends Contracts
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('last_action_date')) {
+      context.handle(
+        _lastActionDateMeta,
+        lastActionDate.isAcceptableOrUnknown(
+          data['last_action_date']!,
+          _lastActionDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_action_note')) {
+      context.handle(
+        _lastActionNoteMeta,
+        lastActionNote.isAcceptableOrUnknown(
+          data['last_action_note']!,
+          _lastActionNoteMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_deleted')) {
       context.handle(
         _isDeletedMeta,
@@ -2408,6 +2451,14 @@ class $ContractsTable extends Contracts
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      lastActionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_action_date'],
+      ),
+      lastActionNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_action_note'],
+      ),
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
@@ -2442,6 +2493,8 @@ class Contract extends DataClass implements Insertable<Contract> {
   final bool isCompleted;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? lastActionDate;
+  final String? lastActionNote;
   final bool isDeleted;
   final bool isSynced;
   const Contract({
@@ -2461,6 +2514,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     required this.isCompleted,
     required this.createdAt,
     required this.updatedAt,
+    this.lastActionDate,
+    this.lastActionNote,
     required this.isDeleted,
     required this.isSynced,
   });
@@ -2489,6 +2544,12 @@ class Contract extends DataClass implements Insertable<Contract> {
     map['is_completed'] = Variable<bool>(isCompleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || lastActionDate != null) {
+      map['last_action_date'] = Variable<DateTime>(lastActionDate);
+    }
+    if (!nullToAbsent || lastActionNote != null) {
+      map['last_action_note'] = Variable<String>(lastActionNote);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -2516,6 +2577,12 @@ class Contract extends DataClass implements Insertable<Contract> {
       isCompleted: Value(isCompleted),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      lastActionDate: lastActionDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastActionDate),
+      lastActionNote: lastActionNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastActionNote),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
     );
@@ -2545,6 +2612,8 @@ class Contract extends DataClass implements Insertable<Contract> {
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      lastActionDate: serializer.fromJson<DateTime?>(json['lastActionDate']),
+      lastActionNote: serializer.fromJson<String?>(json['lastActionNote']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -2571,6 +2640,8 @@ class Contract extends DataClass implements Insertable<Contract> {
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'lastActionDate': serializer.toJson<DateTime?>(lastActionDate),
+      'lastActionNote': serializer.toJson<String?>(lastActionNote),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -2593,6 +2664,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     bool? isCompleted,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<DateTime?> lastActionDate = const Value.absent(),
+    Value<String?> lastActionNote = const Value.absent(),
     bool? isDeleted,
     bool? isSynced,
   }) => Contract(
@@ -2615,6 +2688,12 @@ class Contract extends DataClass implements Insertable<Contract> {
     isCompleted: isCompleted ?? this.isCompleted,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    lastActionDate: lastActionDate.present
+        ? lastActionDate.value
+        : this.lastActionDate,
+    lastActionNote: lastActionNote.present
+        ? lastActionNote.value
+        : this.lastActionNote,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
   );
@@ -2656,6 +2735,12 @@ class Contract extends DataClass implements Insertable<Contract> {
           : this.isCompleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      lastActionDate: data.lastActionDate.present
+          ? data.lastActionDate.value
+          : this.lastActionDate,
+      lastActionNote: data.lastActionNote.present
+          ? data.lastActionNote.value
+          : this.lastActionNote,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -2680,6 +2765,8 @@ class Contract extends DataClass implements Insertable<Contract> {
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastActionDate: $lastActionDate, ')
+          ..write('lastActionNote: $lastActionNote, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -2704,6 +2791,8 @@ class Contract extends DataClass implements Insertable<Contract> {
     isCompleted,
     createdAt,
     updatedAt,
+    lastActionDate,
+    lastActionNote,
     isDeleted,
     isSynced,
   );
@@ -2727,6 +2816,8 @@ class Contract extends DataClass implements Insertable<Contract> {
           other.isCompleted == this.isCompleted &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.lastActionDate == this.lastActionDate &&
+          other.lastActionNote == this.lastActionNote &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced);
 }
@@ -2748,6 +2839,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<bool> isCompleted;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> lastActionDate;
+  final Value<String?> lastActionNote;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   final Value<int> rowid;
@@ -2768,6 +2861,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.lastActionDate = const Value.absent(),
+    this.lastActionNote = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2789,6 +2884,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.lastActionDate = const Value.absent(),
+    this.lastActionNote = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2815,6 +2912,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Expression<bool>? isCompleted,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? lastActionDate,
+    Expression<String>? lastActionNote,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
     Expression<int>? rowid,
@@ -2837,6 +2936,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       if (isCompleted != null) 'is_completed': isCompleted,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (lastActionDate != null) 'last_action_date': lastActionDate,
+      if (lastActionNote != null) 'last_action_note': lastActionNote,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
       if (rowid != null) 'rowid': rowid,
@@ -2860,6 +2961,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Value<bool>? isCompleted,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? lastActionDate,
+    Value<String?>? lastActionNote,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
     Value<int>? rowid,
@@ -2882,6 +2985,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastActionDate: lastActionDate ?? this.lastActionDate,
+      lastActionNote: lastActionNote ?? this.lastActionNote,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       rowid: rowid ?? this.rowid,
@@ -2941,6 +3046,12 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (lastActionDate.present) {
+      map['last_action_date'] = Variable<DateTime>(lastActionDate.value);
+    }
+    if (lastActionNote.present) {
+      map['last_action_note'] = Variable<String>(lastActionNote.value);
+    }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
@@ -2972,6 +3083,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastActionDate: $lastActionDate, ')
+          ..write('lastActionNote: $lastActionNote, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('rowid: $rowid')
@@ -6748,6 +6861,8 @@ typedef $$ContractsTableCreateCompanionBuilder =
       Value<bool> isCompleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastActionDate,
+      Value<String?> lastActionNote,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<int> rowid,
@@ -6770,6 +6885,8 @@ typedef $$ContractsTableUpdateCompanionBuilder =
       Value<bool> isCompleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastActionDate,
+      Value<String?> lastActionNote,
       Value<bool> isDeleted,
       Value<bool> isSynced,
       Value<int> rowid,
@@ -6941,6 +7058,16 @@ class $$ContractsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastActionDate => $composableBuilder(
+    column: $table.lastActionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastActionNote => $composableBuilder(
+    column: $table.lastActionNote,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7130,6 +7257,16 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get lastActionDate => $composableBuilder(
+    column: $table.lastActionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastActionNote => $composableBuilder(
+    column: $table.lastActionNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnOrderings(column),
@@ -7255,6 +7392,16 @@ class $$ContractsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastActionDate => $composableBuilder(
+    column: $table.lastActionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastActionNote => $composableBuilder(
+    column: $table.lastActionNote,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
@@ -7409,6 +7556,8 @@ class $$ContractsTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastActionDate = const Value.absent(),
+                Value<String?> lastActionNote = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7429,6 +7578,8 @@ class $$ContractsTableTableManager
                 isCompleted: isCompleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                lastActionDate: lastActionDate,
+                lastActionNote: lastActionNote,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 rowid: rowid,
@@ -7451,6 +7602,8 @@ class $$ContractsTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastActionDate = const Value.absent(),
+                Value<String?> lastActionNote = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7471,6 +7624,8 @@ class $$ContractsTableTableManager
                 isCompleted: isCompleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                lastActionDate: lastActionDate,
+                lastActionNote: lastActionNote,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
                 rowid: rowid,

@@ -11,20 +11,25 @@ class AllocationAlertData {
   final double averageMetersPerMonth; 
   final int estimatedMonthsLeft; 
   final String urgencyLevel; 
+  
+  // 🌟 الحقول الجديدة الخاصة بالذاكرة
+  final DateTime? lastActionDate;
+  final String? lastActionNote;
 
   AllocationAlertData({
     required this.contract, required this.client, required this.accumulatedMeters,
     required this.averageMetersPerMonth, required this.estimatedMonthsLeft, required this.urgencyLevel,
+    this.lastActionDate, this.lastActionNote, // 🌟
   });
 }
 
-// 🌟 نموذج رادار المتعثرين (الجديد)
+// نموذج رادار المتعثرين
 class OverdueContractAlert {
   final Contract contract;
   final Client client;
-  final List<InstallmentsScheduleData> overdueSchedules; // كل الأقساط المتراكمة
-  final int maxDaysOverdue; // أقصى مدة تأخير لأقدم قسط
-  final String severity; // critical, warning, notice
+  final List<InstallmentsScheduleData> overdueSchedules;
+  final int maxDaysOverdue; 
+  final String severity; 
 
   OverdueContractAlert({
     required this.contract, required this.client, required this.overdueSchedules,
@@ -36,10 +41,10 @@ class ScheduleState extends Equatable {
   const ScheduleState({
     this.status = ScheduleStatus.initial,
     this.clients = const[],
-    this.contracts = const [],
+    this.contracts = const[],
     this.scheduleList = const[],
     this.allocationAlerts = const[], 
-    this.overdueAlerts = const[], // 🌟 قائمة المتعثرين
+    this.overdueAlerts = const[], 
     this.selectedContractId,
     this.errorMessage,
   });
@@ -49,7 +54,7 @@ class ScheduleState extends Equatable {
   final List<Contract> contracts;
   final List<InstallmentsScheduleData> scheduleList;
   final List<AllocationAlertData> allocationAlerts; 
-  final List<OverdueContractAlert> overdueAlerts; // 🌟
+  final List<OverdueContractAlert> overdueAlerts; 
   final String? selectedContractId;
   final String? errorMessage;
 
@@ -59,7 +64,7 @@ class ScheduleState extends Equatable {
     List<Contract>? contracts,
     List<InstallmentsScheduleData>? scheduleList,
     List<AllocationAlertData>? allocationAlerts, 
-    List<OverdueContractAlert>? overdueAlerts, // 🌟
+    List<OverdueContractAlert>? overdueAlerts, 
     String? selectedContractId,
     String? errorMessage,
   }) {
@@ -69,7 +74,7 @@ class ScheduleState extends Equatable {
       contracts: contracts ?? this.contracts,
       scheduleList: scheduleList ?? this.scheduleList,
       allocationAlerts: allocationAlerts ?? this.allocationAlerts, 
-      overdueAlerts: overdueAlerts ?? this.overdueAlerts, // 🌟
+      overdueAlerts: overdueAlerts ?? this.overdueAlerts, 
       selectedContractId: selectedContractId ?? this.selectedContractId,
       errorMessage: errorMessage ?? this.errorMessage,
     );

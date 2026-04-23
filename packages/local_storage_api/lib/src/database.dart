@@ -132,6 +132,9 @@ class Contracts extends Table {
   DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
   DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
   
+  DateTimeColumn get lastActionDate => dateTime().nullable()();
+  TextColumn get lastActionNote => text().nullable()();
+
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -314,6 +317,23 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   // --- استعلامات العقود ---
   // ==========================================
+
+
+    // ==========================================
+  // 🎯 تسجيل إجراء إداري على العقد (لإسكات الرادار)
+  // ==========================================
+  Future<int> markContractActionTaken(String contractId, String note) {
+    final nowUtc = DateTime.now().toUtc();
+    return (update(contracts)..where((t) => t.id.equals(contractId))).write(
+      ContractsCompanion(
+        lastActionDate: Value(nowUtc),
+        lastActionNote: Value(note),
+        updatedAt: Value(nowUtc), 
+        isSynced: const Value(false) // ليتم رفعه للسحابة
+      )
+    );
+  }
+
   // ==========================================
   // --- إضافة عقد مع أقساطه كعملية واحدة (Atomic Transaction) ---
   // ==========================================

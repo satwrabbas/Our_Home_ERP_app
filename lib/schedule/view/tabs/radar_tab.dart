@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/schedule_cubit.dart';
 
+// 🌟 استدعاء النافذة الجديدة
+import '../dialogs/take_action_dialog.dart';
+
 class RadarTab extends StatelessWidget {
   final ScheduleState state;
   
@@ -23,17 +26,21 @@ class RadarTab extends StatelessWidget {
         final alert = state.allocationAlerts[index];
         final target = context.read<ScheduleCubit>().targetAllocationMeters;
         
-        // حساب النسبة المئوية لشريط التقدم
         double progress = alert.accumulatedMeters / target;
         if (progress > 1.0) progress = 1.0;
 
-        // تحديد الألوان حسب الخطورة
         Color cardBorderColor;
         Color progressColor;
         IconData urgencyIcon;
         String urgencyText;
 
-        if (alert.urgencyLevel == 'high') {
+        // 🌟 التعامل مع حالة "تم اتخاذ إجراء"
+        if (alert.urgencyLevel == 'action_taken') {
+          cardBorderColor = Colors.grey.shade400;
+          progressColor = Colors.grey;
+          urgencyIcon = Icons.done_all;
+          urgencyText = 'تم اتخاذ إجراء مؤخراً (في الانتظار)';
+        } else if (alert.urgencyLevel == 'high') {
           cardBorderColor = Colors.red;
           progressColor = Colors.redAccent;
           urgencyIcon = Icons.local_fire_department;
@@ -55,8 +62,9 @@ class RadarTab extends StatelessWidget {
         }
 
         return Card(
-          elevation: 4,
+          elevation: alert.urgencyLevel == 'action_taken' ? 1 : 4, // تخفيف الظل للمُسكتة
           margin: const EdgeInsets.only(bottom: 16),
+          color: alert.urgencyLevel == 'action_taken' ? Colors.grey.shade50 : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: cardBorderColor.withOpacity(0.5), width: 2),
@@ -69,7 +77,7 @@ class RadarTab extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:[
-                    Text('العميل: ${alert.client.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text('العميل: ${alert.client.name}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: alert.urgencyLevel == 'action_taken' ? Colors.grey : Colors.black)),
                     Chip(
                       avatar: Icon(urgencyIcon, color: Colors.white, size: 18),
                       label: Text(urgencyText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -81,7 +89,7 @@ class RadarTab extends StatelessWidget {
                 Text('الوصف: ${alert.contract.apartmentDetails}', style: const TextStyle(color: Colors.blueGrey)),
                 const Divider(),
                 
-                // شريط التقدم (Progress Bar)
+                // شريط التقدم
                 Row(
                   children:[
                     const Text('مستوى التخصص: ', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -102,39 +110,82 @@ class RadarTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 
-                // قسم التحليل
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children:[
-                      Column(
-                        children:[
-                          const Icon(Icons.speed, color: Colors.blue),
-                          const SizedBox(height: 4),
-                          const Text('سرعة الدفع', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text('${alert.averageMetersPerMonth.toStringAsFixed(1)} م²/شهر', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Column(
-                        children:[
-                          const Icon(Icons.timelapse, color: Colors.purple),
-                          const SizedBox(height: 4),
-                          const Text('عمر العقد', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text('${DateTime.now().difference(alert.contract.contractDate).inDays ~/ 30} شهر', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Column(
-                        children:[
-                          Icon(Icons.flag, color: progressColor),
-                          const SizedBox(height: 4),
-                          const Text('المدة المتبقية', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                          Text(alert.estimatedMonthsLeft == 999 ? 'غير محدد' : '${alert.estimatedMonthsLeft} أشهر', style: TextStyle(fontWeight: FontWeight.bold, color: progressColor)),
-                        ],
-                      ),
-                    ],
+                // 🌟 عرض الملاحظة إذا كان تم اتخاذ إجراء
+                if (alert.lastActionNote != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:[
+                        Row(
+                          children:[
+                            const Icon(Icons.history_edu, color: Colors.teal, size: 18),
+                            const SizedBox(width: 6),
+                            Text('آخر إجراء (في ${alert.lastActionDate?.year}/${alert.lastActionDate?.month}/${alert.lastActionDate?.day}):', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(alert.lastActionNote!, style: const TextStyle(color: Colors.blueGrey, fontStyle: FontStyle.italic)),
+                      ],
+                    ),
                   ),
+                ],
+
+                // قسم التحليل والأزرار
+                Row(
+                  children:[
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children:[
+                            Column(
+                              children:[
+                                Icon(Icons.speed, color: alert.urgencyLevel == 'action_taken' ? Colors.grey : Colors.blue),
+                                const SizedBox(height: 4),
+                                const Text('سرعة الدفع', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                Text('${alert.averageMetersPerMonth.toStringAsFixed(1)} م²/ش', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Column(
+                              children:[
+                                Icon(Icons.timelapse, color: alert.urgencyLevel == 'action_taken' ? Colors.grey : Colors.purple),
+                                const SizedBox(height: 4),
+                                const Text('عمر العقد', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                Text('${DateTime.now().difference(alert.contract.contractDate).inDays ~/ 30} شهر', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Column(
+                              children:[
+                                Icon(Icons.flag, color: progressColor),
+                                const SizedBox(height: 4),
+                                const Text('المتبقي', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                Text(alert.estimatedMonthsLeft == 999 ? 'غير محدد' : '${alert.estimatedMonthsLeft} أشهر', style: TextStyle(fontWeight: FontWeight.bold, color: progressColor)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    // 🌟 زر "اتخاذ إجراء" الجديد (يظهر باللون الأخضر إذا لم يتم اتخاذ إجراء، وبالرمادي كتحديث إذا وجد)
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: alert.urgencyLevel == 'action_taken' ? Colors.grey.shade300 : Colors.teal,
+                        foregroundColor: alert.urgencyLevel == 'action_taken' ? Colors.black87 : Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      ),
+                      icon: const Icon(Icons.handshake),
+                      label: Text(alert.urgencyLevel == 'action_taken' ? 'تحديث الإجراء' : 'تسجيل إجراء'),
+                      onPressed: () => showTakeActionDialog(context, alert.contract),
+                    ),
+                  ],
                 ),
               ],
             ),

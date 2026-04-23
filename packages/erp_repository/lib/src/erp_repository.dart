@@ -146,6 +146,11 @@ class ErpRepository {
           guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', 
           contractFileUrl: drift.Value(c['contract_file_url']?.toString()), 
           userId: c['user_id']?.toString() ?? '',
+
+          lastActionDate: drift.Value(c['last_action_date'] != null ? DateTime.tryParse(c['last_action_date'].toString())?.toUtc() : null),
+          lastActionNote: drift.Value(c['last_action_note']?.toString()),
+
+          
           isCompleted: drift.Value(c['is_completed'] == true),
           isDeleted: drift.Value(c['is_deleted'] == true),
           updatedAt: drift.Value(DateTime.tryParse(c['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
@@ -315,6 +320,12 @@ class ErpRepository {
         'contract_file_url': c.contractFileUrl,
         'user_id': c.userId, 
         'is_completed': c.isCompleted, 
+
+        // 🌟 السطرين الجديدين للرفع
+        'last_action_date': c.lastActionDate?.toUtc().toIso8601String(),
+        'last_action_note': c.lastActionNote,
+
+        
         'is_deleted': c.isDeleted, 
         'updated_at': c.updatedAt.toUtc().toIso8601String()
       });
@@ -515,6 +526,13 @@ class ErpRepository {
     return allContracts.where((c) => c.clientId == clientId && c.isDeleted != true).toList();
   }
 
+
+  // 🌟 تسجيل إجراء الرادار
+  Future<void> markContractActionTaken({required String contractId, required String note}) async {
+    await _localApi.markContractActionTaken(contractId, note);
+    await syncPendingData(); // رفع الإجراء للسحابة
+  }
+  
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
     

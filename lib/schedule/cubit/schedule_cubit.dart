@@ -90,12 +90,11 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   }
 
   // ==========================================
-  // 🧠 محرك التنبؤ الذكي للتخصص (Predictive Engine)
+  // 🧠 محرك التنبؤ الذكي للتخصص (مع ذاكرة الإجراءات)
   // ==========================================
   Future<List<AllocationAlertData>> _generateAllocationRadar(List<Contract> allContracts, List<Client> allClients) async {
     List<AllocationAlertData> radarList =[];
 
-    // 1. فلترة العقود "لاحق التخصص" فقط والتي لم يتم تسليمها
     final unallocatedContracts = allContracts.where((c) => c.contractType == 'لاحق التخصص' && !c.isCompleted).toList();
 
     for (var contract in unallocatedContracts) {
@@ -103,34 +102,39 @@ class ScheduleCubit extends Cubit<ScheduleState> {
       if (clientIdx == -1) continue; 
       final client = allClients[clientIdx];
 
-      // 2. جلب دفتر المدفوعات الخاص بهذا العقد فقط
       final ledger = await _erpRepository.getContractLedger(contract.id);
-      
-      // 3. حساب إجمالي الأمتار المشتراة
       double accumulatedMeters = ledger.fold(0, (sum, item) => sum + item.convertedMeters);
 
-      // 4. حساب عمر العقد بالأشهر (لمعرفة سرعة العميل)
       final DateTime startDate = contract.contractDate;
       int monthsPassed = DateTime.now().difference(startDate).inDays ~/ 30;
-      if (monthsPassed < 1) monthsPassed = 1; // حماية من القسمة على صفر للعقود الجديدة جداً
+      if (monthsPassed < 1) monthsPassed = 1; 
 
-      // 5. حساب متوسط الأمتار شهرياً (سرعة الإنجاز)
       double averageMetersPerMonth = accumulatedMeters / monthsPassed;
 
-      // 6. تقدير الزمن المتبقي
-      int estimatedMonthsLeft = 999; // افتراضي إذا كان لا يدفع
+      int estimatedMonthsLeft = 999; 
       if (averageMetersPerMonth > 0) {
         double metersLeft = targetAllocationMeters - accumulatedMeters;
         if (metersLeft < 0) metersLeft = 0;
         estimatedMonthsLeft = (metersLeft / averageMetersPerMonth).ceil();
       }
 
-      // 7. تحديد مستوى الخطورة
+      // 🌟 فحص ذاكرة الإجراءات (هل تم اتخاذ إجراء في آخر 30 يوماً؟)
+      bool hasRecentAction = false;
+      if (contract.lastActionDate != null) {
+        final daysSinceAction = DateTime.now().difference(contract.lastActionDate!).inDays;
+        if (daysSinceAction < 30) {
+          hasRecentAction = true;
+        }
+      }
+
+      // 🌟 تحديد الخطورة (إذا كان هناك إجراء قريب، نجعله action_taken لنسكته)
       String urgency = 'low';
-      if (accumulatedMeters >= targetAllocationMeters || estimatedMonthsLeft <= 2) {
-        urgency = 'high'; // خطر جداً: سيتخصص قريباً أو تجاوز النسبة
+      if (hasRecentAction) {
+        urgency = 'action_taken'; // حالة جديدة للمسكتين
+      } else if (accumulatedMeters >= targetAllocationMeters || estimatedMonthsLeft <= 2) {
+        urgency = 'high'; 
       } else if (estimatedMonthsLeft <= 6) {
-        urgency = 'medium'; // متوسط
+        urgency = 'medium'; 
       }
 
       radarList.add(
@@ -141,14 +145,32 @@ class ScheduleCubit extends Cubit<ScheduleState> {
           averageMetersPerMonth: averageMetersPerMonth,
           estimatedMonthsLeft: estimatedMonthsLeft,
           urgencyLevel: urgency,
+          lastActionDate: contract.lastActionDate, // 🌟
+          lastActionNote: contract.lastActionNote, // 🌟
         )
       );
     }
 
-    // 8. ترتيب القائمة بحيث يظهر الأكثر خطورة في الأعلى
-    radarList.sort((a, b) => a.estimatedMonthsLeft.compareTo(b.estimatedMonthsLeft));
+    // 🌟 الترتيب الذكي: نرمي العقود "المسكتة" إلى أسفل القائمة دائماً، ونرتب الباقي حسب الخطر!
+    radarList.sort((a, b) {
+      if (a.urgencyLevel == 'action_taken' && b.urgencyLevel != 'action_taken') return 1;
+      if (b.urgencyLevel == 'action_taken' && a.urgencyLevel != 'action_taken') return -1;
+      return a.estimatedMonthsLeft.compareTo(b.estimatedMonthsLeft);
+    });
 
     return radarList;
+  }
+
+  // ==========================================
+  // 🎯 دالة اتخاذ الإجراء الإداري
+  // ==========================================
+  Future<void> markContractActionTaken(String contractId, String note) async {
+    try {
+      await _erpRepository.markContractActionTaken(contractId: contractId, note: note);
+      await fetchInitialData(); // إعادة تشغيل الرادار ليرميه في الأسفل!
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل حفظ الإجراء: $e'));
+    }
   }
 
   Future<void> selectContract(String contractId) async {
