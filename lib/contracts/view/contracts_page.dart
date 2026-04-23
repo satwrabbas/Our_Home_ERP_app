@@ -25,7 +25,6 @@ class ContractsPage extends StatelessWidget {
   }
 }
 
-// 🌟 تحويلها لـ StatefulWidget لحفظ حالة نص البحث محلياً لسرعة الفلترة
 class ContractsView extends StatefulWidget {
   const ContractsView({super.key});
 
@@ -34,12 +33,12 @@ class ContractsView extends StatefulWidget {
 }
 
 class _ContractsViewState extends State<ContractsView> {
-  String _searchQuery = ''; // 🌟 متغير حفظ نص البحث
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50, // خلفية مريحة للعين
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('إدارة العقود والشقق', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
         centerTitle: true,
@@ -116,7 +115,6 @@ class _ContractsViewState extends State<ContractsView> {
             );
           }
 
-          // 🌟 فلترة العقود محلياً بناءً على نص البحث
           final filteredContracts = state.contracts.where((contract) {
             if (_searchQuery.isEmpty) return true;
             
@@ -134,7 +132,7 @@ class _ContractsViewState extends State<ContractsView> {
           return Column(
             children:[
               // ==========================================
-              // 🌟 القسم العلوي: شريط البحث السريع والذكي
+              // 🌟 القسم العلوي: شريط البحث
               // ==========================================
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -155,7 +153,7 @@ class _ContractsViewState extends State<ContractsView> {
                       child: TextField(
                         onChanged: (value) {
                           setState(() {
-                            _searchQuery = value; // 🌟 تحديث واجهة الجدول فوراً
+                            _searchQuery = value; 
                           });
                         },
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -189,7 +187,6 @@ class _ContractsViewState extends State<ContractsView> {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // عرض إحصائية سريعة لعدد العقود المطابقة
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.teal.shade200)),
@@ -200,7 +197,7 @@ class _ContractsViewState extends State<ContractsView> {
               ),
 
               // ==========================================
-              // 🌟 القسم السفلي: جدول العقود المقاوم للانهيار (Responsive)
+              // 🌟 القسم السفلي: جدول العقود
               // ==========================================
               Expanded(
                 child: filteredContracts.isEmpty
@@ -222,59 +219,89 @@ class _ContractsViewState extends State<ContractsView> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
                           clipBehavior: Clip.antiAlias,
                           child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal, // 🌟 التمرير الأفقي السحري للجدول
+                            scrollDirection: Axis.horizontal, 
+                            // 🌟 تقليل العرض الكلي لترك المساحة المطلوبة (3/4 عمود الإجراءات) في النهاية
                             child: ConstrainedBox(
-                              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48), // ضمان ملء الشاشة
+                              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 90),
                               child: DataTable(
+                                columnSpacing: 22, // 🌟 تم تقليل المسافات بين الأعمدة
+                                horizontalMargin: 20, 
                                 headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
-                                dataRowMaxHeight: 65,
+                                dataRowMinHeight: 55, 
+                                dataRowMaxHeight: 75,
                                 columns: const[
-                                  DataColumn(label: Text('رقم العقد', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('نوع العقد', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('الكفيل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))), 
-                                  DataColumn(label: Text('سعر المتر', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
-                                  DataColumn(label: Text('ملف العقد', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))), 
-                                  DataColumn(label: Text('إجراءات', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
+                                  DataColumn(label: Text('رقم العقد', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('النوع', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('الكفيل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))), 
+                                  DataColumn(label: Text('سعر المتر عند التوقيع', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('المدة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
+                                  DataColumn(label: Text('ملف', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))), 
+                                  DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 14))),
                                 ],
-                                // 🌟 استخدام filteredContracts بدلاً من state.contracts
                                 rows: filteredContracts.asMap().entries.map((mapEntry) {
                                   final index = mapEntry.key;
                                   final contract = mapEntry.value;
                                   
                                   final clientIdx = state.clients.indexWhere((c) => c.id == contract.clientId);
                                   final clientName = clientIdx >= 0 ? state.clients[clientIdx].name : 'عميل محذوف';
-
+                          
                                   return DataRow(
                                     color: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
-                                      if (index.isEven) return Colors.grey.withOpacity(0.03); // تلوين سطر وترك سطر (Zebra Striping)
+                                      if (index.isEven) return Colors.grey.withOpacity(0.03); 
                                       return null; 
                                     }),
                                     cells:[
-                                      DataCell(Text(contract.id.split('-').first.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 13))),
-                                      DataCell(Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                                      DataCell(Text(contract.id.split('-').first.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 14))),
+                                      
                                       DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(6)),
-                                          child: Text(contract.contractType, style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.bold)),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 160),
+                                          child: Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
                                         )
                                       ),
-                                      DataCell(Text(contract.apartmentDetails)),
-                                      DataCell(Text(contract.guarantorName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))), 
+                          
+                                      DataCell(
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(6)),
+                                          child: Text(contract.contractType, style: TextStyle(color: Colors.teal.shade700, fontWeight: FontWeight.bold, fontSize: 13)),
+                                        )
+                                      ),
                                       
-                                      // 🌟 تطبيق الفواصل هنا 🌟
-                                      DataCell(Text('${formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+                                      DataCell(
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 240),
+                                          child: Tooltip(
+                                            message: contract.apartmentDetails,
+                                            child: Text(
+                                              contract.apartmentDetails, 
+                                              style: const TextStyle(fontSize: 13), 
+                                              maxLines: 2, 
+                                              overflow: TextOverflow.ellipsis
+                                            ),
+                                          ),
+                                        )
+                                      ),
+                          
+                                      DataCell(
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 140),
+                                          child: Text(contract.guarantorName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                        )
+                                      ), 
                                       
-                                      DataCell(Text('${contract.installmentsCount} شهر', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange))),
+                                      DataCell(Text('${formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 14))),
+                                      
+                                      DataCell(Text('${contract.installmentsCount} ش', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 14))),
                                       
                                       DataCell(
                                         contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty
                                             ? TextButton.icon(
-                                                icon: const Icon(Icons.download, color: Colors.green),
-                                                label: const Text('فتح العقد', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                                icon: const Icon(Icons.download, color: Colors.green, size: 18),
+                                                label: const Text('فتح', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
+                                                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4)), // تقليل مساحة الزر
                                                 onPressed: () async {
                                                    final url = Uri.parse(contract.contractFileUrl!);
                                                    if (await canLaunchUrl(url)) {
@@ -283,44 +310,45 @@ class _ContractsViewState extends State<ContractsView> {
                                                 },
                                               )
                                             : TextButton.icon(
-                                                icon: const Icon(Icons.upload_file, color: Colors.orange),
-                                                label: const Text('إرفاق ملف', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                                icon: const Icon(Icons.upload_file, color: Colors.orange, size: 18),
+                                                label: const Text('إرفاق', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                                                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4)), // تقليل مساحة الزر
                                                 onPressed: () async {
                                                    FilePickerResult? result = await FilePicker.platform.pickFiles(
                                                      type: FileType.custom,
-                                                     allowedExtensions:['doc', 'docx', 'pdf'], 
+                                                     allowedExtensions: ['doc', 'docx', 'pdf'], 
                                                    );
-
+                          
                                                    if (result != null && result.files.single.path != null) {
                                                      final filePath = result.files.single.path!;
                                                      final extension = result.files.single.extension ?? 'docx';
                                                      
                                                      if(context.mounted) {
                                                         ScaffoldMessenger.of(context).showSnackBar(
-                                                          const SnackBar(content: Text('جاري رفع الملف للسحابة... ⏳'), backgroundColor: Colors.orange)
+                                                          const SnackBar(content: Text('جاري رفع الملف... ⏳'), backgroundColor: Colors.orange)
                                                         );
-
+                          
                                                         await context.read<ContractsCubit>().attachContractFile(
                                                           contractId: contract.id,
                                                           filePath: filePath,
                                                           extension: extension,
                                                         );
-
+                          
                                                         if(context.mounted) {
                                                           ScaffoldMessenger.of(context).showSnackBar(
-                                                            const SnackBar(content: Text('تم إرفاق العقد بنجاح! ✅'), backgroundColor: Colors.green)
+                                                            const SnackBar(content: Text('تم إرفاق العقد! ✅'), backgroundColor: Colors.green)
                                                           );
                                                         }
                                                      }
                                                    }
-                                                },
-                                              ),
+                                              },
+                                            ),
                                       ),
-
+                          
                                       DataCell(
                                         IconButton(
-                                          icon: const Icon(Icons.edit_note, color: Colors.blue, size: 28),
-                                          tooltip: 'إدارة وتعديل العقد',
+                                          icon: const Icon(Icons.edit_note, color: Colors.blue, size: 26),
+                                          tooltip: 'إدارة وتعديل',
                                           onPressed: () => showEditContractDialog(context, contract),
                                         ),
                                       ),
