@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/settings_cubit.dart';
 
-// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل
+// 🌟 استدعاء ديالوج الإضافة الجديد
+import 'dialogs/add_historical_price_dialog.dart';
+
+// دالة مساعدة لتنسيق الأرقام بالفواصل
 String formatWithCommas(num number) {
   RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
   return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
@@ -22,6 +25,14 @@ class PriceHistoryPage extends StatelessWidget {
         backgroundColor: Colors.indigo,
         elevation: 0,
       ),
+      // 🌟 الزر العائم الجديد لإضافة تسعيرة قديمة
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showAddHistoricalPriceDialog(context),
+        icon: const Icon(Icons.add_chart),
+        label: const Text('إضافة تسعيرة قديمة', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
         builder: (context, state) {
           if (state.priceHistory.isEmpty) {
@@ -32,6 +43,8 @@ class PriceHistoryPage extends StatelessWidget {
                   Icon(Icons.history_toggle_off, size: 80, color: Colors.grey.shade400),
                   const SizedBox(height: 16),
                   const Text('لا يوجد سجل أسعار محفوظ بعد.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  const Text('اضغط على الزر بالأسفل لإضافة تسعيرة.', style: TextStyle(color: Colors.blueGrey)),
                 ],
               ),
             );

@@ -118,4 +118,42 @@ class SettingsCubit extends Cubit<SettingsState> {
     _pricesSubscription?.cancel();
     return super.close();
   }
+
+  // ==========================================
+  // 🕰️ إضافة تسعيرة تاريخية (قديمة) للإحصائيات
+  // ==========================================
+  Future<void> addHistoricalPrice({
+    required DateTime effectiveDate,
+    required double iron,
+    required double cement,
+    required double block15,
+    required double formwork,
+    required double aggregates,
+    required double worker,
+  }) async {
+    try {
+      final String? userId = _erpRepository.currentUserId;
+      if (userId == null) throw Exception('يجب تسجيل الدخول أولاً.');
+
+      final historicalPrice = MaterialPricesHistoryCompanion.insert(
+        effectiveDate: Value(effectiveDate.toUtc()), // 🌟 تم تصحيح drift.Value إلى Value فقط
+        ironPrice: iron,
+        cementPrice: cement,
+        block15Price: block15,
+        formworkAndPouringWages: formwork,
+        aggregateMaterialsPrice: aggregates,
+        ordinaryWorkerWage: worker,
+        userId: userId,
+      );
+
+      // حفظ في القاعدة
+      await _erpRepository.savePrices(historicalPrice);
+      
+      // تحديث قائمة السجل لكي تظهر فوراً في الشاشة
+      await fetchPriceHistory();
+
+    } catch (e) {
+      emit(state.copyWith(status: SettingsStatus.failure, errorMessage: 'فشل حفظ التسعيرة: $e'));
+    }
+  }
 }
