@@ -377,7 +377,7 @@ class _RadarTabState extends State<RadarTab> {
                       _buildChipRadio('high', '🔴 حالات حرجة', tempUrgency, Colors.red, (v) => setModalState(() => tempUrgency = v)),
                       _buildChipRadio('medium', '🟠 حالات متوسطة', tempUrgency, Colors.orange, (v) => setModalState(() => tempUrgency = v)),
                       _buildChipRadio('low', '🟢 حالات آمنة', tempUrgency, Colors.green, (v) => setModalState(() => tempUrgency = v)),
-                      _buildChipRadio('action_taken', '⚪ تم إجراء مؤخراً', tempUrgency, Colors.grey.shade700, (v) => setModalState(() => tempUrgency = v)),
+                      _buildChipRadio('action_taken', '⚪  تم اتخاذ إجراء مؤخراً', tempUrgency, Colors.grey.shade700, (v) => setModalState(() => tempUrgency = v)),
                     ],
                   ),
                   
