@@ -14,8 +14,9 @@ class RadarTab extends StatefulWidget {
 }
 
 class _RadarTabState extends State<RadarTab> {
-  // 🌟 متغير حفظ حالة الفلتر الحالي (الافتراضي: عرض الكل)
-  String _currentFilter = 'all'; // 'all', 'high', 'medium', 'low', 'action_taken'
+  // 🌟 متغيرات الفلترة المتعددة
+  String _urgencyFilter = 'all'; // 'all', 'high', 'medium', 'low', 'action_taken'
+  String _speedFilter = 'all';   // 'all', 'fast', 'medium', 'slow'
 
   @override
   Widget build(BuildContext context) {
@@ -26,44 +27,91 @@ class _RadarTabState extends State<RadarTab> {
       );
     }
 
-    // 🌟 تطبيق الفلترة على القائمة قبل عرضها
+    // 🌟 تطبيق الفلترة المركبة (خطورة + سرعة)
     final filteredAlerts = widget.state.allocationAlerts.where((alert) {
-      if (_currentFilter == 'all') return true;
-      return alert.urgencyLevel == _currentFilter;
+      // 1. فحص الخطورة
+      bool passUrgency = true;
+      if (_urgencyFilter != 'all') {
+        passUrgency = alert.urgencyLevel == _urgencyFilter;
+      }
+
+      // 2. فحص السرعة
+      bool passSpeed = true;
+      if (_speedFilter != 'all') {
+        if (_speedFilter == 'fast') {
+          passSpeed = alert.averageMetersPerMonth >= 1.0;
+        } else if (_speedFilter == 'medium') {
+          passSpeed = alert.averageMetersPerMonth >= 0.5 && alert.averageMetersPerMonth < 1.0;
+        } else if (_speedFilter == 'slow') {
+          passSpeed = alert.averageMetersPerMonth < 0.5;
+        }
+      }
+
+      return passUrgency && passSpeed;
     }).toList();
 
-    // 🌟 استخدام Scaffold داخلي لعرض الزر العائم بسهولة
+    final bool hasActiveFilters = _urgencyFilter != 'all' || _speedFilter != 'all';
+
     return Scaffold(
-      backgroundColor: Colors.transparent, // لكي لا يغطي على خلفية التبويبة الأصلية
+      backgroundColor: Colors.transparent, 
       
-      // 🌟 الزر العائم للفلترة
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showFilterBottomSheet,
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         elevation: 4,
         icon: const Icon(Icons.filter_alt),
-        label: Text(_getFilterName(_currentFilter), style: const TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text('فرز وتصفية', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       
       body: Column(
         children:[
-          // 🌟 إظهار شريط تنبيه صغير إذا كان هناك فلتر نشط
-          if (_currentFilter != 'all')
+          // 🌟 شريط الفلاتر النشطة (تم تحسينه وجعل زر الإلغاء بارزاً جداً)
+          if (hasActiveFilters)
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: Colors.indigo.shade50,
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                border: Border.all(color: Colors.indigo.shade200),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children:[
-                  const Icon(Icons.info_outline, color: Colors.indigo, size: 16),
-                  const SizedBox(width: 8),
-                  Text('يتم الآن عرض: ${_getFilterName(_currentFilter)} فقط', style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 16),
-                  InkWell(
-                    onTap: () => setState(() => _currentFilter = 'all'),
-                    child: const Text('إلغاء الفلتر', style: TextStyle(color: Colors.red, decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.filter_list_alt, color: Colors.indigo, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:[
+                        const Text('الفلاتر النشطة حالياً:', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          '${_getUrgencyName(_urgencyFilter)}  |  السرعة: ${_getSpeedName(_speedFilter)}',
+                          style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // 🌟 زر إلغاء الفلتر البارز 
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade50,
+                      foregroundColor: Colors.red,
+                      elevation: 0,
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _urgencyFilter = 'all';
+                        _speedFilter = 'all';
+                      });
+                    },
+                    icon: const Icon(Icons.clear, size: 18),
+                    label: const Text('إلغاء الفلاتر', style: TextStyle(fontWeight: FontWeight.bold)),
                   )
                 ],
               ),
@@ -77,12 +125,12 @@ class _RadarTabState extends State<RadarTab> {
                       children:[
                         Icon(Icons.search_off, size: 60, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
-                        Text('لا يوجد نتائج تطابق الفلتر الحالي (${_getFilterName(_currentFilter)})', style: const TextStyle(color: Colors.grey, fontSize: 16)),
+                        const Text('لا يوجد نتائج تطابق الفلاتر المحددة', style: TextStyle(color: Colors.grey, fontSize: 16)),
                       ],
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12).copyWith(bottom: 80), // ترك مساحة للزر العائم
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: hasActiveFilters ? 0 : 12).copyWith(bottom: 80),
                     itemCount: filteredAlerts.length,
                     itemBuilder: (context, index) {
                       final alert = filteredAlerts[index];
@@ -290,75 +338,135 @@ class _RadarTabState extends State<RadarTab> {
   }
 
   // ==========================================
-  // 🌟 نافذة الفلترة السفلية (Bottom Sheet)
+  // 🌟 نافذة الفلترة السفلية (مع دعم الفلترة المتعددة StatefulBuilder)
   // ==========================================
   void _showFilterBottomSheet() {
+    // ننسخ القيم الحالية لكي لا تطبق إلا عند ضغط "تطبيق"
+    String tempUrgency = _urgencyFilter;
+    String tempSpeed = _speedFilter;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children:[
-                  Icon(Icons.filter_list, color: Colors.indigo, size: 28),
-                  SizedBox(width: 8),
-                  Text('تصفية رادار التخصص', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children:[
+                      Icon(Icons.filter_alt, color: Colors.indigo, size: 28),
+                      SizedBox(width: 8),
+                      Text('فرز وتصفية رادار التخصص', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 🌟 1. قسم فلترة الخطورة
+                  const Text('1. مستوى الخطورة والاقتراب من الهدف:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:[
+                      _buildChipRadio('all', '🌐 الكل', tempUrgency, Colors.indigo, (v) => setModalState(() => tempUrgency = v)),
+                      _buildChipRadio('high', '🔴 حالات حرجة', tempUrgency, Colors.red, (v) => setModalState(() => tempUrgency = v)),
+                      _buildChipRadio('medium', '🟠 حالات متوسطة', tempUrgency, Colors.orange, (v) => setModalState(() => tempUrgency = v)),
+                      _buildChipRadio('low', '🟢 حالات آمنة', tempUrgency, Colors.green, (v) => setModalState(() => tempUrgency = v)),
+                      _buildChipRadio('action_taken', '⚪ تم إجراء مؤخراً', tempUrgency, Colors.grey.shade700, (v) => setModalState(() => tempUrgency = v)),
+                    ],
+                  ),
+                  
+                  const Divider(height: 32, thickness: 1.5),
+
+                  // 🌟 2. قسم فلترة السرعة
+                  const Text('2. سرعة دفع الأمتار (المتوسط الشهري):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:[
+                      _buildChipRadio('all', '🌐 جميع السرعات', tempSpeed, Colors.indigo, (v) => setModalState(() => tempSpeed = v)),
+                      _buildChipRadio('fast', '🚀 سريعة (> 1 م²)', tempSpeed, Colors.blue, (v) => setModalState(() => tempSpeed = v)),
+                      _buildChipRadio('medium', '🚶 متوسطة (0.5 - 1 م²)', tempSpeed, Colors.purple, (v) => setModalState(() => tempSpeed = v)),
+                      _buildChipRadio('slow', '🐢 بطيئة (< 0.5 م²)', tempSpeed, Colors.brown, (v) => setModalState(() => tempSpeed = v)),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // 🌟 زر التطبيق
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
+                      icon: const Icon(Icons.check_circle),
+                      label: const Text('تطبيق الفرز', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          _urgencyFilter = tempUrgency;
+                          _speedFilter = tempSpeed;
+                        });
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  )
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text('اختر مستوى الخطورة الذي تود التركيز عليه:', style: TextStyle(color: Colors.grey)),
-              const Divider(height: 32, thickness: 1.5),
-
-              _buildFilterOption('all', '🌐 عرض جميع العقود', Colors.indigo),
-              _buildFilterOption('high', '🔴 الحالات الحرجة (تجاوز أو وشيك جداً)', Colors.red),
-              _buildFilterOption('medium', '🟠 الحالات المتوسطة (في منتصف الطريق)', Colors.orange),
-              _buildFilterOption('low', '🟢 الحالات الآمنة (وتيرة بطيئة)', Colors.green),
-              _buildFilterOption('action_taken', '⚪ تم اتخاذ إجراء (في الانتظار)', Colors.grey.shade700),
-              
-              const SizedBox(height: 16),
-            ],
-          ),
+            );
+          }
         );
       }
     );
   }
 
-  // دالة بناء خيار الفلتر داخل النافذة المنبثقة
-  Widget _buildFilterOption(String value, String title, Color color) {
-    final isSelected = _currentFilter == value;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: isSelected ? 2 : 1),
-      ),
-      child: RadioListTile<String>(
-        value: value,
-        groupValue: _currentFilter,
-        activeColor: color,
-        title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? color : Colors.black87)),
-        onChanged: (val) {
-          setState(() => _currentFilter = val!);
-          Navigator.pop(context); // إغلاق النافذة فور الاختيار
-        },
+  // دالة بناء أزرار الراديو بشكل أنيق (Chips)
+  Widget _buildChipRadio(String value, String title, String groupValue, Color color, Function(String) onChanged) {
+    final isSelected = groupValue == value;
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.white,
+          border: Border.all(color: isSelected ? color : Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }
 
-  // دالة مساعدة لترجمة مفتاح الفلتر إلى نص مقروء ليُعرض على الزر
-  String _getFilterName(String filter) {
+  String _getUrgencyName(String filter) {
     switch (filter) {
-      case 'high': return 'الحالات الحرجة';
-      case 'medium': return 'الحالات المتوسطة';
-      case 'low': return 'الحالات الآمنة';
-      case 'action_taken': return 'مؤجلة (تم إجراء)';
-      default: return 'تصفية الرادار';
+      case 'high': return '🔴 حالات حرجة';
+      case 'medium': return '🟠 حالات متوسطة';
+      case 'low': return '🟢 حالات آمنة';
+      case 'action_taken': return '⚪ تم إجراء (مؤجلة)';
+      default: return '🌐 جميع الحالات';
+    }
+  }
+
+  String _getSpeedName(String filter) {
+    switch (filter) {
+      case 'fast': return '🚀 سريعة';
+      case 'medium': return '🚶 متوسطة';
+      case 'slow': return '🐢 بطيئة';
+      default: return '🌐 الكل';
     }
   }
 }
