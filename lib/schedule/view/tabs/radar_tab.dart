@@ -15,8 +15,10 @@ class RadarTab extends StatefulWidget {
 
 class _RadarTabState extends State<RadarTab> {
   // 🌟 متغيرات الفلترة المتعددة
-  String _urgencyFilter = 'all'; // 'all', 'high', 'medium', 'low', 'action_taken'
-  String _speedFilter = 'all';   // 'all', 'fast', 'medium', 'slow'
+  String _urgencyFilter = 'all'; 
+  
+  // 🌟 متغير شريط السحب للسرعة (المدى الافتراضي من 0 إلى 10)
+  RangeValues _speedRange = const RangeValues(0.0, 10.0);
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,7 @@ class _RadarTabState extends State<RadarTab> {
       );
     }
 
-    // 🌟 تطبيق الفلترة المركبة (خطورة + سرعة)
+    // 🌟 تطبيق الفلترة المركبة (خطورة + سرعة دقيقة)
     final filteredAlerts = widget.state.allocationAlerts.where((alert) {
       // 1. فحص الخطورة
       bool passUrgency = true;
@@ -35,22 +37,20 @@ class _RadarTabState extends State<RadarTab> {
         passUrgency = alert.urgencyLevel == _urgencyFilter;
       }
 
-      // 2. فحص السرعة
-      bool passSpeed = true;
-      if (_speedFilter != 'all') {
-        if (_speedFilter == 'fast') {
-          passSpeed = alert.averageMetersPerMonth >= 1.0;
-        } else if (_speedFilter == 'medium') {
-          passSpeed = alert.averageMetersPerMonth >= 0.5 && alert.averageMetersPerMonth < 1.0;
-        } else if (_speedFilter == 'slow') {
-          passSpeed = alert.averageMetersPerMonth < 0.5;
-        }
+      // 2. فحص السرعة بناءً على الشريط
+      bool passSpeed = alert.averageMetersPerMonth >= _speedRange.start;
+      
+      // إذا لم يكن المؤشر الأيمن عند الحد الأقصى (10)، نطبق الحد الأعلى
+      // أما إذا كان عند 10، فنعتبره (10 فما فوق)
+      if (_speedRange.end < 10.0) {
+        passSpeed = passSpeed && alert.averageMetersPerMonth <= _speedRange.end;
       }
 
       return passUrgency && passSpeed;
     }).toList();
 
-    final bool hasActiveFilters = _urgencyFilter != 'all' || _speedFilter != 'all';
+    // نتحقق إذا كان هناك أي فلتر نشط
+    final bool hasActiveFilters = _urgencyFilter != 'all' || _speedRange.start > 0.0 || _speedRange.end < 10.0;
 
     return Scaffold(
       backgroundColor: Colors.transparent, 
@@ -66,7 +66,7 @@ class _RadarTabState extends State<RadarTab> {
       
       body: Column(
         children:[
-          // 🌟 شريط الفلاتر النشطة (تم تحسينه وجعل زر الإلغاء بارزاً جداً)
+          // 🌟 شريط الفلاتر النشطة (تم تحسينه للسرعة الجديدة)
           if (hasActiveFilters)
             Container(
               margin: const EdgeInsets.all(16),
@@ -87,7 +87,7 @@ class _RadarTabState extends State<RadarTab> {
                       children:[
                         const Text('الفلاتر النشطة حالياً:', style: TextStyle(color: Colors.grey, fontSize: 12)),
                         Text(
-                          '${_getUrgencyName(_urgencyFilter)}  |  السرعة: ${_getSpeedName(_speedFilter)}',
+                          '${_getUrgencyName(_urgencyFilter)}  |  السرعة: ${_speedRange.start.toStringAsFixed(1)} إلى ${_speedRange.end == 10.0 ? '10+' : _speedRange.end.toStringAsFixed(1)} م²',
                           style: const TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                       ],
@@ -95,7 +95,7 @@ class _RadarTabState extends State<RadarTab> {
                   ),
                   const SizedBox(width: 12),
                   
-                  // 🌟 زر إلغاء الفلتر البارز 
+                  // زر إلغاء الفلتر
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade50,
@@ -107,7 +107,7 @@ class _RadarTabState extends State<RadarTab> {
                     onPressed: () {
                       setState(() {
                         _urgencyFilter = 'all';
-                        _speedFilter = 'all';
+                        _speedRange = const RangeValues(0.0, 10.0); // إعادة التصفير
                       });
                     },
                     icon: const Icon(Icons.clear, size: 18),
@@ -338,12 +338,11 @@ class _RadarTabState extends State<RadarTab> {
   }
 
   // ==========================================
-  // 🌟 نافذة الفلترة السفلية (مع دعم الفلترة المتعددة StatefulBuilder)
+  // 🌟 نافذة الفلترة السفلية (مع شريط السحب RangeSlider)
   // ==========================================
   void _showFilterBottomSheet() {
-    // ننسخ القيم الحالية لكي لا تطبق إلا عند ضغط "تطبيق"
     String tempUrgency = _urgencyFilter;
-    String tempSpeed = _speedFilter;
+    RangeValues tempSpeedRange = _speedRange; // 🌟 أخذ نسخة من شريط السحب الحالي
 
     showModalBottomSheet(
       context: context,
@@ -365,11 +364,11 @@ class _RadarTabState extends State<RadarTab> {
                       Text('فرز وتصفية رادار التخصص', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   
-                  // 🌟 1. قسم فلترة الخطورة
+                  // 1. قسم فلترة الخطورة
                   const Text('1. مستوى الخطورة والاقتراب من الهدف:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -384,23 +383,53 @@ class _RadarTabState extends State<RadarTab> {
                   
                   const Divider(height: 32, thickness: 1.5),
 
-                  // 🌟 2. قسم فلترة السرعة
-                  const Text('2. سرعة دفع الأمتار (المتوسط الشهري):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                  // 🌟 2. قسم فلترة السرعة (شريط سحب متقدم RangeSlider)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children:[
-                      _buildChipRadio('all', '🌐 جميع السرعات', tempSpeed, Colors.indigo, (v) => setModalState(() => tempSpeed = v)),
-                      _buildChipRadio('fast', '🚀 سريعة (> 1 م²)', tempSpeed, Colors.blue, (v) => setModalState(() => tempSpeed = v)),
-                      _buildChipRadio('medium', '🚶 متوسطة (0.5 - 1 م²)', tempSpeed, Colors.purple, (v) => setModalState(() => tempSpeed = v)),
-                      _buildChipRadio('slow', '🐢 بطيئة (< 0.5 م²)', tempSpeed, Colors.brown, (v) => setModalState(() => tempSpeed = v)),
+                      const Text('2. تحديد مجال سرعة الدفع (م² / شهر):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(12)),
+                        child: Text(
+                          '${tempSpeedRange.start.toStringAsFixed(1)}  إلى  ${tempSpeedRange.end == 10.0 ? "10+" : tempSpeedRange.end.toStringAsFixed(1)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
+                        ),
+                      )
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // شريط السحب
+                  SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      activeTrackColor: Colors.indigo,
+                      inactiveTrackColor: Colors.indigo.shade100,
+                      thumbColor: Colors.indigo,
+                      overlayColor: Colors.indigo.withOpacity(0.2),
+                      valueIndicatorColor: Colors.indigo,
+                      valueIndicatorTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    child: RangeSlider(
+                      values: tempSpeedRange,
+                      min: 0.0,
+                      max: 10.0,
+                      divisions: 100, // ليتحرك بمقدار 0.1
+                      labels: RangeLabels(
+                        tempSpeedRange.start.toStringAsFixed(1),
+                        tempSpeedRange.end == 10.0 ? '10+' : tempSpeedRange.end.toStringAsFixed(1),
+                      ),
+                      onChanged: (RangeValues values) {
+                        setModalState(() {
+                          tempSpeedRange = values;
+                        });
+                      },
+                    ),
                   ),
                   
                   const SizedBox(height: 32),
                   
-                  // 🌟 زر التطبيق
+                  // زر التطبيق
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -411,7 +440,7 @@ class _RadarTabState extends State<RadarTab> {
                       onPressed: () {
                         setState(() {
                           _urgencyFilter = tempUrgency;
-                          _speedFilter = tempSpeed;
+                          _speedRange = tempSpeedRange;
                         });
                         Navigator.pop(ctx);
                       },
@@ -426,7 +455,6 @@ class _RadarTabState extends State<RadarTab> {
     );
   }
 
-  // دالة بناء أزرار الراديو بشكل أنيق (Chips)
   Widget _buildChipRadio(String value, String title, String groupValue, Color color, Function(String) onChanged) {
     final isSelected = groupValue == value;
     return InkWell(
@@ -458,15 +486,6 @@ class _RadarTabState extends State<RadarTab> {
       case 'low': return '🟢 حالات آمنة';
       case 'action_taken': return '⚪ تم إجراء (مؤجلة)';
       default: return '🌐 جميع الحالات';
-    }
-  }
-
-  String _getSpeedName(String filter) {
-    switch (filter) {
-      case 'fast': return '🚀 سريعة';
-      case 'medium': return '🚶 متوسطة';
-      case 'slow': return '🐢 بطيئة';
-      default: return '🌐 الكل';
     }
   }
 }
