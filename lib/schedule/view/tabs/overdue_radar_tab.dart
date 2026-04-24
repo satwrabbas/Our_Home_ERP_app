@@ -15,16 +15,17 @@ class OverdueRadarTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children:[
-            const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
-            const SizedBox(height: 16),
-            Text('الوضع ممتاز! لا يوجد أي عميل متأخر حالياً.', style: TextStyle(fontSize: 20, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
+            const Icon(Icons.check_circle_outline, size: 60, color: Colors.green),
+            const SizedBox(height: 12),
+            Text('الوضع ممتاز! لا يوجد أي عميل متأخر حالياً.', 
+              style: TextStyle(fontSize: 16, color: Colors.green.shade700, fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: state.overdueAlerts.length,
       itemBuilder: (context, index) {
         final alert = state.overdueAlerts[index];
@@ -34,95 +35,163 @@ class OverdueRadarTab extends StatelessWidget {
         IconData icon;
         String warningTitle;
 
-        // التصميم حسب الخطورة
+        // 🌟 تصغير النصوص وضبط الألوان لتناسب تصميم الـ Row
         if (alert.severity == 'critical') {
-          borderColor = Colors.red;
+          borderColor = Colors.redAccent;
           bgColor = Colors.red.shade50;
           icon = Icons.cancel;
-          warningTitle = 'حالة حرجة جداً 🔴';
+          warningTitle = 'حرج';
         } else if (alert.severity == 'warning') {
           borderColor = Colors.orange;
           bgColor = Colors.orange.shade50;
           icon = Icons.warning_amber;
-          warningTitle = 'إنذار متقدم 🟠';
+          warningTitle = 'إنذار';
         } else {
           borderColor = Colors.amber.shade700;
           bgColor = Colors.amber.shade50;
           icon = Icons.notifications_active;
-          warningTitle = 'فترة سماح (تأخير بسيط) 🟡';
+          warningTitle = 'سماح';
         }
 
+        final oldestSchedule = alert.overdueSchedules.first;
+
         return Card(
-          elevation: 5,
-          margin: const EdgeInsets.only(bottom: 16),
+          elevation: 1, // 🌟 ظل خفيف جداً لشاشات الديسكتوب
+          margin: const EdgeInsets.only(bottom: 8), // مسافة عمودية قليلة
+          color: bgColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: borderColor, width: 2),
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: borderColor.withOpacity(0.5), width: 1), // إطار نحيف
           ),
-          child: Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: bgColor),
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 🌟 تقليل الحشوة
+            child: Row( // 🌟 استخدام Row بدلاً من Column كحاوية رئيسية
+              crossAxisAlignment: CrossAxisAlignment.center,
               children:[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children:[
-                    Row(
-                      children:[
-                        Icon(icon, color: borderColor, size: 28),
-                        const SizedBox(width: 8),
-                        Text(warningTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: borderColor)),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: borderColor, borderRadius: BorderRadius.circular(20)),
-                      child: Text('متأخر ${alert.maxDaysOverdue} يوماً', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-                const Divider(),
-                Text('العميل: ${alert.client.name}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                Text('عقد: ${alert.contract.apartmentDetails} | الهاتف: ${alert.client.phone}', style: const TextStyle(color: Colors.black54)),
-                const SizedBox(height: 12),
                 
-                // 🌟 عرض تفاصيل الأقساط المتراكمة
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+                // 🌟 العمود الأول: بيانات العميل والحالة (يأخذ حوالي 35% من العرض)
+                Expanded(
+                  flex: 3,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // 🌟 يمنع التمدد الطولي
                     children:[
-                      Text('عليه ${alert.overdueSchedules.length} أقساط متراكمة غير مسددة!', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-                      const SizedBox(height: 8),
-                      // نعرض أول قسط مستحق (أقدم قسط لم يدفع)
-                      Text('👈 أقدم قسط مطلوب: القسط رقم (${alert.overdueSchedules.first.installmentNumber})', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                      Text('تاريخ الاستحقاق: ${alert.overdueSchedules.first.dueDate.year}/${alert.overdueSchedules.first.dueDate.month}/${alert.overdueSchedules.first.dueDate.day}'),
+                      Row(
+                        children:[
+                          Flexible(
+                            child: Text(
+                              alert.client.name,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // بادج الحالة مدمج في نفس السطر
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: borderColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children:[
+                                Icon(icon, size: 12, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$warningTitle (${alert.maxDaysOverdue} يوم)', 
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${alert.contract.apartmentDetails} | 📱 ${alert.client.phone}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
                 
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerLeft,
+                const SizedBox(width: 16),
+                Container(height: 30, width: 1, color: borderColor.withOpacity(0.3)), // 🌟 خط فاصل عمودي أنيق
+                const SizedBox(width: 16),
+
+                // 🌟 العمود الثاني: تفاصيل الأقساط المتأخرة (يأخذ حوالي 45% من العرض)
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:[
+                      Row(
+                        children:[
+                          const Icon(Icons.receipt_long, size: 14, color: Colors.indigo),
+                          const SizedBox(width: 4),
+                          const Text('الديون المتراكمة: ', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                          Text('${alert.overdueSchedules.length} أقساط', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children:[
+                          Icon(Icons.event_busy, size: 14, color: borderColor),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'أقدم قسط: رقم (${oldestSchedule.installmentNumber}) مستحق في ${oldestSchedule.dueDate.year}/${oldestSchedule.dueDate.month}/${oldestSchedule.dueDate.day}',
+                              style: TextStyle(fontSize: 11, color: borderColor, fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 16),
+
+                // 🌟 العمود الثالث: زر الواتساب (عرض ثابت 130 بكسل)
+                SizedBox(
+                  width: 130, // 🌟 عرض ثابت لمنع التمدد العشوائي
+                  height: 36, // 🌟 ارتفاع مضغوط جداً
                   child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: borderColor, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-                    icon: const Icon(Icons.chat),
-                    label: const Text('إرسال مطالبة عبر واتساب'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600, // لون الواتساب المعترف به
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    icon: const Icon(Icons.chat, size: 14),
+                    label: const Text('مطالبة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     onPressed: () async {
-                      // 🌟 يرسل مطالبة بناءً على أقدم قسط متأخر
                       final success = await WhatsAppHelper.sendReminderMessage(
-                        schedule: alert.overdueSchedules.first,
+                        schedule: oldestSchedule,
                         contract: alert.contract,
                         client: alert.client,
                       );
 
                       if (context.mounted) {
                         if (success) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم فتح الواتساب للمطالبة!'), backgroundColor: Colors.green));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('تم فتح الواتساب للمطالبة!'), 
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating, // للظهور بشكل منبثق وأنيق
+                          ));
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح الواتساب.'), backgroundColor: Colors.red));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('فشل فتح تطبيق الواتساب.'), 
+                            backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                          ));
                         }
                       }
                     },
