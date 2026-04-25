@@ -833,6 +833,54 @@ class AppDatabase extends _$AppDatabase {
       t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
     )).go();
   }
+
+  // ==========================================
+  // 🔄 محرك نقاط التفاعل (Rolling Checkpoints) لـ "لاحق التخصص"
+  // ==========================================
+  Future<void> handleRollingCheckpoint({
+    required String contractId,
+    required String currentScheduleId,
+    required String actionType, // 'paid' أو 'missed'
+    required DateTime nextDueDate,
+    required String userId,
+  }) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+
+      // 1. إغلاق القسط الحالي بالحالة المطلوبة (دفع أو تخلّف)
+      await (update(installmentsSchedule)..where((t) => t.id.equals(currentScheduleId))).write(
+        InstallmentsScheduleCompanion(
+          status: Value(actionType),
+          updatedAt: nowUtc,
+          isSynced: const Value(false),
+        )
+      );
+
+      // 2. إيجاد رقم القسط الحالي لمعرفة الرقم التالي
+      final currentSchedule = await (select(installmentsSchedule)..where((t) => t.id.equals(currentScheduleId))).getSingle();
+      final int nextNumber = currentSchedule.installmentNumber + 1;
+
+      // 3. توليد نقطة التفاعل القادمة (القسط الجديد)
+      final newEntry = InstallmentsScheduleCompanion.insert(
+        contractId: contractId,
+        installmentNumber: nextNumber,
+        dueDate: nextDueDate.toUtc(), // التاريخ الذي يحدده المحاسب
+        status: const Value('pending'),
+        userId: userId,
+      );
+      await into(installmentsSchedule).insert(newEntry);
+
+      // 4. تحديث عداد الأقساط في العقد ليتوافق مع السجل
+      final contract = await (select(contracts)..where((t) => t.id.equals(contractId))).getSingle();
+      await (update(contracts)..where((t) => t.id.equals(contractId))).write(
+        ContractsCompanion(
+          installmentsCount: Value(contract.installmentsCount + 1),
+          updatedAt: nowUtc,
+          isSynced: const Value(false),
+        )
+      );
+    });
+  }
 }
 
 LazyDatabase _openConnection() {
