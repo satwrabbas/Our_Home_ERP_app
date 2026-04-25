@@ -340,7 +340,28 @@ class PaymentsView extends StatelessWidget {
                                                   final client = state.clients[clientIdx];
                                                   
                                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تجهيز الفاتورة...')));
-                                                  final pdfBytes = await PdfGenerator.generateReceiptPdf(entry: entry, contract: contract, client: client);
+
+                                                  // 🌟 السحر هنا: استخراج المعاملات المحاسبية قبل إرسالها للـ PDF
+                                                  double bonusPct = entry.fees; // حقل fees يحمل نسبة الخصم/البونص
+                                                  double? originalInst;
+                                                  double? meterPriceBonus;
+
+                                                  if (bonusPct > 0) {
+                                                    // أصل القسط = المبلغ المدفوع + نسبة البونص
+                                                    originalInst = entry.amountPaid + (entry.amountPaid * (bonusPct / 100));
+                                                    // سعر المتر بعد البونص = المبلغ المدفوع ÷ الأمتار التي حصل عليها فعلياً
+                                                    meterPriceBonus = entry.amountPaid / entry.convertedMeters;
+                                                  }
+
+                                                  // إرسال البيانات لمولد الـ PDF
+                                                  final pdfBytes = await PdfGenerator.generateReceiptPdf(
+                                                    entry: entry, 
+                                                    contract: contract, 
+                                                    client: client,
+                                                    originalInstallment: originalInst,
+                                                    bonusPercentage: bonusPct > 0 ? bonusPct : null,
+                                                    meterPriceAfterBonus: meterPriceBonus,
+                                                  );
 
                                                   if (context.mounted) {
                                                     Navigator.push(context, MaterialPageRoute(builder: (_) => PdfPreviewPage(pdfBytes: pdfBytes, title: 'فاتورة_${entry.id.split('-').first}_${client.name}')));

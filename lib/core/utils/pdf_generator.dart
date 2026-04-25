@@ -28,6 +28,8 @@ class PdfGenerator {
     required Contract contract,
     required Client client,
     double? originalInstallment,
+    double? bonusPercentage,       // 👈 إضافة نسبة البونص
+    double? meterPriceAfterBonus,  // 👈 إضافة سعر المتر بعد البونص
   }) async {
     final pdf = pw.Document();
 
@@ -129,6 +131,15 @@ class PdfGenerator {
                 children:[
                   _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'سعر المتر بتاريخه:', value: '${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س'),
                   
+                  // 🌟 إضافة سطر نسبة البونص (يظهر فقط إذا تم تمرير نسبة أكبر من صفر)
+                  if (bonusPercentage != null && bonusPercentage > 0)
+                    _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'نسبة البونص:', value: '%${bonusPercentage.toStringAsFixed(1)}', valueColor: PdfColors.teal),
+
+                  // 🌟 إضافة سطر سعر المتر بعد البونص (يظهر فقط إذا تم تمرير قيمة)
+                  if (meterPriceAfterBonus != null)
+                    _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'السعر بعد البونص:', value: '${meterPriceAfterBonus.toStringAsFixed(0)} ل.س', valueColor: PdfColors.blue800),
+                  
+                  // 🌟 إظهار أصل القسط والخصم فقط في حال وجودهما
                   if(hasDiscount) ...[
                     _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'أصل القسط:', value: '${originalInstallment!.toStringAsFixed(0)} ل.س'),
                     _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'الخصم الممنوح:', value: '${discountAmount.toStringAsFixed(0)} ل.س', valueColor: PdfColors.red),
