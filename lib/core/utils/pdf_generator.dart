@@ -1,4 +1,6 @@
-// lib/core/utils/pdf_generator.dart
+// ==========================================
+// 🟩 القسم 1: الاستيرادات (Imports)
+// ==========================================
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
@@ -9,11 +11,18 @@ import 'arabic_tafqeet.dart';
 import 'package:local_storage_api/local_storage_api.dart';
 
 class PdfGenerator {
+  
+  // ==========================================
+  // 🟩 القسم 2: دالة التفقيط (تحويل الأرقام لنصوص)
+  // ==========================================
   static String numberToArabicWords(double number) {
     String text = ArabicTafqeet.convert(number.toInt());
     return "فقط $text ليرة سورية لا غير.";
   }
 
+  // ==========================================
+  // 🟩 القسم 3: الدالة الرئيسية لتوليد الـ PDF
+  // ==========================================
   static Future<Uint8List> generateReceiptPdf({
     required PaymentsLedgerData entry,
     required Contract contract,
@@ -22,13 +31,20 @@ class PdfGenerator {
   }) async {
     final pdf = pw.Document();
 
+    // إعدادات الخطوط والألوان الأساسية
     final arabicFont = await PdfGoogleFonts.cairoRegular();
     final arabicBoldFont = await PdfGoogleFonts.cairoBold();
-
     const primaryColor = PdfColor.fromInt(0xFF1A2B3D);
     const accentColor = PdfColor.fromInt(0xFFE64A19);
 
+    // ==========================================
+    // 🟩 القسم 4: دالة بناء الإيصال المصغر (الواجهة والمحتوى)
+    // ==========================================
     pw.Widget buildCompactReceipt(String copyType) {
+      
+      // ==========================================
+      // 🟩 القسم 5: جلب بيانات الأسعار وحساب الخصم
+      // ==========================================
       Map<String, dynamic> snapshot = {};
       try {
         if (entry.pricesSnapshot.isNotEmpty && entry.pricesSnapshot != '{}') {
@@ -42,7 +58,6 @@ class PdfGenerator {
         return (snapshot[key] as num?)?.toStringAsFixed(0) ?? '-';
       }
 
-      // حساب منطق الخصم
       final bool hasDiscount = originalInstallment != null && originalInstallment > entry.amountPaid;
       final double discountAmount = hasDiscount ? originalInstallment! - entry.amountPaid : 0.0;
 
@@ -55,10 +70,17 @@ class PdfGenerator {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children:[
+            
+            // ==========================================
+            // 🟩 القسم 6: الترويسة العليا (اسم الشركة والعنوان)
+            // ==========================================
             pw.Center(child: pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 11, color: primaryColor))),
             pw.Center(child: pw.Text('إيصال دفع - $copyType', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: accentColor))),
             pw.SizedBox(height: 4),
 
+            // ==========================================
+            // 🟩 القسم 7: معلومات الإيصال والعميل والشقة
+            // ==========================================
             pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children:[
               pw.Text('رقم: ${entry.id.split('-').first.toUpperCase()}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
               pw.Text('التاريخ: ${entry.paymentDate.year}/${entry.paymentDate.month}/${entry.paymentDate.day}', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
@@ -68,7 +90,9 @@ class PdfGenerator {
             pw.Text('الشقة: ${contract.apartmentDetails} | م: ${contract.totalArea} م2', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
             pw.SizedBox(height: 6),
 
-            // الجدول بنفس بنيته المصغرة
+            // ==========================================
+            // 🟩 القسم 8: جدول المواد (الكميات والأسعار)
+            // ==========================================
             pw.TableHelper.fromTextArray(
               context: null,
               cellAlignment: pw.Alignment.center,
@@ -91,7 +115,9 @@ class PdfGenerator {
 
             pw.SizedBox(height: 6),
             
-            // الخلاصة المالية
+            // ==========================================
+            // 🟩 القسم 9: الخلاصة المالية والتفقيط
+            // ==========================================
             pw.Container(
               padding: const pw.EdgeInsets.all(4), 
               decoration: pw.BoxDecoration(
@@ -124,13 +150,14 @@ class PdfGenerator {
 
             pw.Spacer(),
 
-            // 🌟🌟 التعديل المطلوب هنا: استبدال توقيع العميل بمعلومات العقد بالكامل 🌟🌟
+            // ==========================================
+            // 🟩 القسم 10: التذييل (معلومات العقد والتوقيع)
+            // ==========================================
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children:[
                 
-                // توقيع الشركة فقط
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children:[
@@ -146,6 +173,9 @@ class PdfGenerator {
       );
     }
 
+    // ==========================================
+    // 🟩 القسم 11: إعداد صفحة الطباعة (نصف A4 وتكرار الإيصال)
+    // ==========================================
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -177,6 +207,9 @@ class PdfGenerator {
     return pdf.save();
   }
 
+  // ==========================================
+  // 🟩 القسم 12: الدوال المساعدة (تنسيق السطور المالية)
+  // ==========================================
   static pw.Widget _buildFinancialRow({
     required pw.Font font,
     required pw.Font boldFont,
