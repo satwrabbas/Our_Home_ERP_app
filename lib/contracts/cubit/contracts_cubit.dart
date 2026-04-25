@@ -160,6 +160,7 @@ class ContractsCubit extends Cubit<ContractsState> {
     required String details,
     required String guarantorName,
     required int installmentsCount,
+    required double agreedMonthlyAmount, // 🌟 المعطى الجديد
     required DateTime contractDate, 
   }) async {
     try {
@@ -168,6 +169,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         apartmentDetails: details,
         guarantorName: guarantorName,
         installmentsCount: installmentsCount,
+        agreedMonthlyAmount: agreedMonthlyAmount, // 🌟 تمريره للـ Repository
         contractDate: contractDate, 
       );
       await fetchData(); 

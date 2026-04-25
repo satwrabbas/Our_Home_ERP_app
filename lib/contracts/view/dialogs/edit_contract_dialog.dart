@@ -11,7 +11,8 @@ void showEditContractDialog(BuildContext parentContext, Contract contract) {
   final detailsController = TextEditingController(text: contract.apartmentDetails);
   final guarantorController = TextEditingController(text: contract.guarantorName);
   final monthsController = TextEditingController(text: contract.installmentsCount.toString());
-
+  // 🌟 إضافة كونترولر المبلغ الشهري  
+  final monthlyAmountController = TextEditingController(text: contract.agreedMonthlyAmount.toString());
   // 🌟 متغير لحفظ التاريخ المختار (ونعرض تاريخ العقد الحالي كقيمة افتراضية)
   DateTime selectedDate = contract.contractDate.toLocal();
 
@@ -78,6 +79,17 @@ void showEditContractDialog(BuildContext parentContext, Contract contract) {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    // 🌟 حقل تعديل المبلغ الشهري
+                    TextField(
+                      controller: monthlyAmountController, 
+                      decoration: const InputDecoration(
+                        labelText: 'المبلغ الشهري المتفق عليه', 
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.payments, color: Colors.green),
+                      ), 
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),
                     const SizedBox(height: 16),
                     
@@ -197,23 +209,23 @@ void showEditContractDialog(BuildContext parentContext, Contract contract) {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
                     onPressed: () async {
-                      if (monthsController.text.isNotEmpty) {
-                        Navigator.pop(dialogContext); 
+                    if (monthsController.text.isNotEmpty && monthlyAmountController.text.isNotEmpty) {
+                      Navigator.pop(dialogContext); 
 
-                        bool isAuthorized = await showVerifyPinDialog(parentContext);
-                        
-                        if (isAuthorized && parentContext.mounted) {
-                          // 🌟 قمنا بتمرير التاريخ الجديد للـ Cubit
-                          parentContext.read<ContractsCubit>().updateContract(
-                            id: contract.id,
-                            details: detailsController.text,
-                            guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
-                            installmentsCount: int.parse(monthsController.text),
-                            contractDate: selectedDate, // 🌟 التعديل هنا
-                          );
-                        }
+                      bool isAuthorized = await showVerifyPinDialog(parentContext);
+                      
+                      if (isAuthorized && parentContext.mounted) {
+                        parentContext.read<ContractsCubit>().updateContract(
+                          id: contract.id,
+                          details: detailsController.text,
+                          guarantorName: guarantorController.text.isEmpty ? 'بدون كفيل' : guarantorController.text,
+                          installmentsCount: int.parse(monthsController.text), // شکلي
+                          agreedMonthlyAmount: double.parse(monthlyAmountController.text), // 🌟 تمرير المبلغ الجديد
+                          contractDate: selectedDate,
+                        );
                       }
-                    },
+                    }
+                  },
                     child: const Text('حفظ التعديلات النصية'),
                   ),
                 ],

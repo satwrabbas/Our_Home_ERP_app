@@ -281,16 +281,17 @@ class _AddContractPageState extends State<AddContractPage> {
   }
 
   // ==========================================
-  // 🚀 دالة الإرسال والحفظ للـ Backend (معدلة)
+  // 🚀 دالة الإرسال والحفظ للـ Backend (معدلة للنظام المفتوح)
   // ==========================================
   Future<void> _saveContract() async {
     bool isAllocated = selectedContractType == 'متخصص'; 
     
-    // 🌟 تجاوز التحقق من المساحة إذا كان لاحق التخصص
     if (isAllocated && selectedApartmentId == null) return _showError('يرجى اختيار شقة من الكتالوج!');
     if (isAllocated && areaController.text.isEmpty) return _showError('يرجى تعبئة المساحة!');
     if (priceController.text.isEmpty) return _showError('يرجى حساب السعر أولاً!');
-    if (!isAllocated && monthlyAmountCtrl.text.isEmpty) return _showError('يرجى إدخال المبلغ المتفق عليه شهرياً!');
+    
+    // 🌟 التعديل 1: إجبار المستخدم على إدخال المبلغ الشهري لجميع أنواع العقود
+    if (monthlyAmountCtrl.text.isEmpty) return _showError('يرجى إدخال المبلغ المتفق عليه شهرياً!');
 
     Map<String, double> finalCoeffs = {};
     if (isAllocated) {
@@ -299,7 +300,6 @@ class _AddContractPageState extends State<AddContractPage> {
       if (durVal != null && durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
     }
 
-    // 🌟 جلب تفاصيل الشقة بشكل آمن
     String generatedDetails = '';
     if (isAllocated) {
       final allApartments = context.read<BuildingsCubit>().state.apartments;
@@ -311,11 +311,13 @@ class _AddContractPageState extends State<AddContractPage> {
       generatedDetails = 'محفظة استثمارية (عقد لاحق التخصص)';
     }
 
-    final double agreedAmount = !isAllocated ? (double.tryParse(monthlyAmountCtrl.text.replaceAll(',', '')) ?? 0.0) : 0.0;
-    
-    // 🌟 هنا السر! نرسل 0 للمساحة والمدة للاحق التخصص
+    // 🌟 التعديل 2: أخذ المبلغ الشهري بغض النظر عن نوع العقد
+    final double agreedAmount = double.tryParse(monthlyAmountCtrl.text.replaceAll(',', '')) ?? 0.0;
+    if (agreedAmount <= 0) return _showError('المبلغ الشهري يجب أن يكون أكبر من صفر!');
+
     final double finalArea = isAllocated ? double.parse(areaController.text) : 0.0;
-    final int finalMonths = isAllocated ? int.parse(monthsController.text) : 0;
+    // 🌟 التعديل 3: نبقي الـ 48 شهراً شكلياً للمتخصص لكي لا تنكسر واجهاتك القديمة حالياً
+    final int finalMonths = isAllocated ? int.parse(monthsController.text) : 48; 
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري الحفظ وتوقيع العقد... ⏳'), backgroundColor: Colors.teal));
     
@@ -324,11 +326,11 @@ class _AddContractPageState extends State<AddContractPage> {
       contractType: selectedContractType, 
       details: generatedDetails, 
       apartmentId: isAllocated ? selectedApartmentId : null,
-      area: finalArea, // 🌟 يرسل 0 للاحق التخصص
+      area: finalArea, 
       basePrice: double.parse(priceController.text.replaceAll(',', '')), 
-      installmentsCount: finalMonths, // 🌟 يرسل 0 للاحق التخصص
+      installmentsCount: finalMonths, 
       guarantorName: guarantorController.text.trim(),
-      agreedMonthlyAmount: agreedAmount,
+      agreedMonthlyAmount: agreedAmount, // 🌟 يتم إرساله دائماً
       coefficients: finalCoeffs, 
       customDate: isHistoricalContract ? selectedHistoricalDate : null, 
       histIron: isHistoricalContract ? double.parse(histIronCtrl.text.replaceAll(',', '')) : null, 

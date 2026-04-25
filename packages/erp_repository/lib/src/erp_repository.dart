@@ -558,13 +558,14 @@ class ErpRepository {
     syncPendingData();
   }
 
-  // 🌟 تعديل بيانات العقد + تسوية جدول الاستحقاقات
+  // 🌟 تعديل بيانات العقد + تسوية جدول الاستحقاقات (تم تحديثها لدعم المبلغ الشهري المفتوح)
   Future<void> updateContract({
     required String id,
     required String apartmentDetails,
     required String guarantorName,
-    required int installmentsCount,
-    required DateTime contractDate, // 🌟 إضافة هذا السطر
+    required int installmentsCount, // سنبقيه شكلياً كما طلبت
+    required double agreedMonthlyAmount, // 🌟 الإضافة الجديدة: المبلغ الشهري المتفق عليه
+    required DateTime contractDate,
   }) async {
     final db = _localApi.database;
 
@@ -573,14 +574,16 @@ class ErpRepository {
       ContractsCompanion(
         apartmentDetails: drift.Value(apartmentDetails),
         guarantorName: drift.Value(guarantorName),
-        installmentsCount: drift.Value(installmentsCount),
-        contractDate: drift.Value(contractDate.toUtc()), // 🌟 🌍 حفظ التاريخ بالـ UTC 
+        installmentsCount: drift.Value(installmentsCount), // الرقم الشكلي
+        agreedMonthlyAmount: drift.Value(agreedMonthlyAmount), // 🌟 حفظ المبلغ الشهري
+        contractDate: drift.Value(contractDate.toUtc()), 
         updatedAt: drift.Value(DateTime.now().toUtc()),
         isSynced: const drift.Value(false), 
       )
     );
 
-    // 2. السحر المحاسبي (تسوية لوحة المراقبة)
+    // 2. السحر المحاسبي (تسوية لوحة المراقبة) 
+    // سنتركه يعمل على الرقم الشكلي حالياً حتى ننتقل لتعديل صفحة المراقبة لاحقاً
     await (db.update(db.installmentsSchedule)
       ..where((t) => t.contractId.equals(id))
       ..where((t) => t.installmentNumber.isBiggerThanValue(installmentsCount)) 

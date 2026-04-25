@@ -339,14 +339,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // ==========================================
-  // --- إضافة عقد مع أقساطه كعملية واحدة (Atomic Transaction) ---
+  // --- إضافة عقد مع قسط البداية فقط (نظام المدة المفتوحة) ---
   // ==========================================
   Future<void> insertContractWithSchedules(
     ContractsCompanion contract, 
     int installmentsCount, 
     DateTime startDate, 
     String userId,
-    String contractType, // 🌟 أضفنا هذا المعامل لكي نعرف نوع العقد
+    String contractType, 
   ) async {
     return transaction(() async {
       // 1. إضافة العقد والحصول على الـ ID الخاص به
@@ -354,10 +354,11 @@ class AppDatabase extends _$AppDatabase {
       final String newContractId = contractRow.id;
 
       // 🌟 2. الذكاء الجديد: 
-      // إذا كان لاحق التخصص نولد (1) إجبارياً، وإلا نولد العدد المطلوب
-      final int loopCount = (contractType == 'لاحق التخصص') ? 1 : installmentsCount;
+      // بغض النظر عن نوع العقد أو عدد الأشهر، نولد القسط الأول (1) فقط!
+      // وبقية الأقساط ستتولد لاحقاً عند دفع هذا القسط عبر محرك (Rolling Checkpoint).
+      final int loopCount = 1; 
 
-      // 3. توليد الأقساط 
+      // 3. توليد القسط الأول المستحق في الشهر القادم
       for (int i = 1; i <= loopCount; i++) {
         final dueDate = DateTime.utc(startDate.year, startDate.month + i, startDate.day);
         
