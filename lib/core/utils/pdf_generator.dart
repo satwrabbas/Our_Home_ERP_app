@@ -47,7 +47,7 @@ class PdfGenerator {
       final double discountAmount = hasDiscount ? originalInstallment! - entry.amountPaid : 0.0;
 
       return pw.Container(
-        padding: const pw.EdgeInsets.all(6), // تقليل المسافات الداخلية لتوفير المساحة
+        padding: const pw.EdgeInsets.all(6),
         decoration: pw.BoxDecoration(
           border: pw.Border.all(color: primaryColor, width: 1.0),
           borderRadius: pw.BorderRadius.circular(6),
@@ -55,7 +55,6 @@ class PdfGenerator {
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children:[
-            // تقليل حجم خطوط العناوين لتوفير المساحة
             pw.Center(child: pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 11, color: primaryColor))),
             pw.Center(child: pw.Text('إيصال دفع - $copyType', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: accentColor))),
             pw.SizedBox(height: 4),
@@ -69,7 +68,7 @@ class PdfGenerator {
             pw.Text('الشقة: ${contract.apartmentDetails} | م: ${contract.totalArea} م2', style: pw.TextStyle(font: arabicFont, fontSize: 8)),
             pw.SizedBox(height: 6),
 
-            // 🌟🌟 جدول مصغر: دمج العناصر بجانب بعضها وحذف عمود الإجمالي 🌟🌟
+            // الجدول بنفس بنيته المصغرة
             pw.TableHelper.fromTextArray(
               context: null,
               cellAlignment: pw.Alignment.center,
@@ -78,18 +77,15 @@ class PdfGenerator {
               cellStyle: pw.TextStyle(font: arabicFont, fontSize: 7),
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
               columnWidths: {
-                0: const pw.FlexColumnWidth(2), // المادة (يمين)
-                1: const pw.FlexColumnWidth(1.2), // الكمية
-                2: const pw.FlexColumnWidth(1.5), // السعر
-                3: const pw.FlexColumnWidth(2), // المادة (يسار)
-                4: const pw.FlexColumnWidth(1.2), // الكمية
-                5: const pw.FlexColumnWidth(1.5), // السعر
+                0: const pw.FlexColumnWidth(2), 
+                1: const pw.FlexColumnWidth(1.2), 
+                2: const pw.FlexColumnWidth(1.5), 
+                3: const pw.FlexColumnWidth(2), 
+                4: const pw.FlexColumnWidth(1.2), 
+                5: const pw.FlexColumnWidth(1.5), 
               },
               headers:['المادة', 'الكمية', 'السعر', 'المادة', 'الكمية', 'السعر'],
-              data: [
-                // الصف الأول: حديد + كوفراج['حديد', '30 كغ', getPrice('iron'), 'كوفراج', '1.0 م3', getPrice('formwork')],
-                // الصف الثاني: اسمنت + حصويات['اسمنت', '4 كيس', getPrice('cement'), 'حصويات', '2.0 م3', getPrice('aggregates')],
-                // الصف الثالث: بلوك + عمال['بلوك', '50', getPrice('block'), 'عمال', '1.0 يوم', getPrice('worker')],
+              data: [['حديد', '30 كغ', getPrice('iron'), 'كوفراج', '1.0 م3', getPrice('formwork')],['اسمنت', '4 كيس', getPrice('cement'), 'حصويات', '2.0 م3', getPrice('aggregates')],['بلوك', '50', getPrice('block'), 'عمال', '1.0 يوم', getPrice('worker')],
               ],
             ),
 
@@ -97,7 +93,7 @@ class PdfGenerator {
             
             // الخلاصة المالية
             pw.Container(
-              padding: const pw.EdgeInsets.all(4), // تقليل الهوامش الداخلية
+              padding: const pw.EdgeInsets.all(4), 
               decoration: pw.BoxDecoration(
                 color: PdfColors.grey100,
                 border: pw.Border.all(color: accentColor, width: 0.5),
@@ -128,20 +124,21 @@ class PdfGenerator {
 
             pw.Spacer(),
 
-            // أماكن التوقيع
+            // 🌟🌟 التعديل المطلوب هنا: استبدال توقيع العميل بمعلومات العقد بالكامل 🌟🌟
             pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
               children:[
-                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children:[
-                  pw.Text('توقيع الشركة', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: primaryColor)),
-                  pw.SizedBox(height: 20),
-                  pw.Text('....................', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey500)),
-                ]),
-                pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children:[
-                  pw.Text('توقيع العميل', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: primaryColor)),
-                  pw.SizedBox(height: 20),
-                  pw.Text('....................', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey500)),
-                ]),
+                
+                // توقيع الشركة فقط
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children:[
+                    pw.Text('توقيع الشركة', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: primaryColor)),
+                    pw.SizedBox(height: 20),
+                    pw.Text('....................', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey500)),
+                  ]
+                ),
               ]
             ),
           ],
