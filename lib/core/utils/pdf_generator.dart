@@ -64,7 +64,7 @@ class PdfGenerator {
       final double discountAmount = hasDiscount ? originalInstallment! - entry.amountPaid : 0.0;
 
       return pw.Container(
-        margin: const pw.EdgeInsets.only(right: 15), // 👈 هذا هو الهامش اليميني
+        margin: const pw.EdgeInsets.only(right: 40), // 👈 هذا هو الهامش اليميني
         padding: const pw.EdgeInsets.all(6),
         decoration: pw.BoxDecoration(
           
@@ -77,7 +77,7 @@ class PdfGenerator {
             // ==========================================
             // 🟩 القسم 6: الترويسة العليا (اسم الشركة والعنوان)
             // ==========================================
-            pw.Center(child: pw.Text('بيتنا العقارية', style: pw.TextStyle(font: arabicBoldFont, fontSize: 11, color: primaryColor))),
+            pw.Center(child: pw.Text('بيتنا Our Home', style: pw.TextStyle(font: arabicBoldFont, fontSize: 11, color: primaryColor))),
             pw.Center(child: pw.Text('إيصال دفع - $copyType', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: accentColor))),
             pw.SizedBox(height: 4),
 
@@ -149,7 +149,7 @@ class PdfGenerator {
                         
                         if(hasDiscount) ...[
                           _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'أصل القسط:', value: '${originalInstallment!.toStringAsFixed(0)} ل.س'),
-                          _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'الخصم המمنوح:', value: '${discountAmount.toStringAsFixed(0)} ل.س', valueColor: PdfColors.red),
+                          _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'الخصم الممنوح:', value: '${discountAmount.toStringAsFixed(0)} ل.س', valueColor: PdfColors.red),
                         ],
 
                         _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'المبلغ المدفوع:', value: '${entry.amountPaid.toStringAsFixed(0)} ل.س', isTotal: true, primaryColor: primaryColor),
