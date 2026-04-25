@@ -205,8 +205,13 @@ class _AddContractPageState extends State<AddContractPage> {
                             onTypeChanged: (val) {
                               setState(() {
                                 selectedContractType = val ?? 'متخصص';
-                                if (!isAllocated) { autoImportedCoefficients.clear(); selectedBuildingId = null; selectedApartmentId = null; areaController.clear(); } 
-                                else { monthlyAmountCtrl.clear(); }
+                                // 🌟 تم حذف أمر المسح (monthlyAmountCtrl.clear) من الـ else
+                                if (!isAllocated) { 
+                                  autoImportedCoefficients.clear(); 
+                                  selectedBuildingId = null; 
+                                  selectedApartmentId = null; 
+                                  areaController.clear(); 
+                                }
                               });
                             },
                           ),
@@ -218,7 +223,6 @@ class _AddContractPageState extends State<AddContractPage> {
                             availableApartments: availableApartments,
                             selectedBuildingId: selectedBuildingId,
                             selectedApartmentId: selectedApartmentId,
-                            monthlyAmountCtrl: monthlyAmountCtrl,
                             onBuildingChanged: (val) => setState(() { selectedBuildingId = val; selectedApartmentId = null; areaController.clear(); autoImportedCoefficients.clear(); }),
                             onApartmentChanged: (val) => _onApartmentSelected(val, availableApartments, buildingsState.buildings),
                           ),
@@ -243,6 +247,7 @@ class _AddContractPageState extends State<AddContractPage> {
                             monthsController: monthsController,
                             durationCoefficientCtrl: durationCoefficientCtrl,
                             priceController: priceController,
+                            monthlyAmountCtrl: monthlyAmountCtrl, // 🌟 تمرير الحقل هنا
                             onCalculate: () => _calculatePrice(settingsState.currentPrices),
                           ),
                           const SizedBox(height: 100), 

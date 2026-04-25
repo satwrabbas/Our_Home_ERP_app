@@ -1,6 +1,5 @@
-// lib/contracts/view/widgets/add_contract/financial_section.dart
 import 'package:flutter/material.dart';
-import '../../../../core/utils/formatters.dart'; // تأكد من مسار الـ Formatters لديك
+import '../../../../core/utils/formatters.dart'; 
 
 class FinancialSection extends StatelessWidget {
   final bool isAllocated;
@@ -9,6 +8,7 @@ class FinancialSection extends StatelessWidget {
   final TextEditingController monthsController;
   final TextEditingController durationCoefficientCtrl;
   final TextEditingController priceController;
+  final TextEditingController monthlyAmountCtrl; // 🌟 تمت الإضافة هنا
   final VoidCallback onCalculate;
 
   const FinancialSection({
@@ -19,6 +19,7 @@ class FinancialSection extends StatelessWidget {
     required this.monthsController,
     required this.durationCoefficientCtrl,
     required this.priceController,
+    required this.monthlyAmountCtrl, // 🌟 تمت الإضافة هنا
     required this.onCalculate,
   });
 
@@ -31,7 +32,39 @@ class FinancialSection extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children:[
-            // 🌟 1. إخفاء المساحة والمدة بالكامل إذا كان العقد (لاحق التخصص)
+            
+            // 🌟 1. حقل المبلغ الشهري (يظهر دائماً وهو الأهم الآن)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade300)
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  const Text('الأساس المالي للمراقبة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: monthlyAmountCtrl,
+                    inputFormatters: [ThousandsFormatter()],
+                    decoration: const InputDecoration(
+                      labelText: 'المبلغ المتفق عليه شهرياً (ل.س)', 
+                      hintText: 'مثال: 150000',
+                      border: OutlineInputBorder(), 
+                      filled: true, 
+                      fillColor: Colors.white,
+                      prefixIcon: Icon(Icons.payments_outlined, color: Colors.orange)
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 🌟 2. إخفاء المساحة والمدة بالكامل إذا كان العقد (لاحق التخصص)
             if (isAllocated) ...[
               Row(
                 children:[
@@ -41,14 +74,15 @@ class FinancialSection extends StatelessWidget {
                     readOnly: true,
                   )),
                   const SizedBox(width: 12),
-                  Expanded(flex: 2, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                  // حقل المدة أصبح شكلياً، لذلك سنضيف عليه تلميح
+                  Expanded(flex: 2, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة الشكلية (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                   const SizedBox(width: 12),
                   Expanded(flex: 2, child: TextField(controller: durationCoefficientCtrl, decoration: const InputDecoration(labelText: 'نسبة التقسيط %', border: OutlineInputBorder(), filled: true, fillColor: Colors.orangeAccent), keyboardType: TextInputType.number)),
                 ],
               ),
               const SizedBox(height: 16),
             ] else ...[
-              // تلميح صغير للموظف
+              // تلميح صغير للموظف لعقود لاحق التخصص
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
@@ -58,7 +92,7 @@ class FinancialSection extends StatelessWidget {
               ),
             ],
 
-            // 🌟 2. زر الحساب وحقل السعر (يبقيان ظاهرين دائماً)
+            // 🌟 3. زر الحساب وحقل السعر المرجعي
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -73,7 +107,7 @@ class FinancialSection extends StatelessWidget {
             TextField(
               controller: priceController,
               readOnly: !isHistoricalContract, 
-              inputFormatters:[ThousandsFormatter()], // افتراض أنك وضعت هذا الكلاس في formatters.dart
+              inputFormatters:[ThousandsFormatter()], 
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 labelText: isHistoricalContract ? 'سعر المتر المربع (يمكنك تعديله يدوياً)' : 'سعر المتر المربع النهائي (يُحسب آلياً)', 

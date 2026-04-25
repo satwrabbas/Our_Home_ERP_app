@@ -1,7 +1,4 @@
-//lib\contracts\view\widgets\add_contract\property_section.dart
-
 import 'package:flutter/material.dart';
-import '../../../../core/utils/formatters.dart';
 
 class PropertySection extends StatelessWidget {
   final bool isAllocated;
@@ -11,7 +8,6 @@ class PropertySection extends StatelessWidget {
   final String? selectedApartmentId;
   final ValueChanged<String?> onBuildingChanged;
   final ValueChanged<String?> onApartmentChanged;
-  final TextEditingController monthlyAmountCtrl;
 
   const PropertySection({
     super.key,
@@ -22,37 +18,24 @@ class PropertySection extends StatelessWidget {
     required this.selectedApartmentId,
     required this.onBuildingChanged,
     required this.onApartmentChanged,
-    required this.monthlyAmountCtrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    // إذا كان لاحق التخصص، نعرض رسالة فقط ولا نطلب أي بيانات عقارية
     if (!isAllocated) {
       return Card(
         elevation: 2, color: Colors.blue.shade50,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blue.shade200)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children:[
-                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
-                  Text('العقد لاحق التخصص. النظام سيولد نقطة تفاعل شهرية واحدة.', style: TextStyle(color: Colors.blueGrey, fontSize: 13, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: monthlyAmountCtrl,
-                inputFormatters: [ThousandsFormatter()],
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ المتفق عليه شهرياً (ل.س)', 
-                  border: OutlineInputBorder(), filled: true, fillColor: Colors.white,
-                  prefixIcon: Icon(Icons.payments, color: Colors.blue)
-                ),
-                keyboardType: TextInputType.number,
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            children:[
+              Icon(Icons.info_outline, color: Colors.blue, size: 24),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text('عقد محفظة (لاحق التخصص): سيتم تخصيص العقار لاحقاً بناءً على الرصيد المتراكم.', 
+                style: TextStyle(color: Colors.blueGrey, fontSize: 14, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -60,6 +43,7 @@ class PropertySection extends StatelessWidget {
       );
     }
 
+    // إذا كان متخصص، نعرض اختيار المحضر والشقة
     return Card(
       elevation: 2, color: Colors.amber.shade50,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.amber.shade200)),
