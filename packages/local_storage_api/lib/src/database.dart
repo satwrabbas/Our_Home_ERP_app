@@ -346,20 +346,19 @@ class AppDatabase extends _$AppDatabase {
     int installmentsCount, 
     DateTime startDate, 
     String userId,
-    String contractType,
+    String contractType, // 🌟 أضفنا هذا المعامل لكي نعرف نوع العقد
   ) async {
     return transaction(() async {
       // 1. إضافة العقد والحصول على الـ ID الخاص به
       final contractRow = await into(contracts).insertReturning(contract);
       final String newContractId = contractRow.id;
 
+      // 🌟 2. الذكاء الجديد: 
+      // إذا كان لاحق التخصص نولد (1) إجبارياً، وإلا نولد العدد المطلوب
       final int loopCount = (contractType == 'لاحق التخصص') ? 1 : installmentsCount;
-      
-      // 2. توليد الأقساط وإضافتها فوراً داخل نفس العملية
-      for (int i = 1; i <= installmentsCount; i++) {
-        // 🌍[تعديل التوقيت]: استخدمنا DateTime.utc بدلاً من DateTime العادي
-        // (Dart ذكية جداً: إذا كان الشهر 12 وزدنا عليه 1، ستقوم تلقائياً بتحويله لشهر 1 السنة القادمة)
-        // هذا يضمن أن أيام الاستحقاق (dueDate) تُحفظ كـ UTC وتتطابق عند الاسترجاع أينما كان المستخدم
+
+      // 3. توليد الأقساط 
+      for (int i = 1; i <= loopCount; i++) {
         final dueDate = DateTime.utc(startDate.year, startDate.month + i, startDate.day);
         
         final entry = InstallmentsScheduleCompanion.insert(
