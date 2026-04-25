@@ -174,71 +174,115 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
               ],
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
+          actions:[
+            TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('إلغاء')),
             ElevatedButton(
               onPressed: () {
-                if (numCtrl.text.isNotEmpty && slabAreaCtrl.text.isNotEmpty && selectedFloorName != null) {
-                  
-                  // تحديث أخير للمساحة للتأكد
-                  updateCalculatedArea();
-                  
-                  if (calculatedTotalArea <= 0) {
-                    ScaffoldMessenger.of(dialogCtx).showSnackBar(const SnackBar(content: Text('المساحة غير صالحة!')));
-                    return;
-                  }
-
-                  Map<String, double> aptCoeffs = {};
-                  
-                  // 🌟 1. حفظ تفاصيل المساحة الهندسية في الـ JSON للشفافية
-                  double slab = double.tryParse(slabAreaCtrl.text) ?? 0.0;
-                  double terrace = double.tryParse(terraceAreaCtrl.text) ?? 0.0;
-                  double yard = double.tryParse(physicalYardAreaCtrl.text) ?? 0.0;
-                  
-                  if(slab > 0) aptCoeffs['مساحة البلاطة (م2)'] = slab;
-                  if(terrace > 0) aptCoeffs['مساحة التراس (م2)'] = terrace;
-                  if(yard > 0) aptCoeffs['مساحة الوجيبة (م2)'] = yard;
-
-                  // 2. نسبة الطابق
-                  final floorPercentage = (availableFloors[selectedFloorName] as num).toDouble();
-                  if (floorPercentage != 0.0) aptCoeffs['الطابق ($selectedFloorName)'] = floorPercentage;
-
-                  // 3. تجميع الاتجاه
-                  List<String> chosenNames = [];
-                  double totalDirPercentage = 0.0;
-                  selectedDirections.forEach((dirName, isSelected) {
-                    if (isSelected) {
-                      chosenNames.add(dirName);
-                      totalDirPercentage += (generalCoeffs[dirName] as num?)?.toDouble() ?? 0.0;
-                    }
-                  });
-                  String finalDirectionName = chosenNames.isEmpty ? 'غير محدد' : chosenNames.join(' - ');
-                  if (totalDirPercentage != 0.0) {
-                    aptCoeffs['الاتجاه ($finalDirectionName)'] = totalDirPercentage;
-                  }
-
-                  // 4. إضافة معامل الوجيبة والربح
-                  void addVal(String key, String val) {
-                    final parsed = double.tryParse(val);
-                    if (parsed != null && parsed != 0.0) aptCoeffs[key] = parsed;
-                  }
-                  addVal('معامل التميز للوجيبة', yardCoeffCtrl.text);
-                  addVal('هامش الربح', profitCoeffCtrl.text);
-
-                  // الإرسال لقاعدة البيانات
-                  parentContext.read<BuildingsCubit>().addApartment(
-                    buildingId: building.id,
-                    aptNumber: numCtrl.text,
-                    
-                    // 🌟 نرسل المساحة البيعية النهائية للحفظ الرسمي
-                    area: calculatedTotalArea, 
-                    
-                    floorName: selectedFloorName!, 
-                    directionName: finalDirectionName,
-                    customCoeffs: aptCoeffs, 
+                // 🌟 1. التحقق من رقم الشقة
+                if (numCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ الرجاء إدخال رقم الشقة!'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
-                  Navigator.pop(dialogCtx);
+                  return; // إيقاف إكمال الكود
                 }
+
+                // 🌟 2. التحقق من اختيار الطابق
+                if (selectedFloorName == null) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ الرجاء تحديد الطابق!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // 🌟 3. التحقق من إدخال المساحة
+                if (slabAreaCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ الرجاء إدخال مساحة البلاطة (المسقوفة)!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // تحديث أخير للمساحة للتأكد
+                updateCalculatedArea();
+
+                // 🌟 4. التحقق من أن المساحة صالحة (أكبر من صفر)
+                if (calculatedTotalArea <= 0) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('⚠️ المساحة المحسوبة غير صالحة!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // إذا اجتاز الكود كل الفحوصات السابقة، نقوم بتجهيز البيانات والحفظ:
+                Map<String, double> aptCoeffs = {};
+
+                // حفظ تفاصيل المساحة الهندسية في الـ JSON للشفافية
+                double slab = double.tryParse(slabAreaCtrl.text) ?? 0.0;
+                double terrace = double.tryParse(terraceAreaCtrl.text) ?? 0.0;
+                double yard = double.tryParse(physicalYardAreaCtrl.text) ?? 0.0;
+
+                if (slab > 0) aptCoeffs['مساحة البلاطة (م2)'] = slab;
+                if (terrace > 0) aptCoeffs['مساحة التراس (م2)'] = terrace;
+                if (yard > 0) aptCoeffs['مساحة الوجيبة (م2)'] = yard;
+
+                // نسبة الطابق
+                final floorPercentage =
+                    (availableFloors[selectedFloorName] as num).toDouble();
+                if (floorPercentage != 0.0) {
+                  aptCoeffs['الطابق ($selectedFloorName)'] = floorPercentage;
+                }
+
+                // تجميع الاتجاه
+                List<String> chosenNames =[];
+                double totalDirPercentage = 0.0;
+                selectedDirections.forEach((dirName, isSelected) {
+                  if (isSelected) {
+                    chosenNames.add(dirName);
+                    totalDirPercentage +=
+                        (generalCoeffs[dirName] as num?)?.toDouble() ?? 0.0;
+                  }
+                });
+                String finalDirectionName =
+                    chosenNames.isEmpty ? 'غير محدد' : chosenNames.join(' - ');
+                if (totalDirPercentage != 0.0) {
+                  aptCoeffs['الاتجاه ($finalDirectionName)'] =
+                      totalDirPercentage;
+                }
+
+                // إضافة معامل الوجيبة والربح
+                void addVal(String key, String val) {
+                  final parsed = double.tryParse(val);
+                  if (parsed != null && parsed != 0.0) aptCoeffs[key] = parsed;
+                }
+
+                addVal('معامل التميز للوجيبة', yardCoeffCtrl.text);
+                addVal('هامش الربح', profitCoeffCtrl.text);
+
+                // الإرسال لقاعدة البيانات
+                parentContext.read<BuildingsCubit>().addApartment(
+                      buildingId: building.id,
+                      aptNumber: numCtrl.text.trim(), // استخدمنا trim لحذف الفراغات
+                      area: calculatedTotalArea,
+                      floorName: selectedFloorName!,
+                      directionName: finalDirectionName,
+                      customCoeffs: aptCoeffs,
+                    );
+                    
+                Navigator.pop(dialogCtx);
               },
               child: const Text('حفظ الشقة'),
             )
