@@ -163,7 +163,6 @@ class PdfGenerator {
                   children:[
                     pw.Text('توقيع الشركة', style: pw.TextStyle(font: arabicBoldFont, fontSize: 8, color: primaryColor)),
                     pw.SizedBox(height: 20),
-                    pw.Text('....................', style: pw.TextStyle(font: arabicFont, fontSize: 8, color: PdfColors.grey500)),
                   ]
                 ),
               ]
@@ -191,10 +190,7 @@ class PdfGenerator {
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children:[
                   pw.Expanded(child: buildCompactReceipt('نسخة الشركة')),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 10),
-                    child: pw.VerticalDivider(width: 1, color: PdfColors.grey500),
-                  ),
+                  pw.SizedBox(width: 20),
                   pw.Expanded(child: buildCompactReceipt('نسخة العميل')),
                 ],
               ),
