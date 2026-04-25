@@ -236,7 +236,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
-
   // ==========================================
   // ✏️ تعديل تاريخ قسط فردي وإضافة ملاحظة
   // ==========================================
@@ -262,6 +261,29 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
-
-  
+  // ==========================================
+  // 🌟 محرك النقاط المتدحرجة (عقود لاحق التخصص)
+  // ==========================================
+  Future<void> handleRollingCheckpoint({
+    required String contractId,
+    required String scheduleId,
+    required String actionType,
+    required DateTime nextDueDate,
+  }) async {
+    try {
+      await _erpRepository.handleRollingCheckpoint(
+        contractId: contractId,
+        scheduleId: scheduleId,
+        actionType: actionType,
+        nextDueDate: nextDueDate,
+      );
+      
+      // تحديث واجهات المراقبة (الرادار والجدول)
+      await fetchInitialData();
+      await selectContract(contractId);
+      
+    } catch (e) {
+      emit(state.copyWith(status: ScheduleStatus.failure, errorMessage: 'فشل العملية: $e'));
+    }
+  }
 }

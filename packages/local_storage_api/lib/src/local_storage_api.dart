@@ -70,7 +70,8 @@ class LocalStorageApi {
       _db.updateIndividualSchedule(id, newDueDate, notes);
   Future<void> restructureContractSchedule({required String contractId, required int newRemainingMonths, required DateTime newStartDate, required String userId}) =>
       _db.restructureContractSchedule(contractId: contractId, newRemainingMonths: newRemainingMonths, newStartDate: newStartDate, userId: userId);
-
+Future<void> handleRollingCheckpoint(String contractId, String scheduleId, String action, DateTime nextDate, String userId) =>
+      _db.handleRollingCheckpoint(contractId: contractId, currentScheduleId: scheduleId, actionType: action, nextDueDate: nextDate, userId: userId);
 
   // ==========================================
   // 🧹 فرمتة القاعدة

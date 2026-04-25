@@ -552,7 +552,7 @@ class ErpRepository {
     await syncPendingData();
   }
 
-  
+
   Future<void> deleteContract(String contractId) async {
     await _localApi.deleteContract(contractId);
     syncPendingData();
@@ -637,7 +637,18 @@ class ErpRepository {
   Future<List<InstallmentsScheduleData>> getContractSchedule(String contractId) => _localApi.getContractSchedule(contractId);
 
 
-  
+  Future<void> handleRollingCheckpoint({
+    required String contractId,
+    required String scheduleId,
+    required String actionType,
+    required DateTime nextDueDate,
+  }) async {
+    final String? safeUserId = currentUserId;
+    if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
+
+    await _localApi.handleRollingCheckpoint(contractId, scheduleId, actionType, nextDueDate, safeUserId);
+    await syncPendingData(); // رفع التعديل للسحابة
+  }
   
   // 🌟 أضف هذا السطر في قسم (جدول الاستحقاقات)
   Future<List<InstallmentsScheduleData>> getAllOverdueSchedules() => _localApi.getAllOverdueSchedules();

@@ -9,6 +9,14 @@ import '../dialogs/edit_schedule_dialog.dart';
 import '../dialogs/reschedule_dialog.dart';
 import '../dialogs/edit_single_schedule_dialog.dart';
 
+// ==========================================
+// 🌟 دالة مساعدة لتنسيق الأرقام بالفواصل
+// ==========================================
+String formatNumberWithCommas(num number) {
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  return number.toInt().toString().replaceAllMapped(reg, (Match match) => '${match[1]},');
+}
+
 class TraditionalScheduleTab extends StatelessWidget {
   final ScheduleState state;
 
@@ -23,17 +31,19 @@ class TraditionalScheduleTab extends StatelessWidget {
     
     Contract? currentContract;
     double metersPerInstallment = 0.0;
+    bool isPostAllocation = false; 
 
     if (state.selectedContractId != null && state.scheduleList.isNotEmpty) {
       totalInstallments = state.scheduleList.length;
       paidInstallments = state.scheduleList.where((s) => s.status == 'paid').length;
-      pendingInstallments = state.scheduleList.where((s) => s.status != 'paid').length;
-      overdueInstallments = state.scheduleList.where((s) => s.status != 'paid' && s.dueDate.isBefore(DateTime.now())).length;
+      pendingInstallments = state.scheduleList.where((s) => s.status != 'paid' && s.status != 'missed').length;
+      overdueInstallments = state.scheduleList.where((s) => s.status == 'pending' && s.dueDate.isBefore(DateTime.now())).length;
       
       final idx = state.contracts.indexWhere((c) => c.id == state.selectedContractId);
       if (idx != -1) {
         currentContract = state.contracts[idx];
-        if (currentContract.installmentsCount > 0) {
+        isPostAllocation = currentContract.contractType == 'لاحق التخصص'; 
+        if (!isPostAllocation && currentContract.installmentsCount > 0) {
           metersPerInstallment = currentContract.totalArea / currentContract.installmentsCount;
         }
       }
@@ -42,10 +52,10 @@ class TraditionalScheduleTab extends StatelessWidget {
     return Column(
       children:[
         // ==========================================
-        // 1. القسم العلوي: شريط أدوات مضغوط (Toolbar)
+        // 1. القسم العلوي: شريط أدوات مضغوط
         // ==========================================
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0), // 🌟 تقليل الحشوة العمودية
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
           decoration: BoxDecoration(
             color: Colors.indigo.shade50,
             border: Border(bottom: BorderSide(color: Colors.indigo.shade100, width: 1)),
@@ -55,7 +65,6 @@ class TraditionalScheduleTab extends StatelessWidget {
               const Icon(Icons.person_search, color: Colors.indigo, size: 24),
               const SizedBox(width: 12),
               
-              // محرك البحث
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -64,13 +73,13 @@ class TraditionalScheduleTab extends StatelessWidget {
                       enableSearch: true,
                       enableFilter: true,
                       hintText: '🔍 اكتب اسم العميل أو العقار...',
-                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), // 🌟 تصغير الخط
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), 
                       inputDecorationTheme: InputDecorationTheme(
-                        isDense: true, // 🌟 يضغط حقل الإدخال عمودياً
+                        isDense: true, 
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 🌟 تصغير الحشوة
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), 
                       ),
                       initialSelection: state.contracts.any((c) => c.id == state.selectedContractId) ? state.selectedContractId : null,
                       onSelected: (val) {
@@ -89,11 +98,10 @@ class TraditionalScheduleTab extends StatelessWidget {
                 ),
               ),
               
-              // أزرار التحكم
-              if (state.selectedContractId != null) ...[
+              if (state.selectedContractId != null && !isPostAllocation) ...[
                 const SizedBox(width: 16),
                 SizedBox(
-                  height: 36, // 🌟 زر مضغوط
+                  height: 36, 
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.indigo,
@@ -110,7 +118,7 @@ class TraditionalScheduleTab extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  height: 36, // 🌟 زر مضغوط
+                  height: 36, 
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
@@ -131,7 +139,7 @@ class TraditionalScheduleTab extends StatelessWidget {
         ),
 
         // ==========================================
-        // 2. القسم السفلي: الإحصائيات الأفقية والجدول
+        // 2. القسم السفلي: الإحصائيات والجدول
         // ==========================================
         Expanded(
           child: state.selectedContractId == null
@@ -139,10 +147,10 @@ class TraditionalScheduleTab extends StatelessWidget {
               : state.scheduleList.isEmpty
                   ? const Center(child: Text('لم يتم توليد أي جدول أقساط لهذا العقد.', style: TextStyle(fontSize: 16, color: Colors.grey)))
                   : ListView(
-                      padding: const EdgeInsets.all(16.0), // 🌟 تقليل الحشوة الخارجية
+                      padding: const EdgeInsets.all(16.0), 
                       children:[
                         
-                        // 🌟 شريط الإحصائيات الأفقي (Dashboard Ribbon)
+                        // 🌟 شريط الإحصائيات الأفقي
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
@@ -153,22 +161,25 @@ class TraditionalScheduleTab extends StatelessWidget {
                           ),
                           child: Row(
                             children:[
-                              // الإحصائيات (مصغرة وأفقية)
                               Expanded(
                                 child: Wrap(
-                                  spacing: 24, // المسافة الأفقية بين العناصر
+                                  spacing: 24, 
                                   runSpacing: 8,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children:[
-                                    _buildDesktopStatItem('إجمالي الأقساط', totalInstallments.toString(), Colors.indigo),
+                                    _buildDesktopStatItem(isPostAllocation ? 'نقاط التفاعل' : 'إجمالي الأقساط', totalInstallments.toString(), Colors.indigo),
                                     _buildDesktopStatItem('تم السداد', paidInstallments.toString(), Colors.green),
-                                    _buildDesktopStatItem('المتبقي', pendingInstallments.toString(), Colors.orange),
+                                    _buildDesktopStatItem('المتبقي/المعلق', pendingInstallments.toString(), Colors.orange),
                                     _buildDesktopStatItem('المتأخر', overdueInstallments.toString(), Colors.red, isAlert: overdueInstallments > 0),
-                                    _buildDesktopStatItem('متوسط القسط', '~ ${metersPerInstallment.toStringAsFixed(1)} م²', Colors.teal),
+                                    
+                                    // 🌟 الدالة الآن موجودة وتعمل بنجاح
+                                    if (isPostAllocation)
+                                      _buildDesktopStatItem('المطلوب شهرياً', '${formatNumberWithCommas(currentContract!.agreedMonthlyAmount)} ل.س', Colors.teal)
+                                    else
+                                      _buildDesktopStatItem('متوسط القسط', '~ ${metersPerInstallment.toStringAsFixed(1)} م²', Colors.teal),
                                   ],
                                 ),
                               ),
-                              // خط فاصل ودليل الألوان
                               Container(height: 20, width: 1, color: Colors.grey.shade300, margin: const EdgeInsets.symmetric(horizontal: 12)),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -178,15 +189,19 @@ class TraditionalScheduleTab extends StatelessWidget {
                                   _buildLegendItem(Colors.orange, 'معلق'),
                                   const SizedBox(width: 12),
                                   _buildLegendItem(Colors.red, 'متأخر'),
+                                  if (isPostAllocation) ...[
+                                    const SizedBox(width: 12),
+                                    _buildLegendItem(Colors.grey.shade800, 'ضائع'),
+                                  ]
                                 ],
                               ),
                             ],
                           ),
                         ),
                         
-                        const SizedBox(height: 12), // 🌟 مسافة صغيرة بين الإحصائيات والجدول
+                        const SizedBox(height: 12), 
 
-                        // 🌟 جدول الاستحقاقات (مضغوط وعريض)
+                        // 🌟 جدول الاستحقاقات
                         Card(
                           elevation: 1,
                           margin: EdgeInsets.zero,
@@ -198,24 +213,25 @@ class TraditionalScheduleTab extends StatelessWidget {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: ConstrainedBox(
-                              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32), // التمدد لملء الشاشة
+                              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32), 
                               child: DataTable(
-                                headingRowHeight: 40, // 🌟 رأس جدول نحيف
+                                headingRowHeight: 40, 
                                 dataRowMinHeight: 35, 
-                                dataRowMaxHeight: 48, // 🌟 أسطر بيانات نحيفة ومناسبة للماوس
+                                dataRowMaxHeight: 48, 
                                 headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
                                 horizontalMargin: 16,
                                 columnSpacing: 24,
-                                columns: const[
-                                  DataColumn(label: Text('القسط', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('الكمية (م²)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))), 
-                                  DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                                  DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))), 
+                                columns:[
+                                  const DataColumn(label: Text('النقطة/القسط', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                  const DataColumn(label: Text('تاريخ الاستحقاق', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                  DataColumn(label: Text(isPostAllocation ? 'المطلوب (ل.س)' : 'الكمية (م²)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))), 
+                                  const DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                                  const DataColumn(label: Text('الإجراءات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))), 
                                 ],
                                 rows: state.scheduleList.map((schedule) {
                                   final isPaid = schedule.status == 'paid';
-                                  final isOverdue = !isPaid && schedule.dueDate.isBefore(DateTime.now());
+                                  final isMissed = schedule.status == 'missed'; 
+                                  final isOverdue = !isPaid && !isMissed && schedule.dueDate.isBefore(DateTime.now());
 
                                   String statusText = 'قادم / معلق';
                                   Color statusColor = Colors.orange;
@@ -223,6 +239,9 @@ class TraditionalScheduleTab extends StatelessWidget {
                                   if (isPaid) {
                                     statusText = 'مسدد ✓';
                                     statusColor = Colors.green;
+                                  } else if (isMissed) {
+                                    statusText = 'شهر ضائع ❌';
+                                    statusColor = Colors.grey.shade800;
                                   } else if (isOverdue) {
                                     statusText = 'متأخر 🚨';
                                     statusColor = Colors.red;
@@ -231,15 +250,12 @@ class TraditionalScheduleTab extends StatelessWidget {
                                   return DataRow(
                                     color: WidgetStateProperty.all(isOverdue ? Colors.red.shade50.withOpacity(0.5) : Colors.transparent),
                                     cells:[
-                                      // 1. رقم القسط
                                       DataCell(Text('#${schedule.installmentNumber}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
                                       
-                                      // 2. التاريخ + الملاحظات (أفقياً)
                                       DataCell(
                                         Row(
                                           children:[
                                             Text('${schedule.dueDate.year}/${schedule.dueDate.month}/${schedule.dueDate.day}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                            // 🌟 إظهار الملاحظة كـ Tooltip عند التمرير بالماوس بدلاً من سطر جديد
                                             if (schedule.notes != null && schedule.notes!.isNotEmpty) ...[
                                               const SizedBox(width: 8),
                                               Tooltip(
@@ -253,14 +269,15 @@ class TraditionalScheduleTab extends StatelessWidget {
                                         )
                                       ),
 
-                                      // 3. الكمية
+                                      // 🌟 الدالة الآن موجودة وتعمل بنجاح
                                       DataCell(
-                                        isPaid 
-                                          ? const Text('مُثبتة 🔒', style: TextStyle(color: Colors.grey, fontSize: 12))
-                                          : Text('~ ${metersPerInstallment.toStringAsFixed(1)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 13))
+                                        isPaid || isMissed
+                                          ? const Text('مُغلق 🔒', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold))
+                                          : isPostAllocation 
+                                              ? Text('${formatNumberWithCommas(currentContract!.agreedMonthlyAmount)} ل.س', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 13))
+                                              : Text('~ ${metersPerInstallment.toStringAsFixed(1)} م²', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.teal, fontSize: 13))
                                       ),
 
-                                      // 4. الحالة
                                       DataCell(
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -273,15 +290,13 @@ class TraditionalScheduleTab extends StatelessWidget {
                                         )
                                       ),
 
-                                      // 5. الإجراءات (مضغوطة)
                                       DataCell(
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children:[
-                                            if (isPaid) 
-                                              const Text('سُددت عبر الإيصالات', style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic))
-                                            else ...[
-                                              // زر الواتساب (صغير جداً)
+                                            if (isPaid || isMissed) 
+                                              Text(isPaid ? 'سُددت عبر الإيصالات' : 'تخلف عن الدفع', style: const TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic))
+                                            else if (!isPostAllocation) ...[
                                               SizedBox(
                                                 height: 28,
                                                 child: ElevatedButton.icon(
@@ -307,7 +322,6 @@ class TraditionalScheduleTab extends StatelessWidget {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
-                                              // زر التعديل (أيقونة فقط)
                                               SizedBox(
                                                 width: 28, height: 28,
                                                 child: IconButton(
@@ -317,7 +331,65 @@ class TraditionalScheduleTab extends StatelessWidget {
                                                   onPressed: () => showEditSingleScheduleDialog(context, schedule),
                                                 ),
                                               ),
-                                            ]
+                                            ] else ...[
+                                              // أزرار العقد "لاحق التخصص" 
+                                              SizedBox(
+                                                height: 28,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () {
+                                                    context.read<ScheduleCubit>().handleRollingCheckpoint(
+                                                      contractId: currentContract!.id,
+                                                      scheduleId: schedule.id,
+                                                      actionType: 'paid',
+                                                      nextDueDate: DateTime(schedule.dueDate.year, schedule.dueDate.month + 1, schedule.dueDate.day),
+                                                    );
+                                                  },
+                                                  icon: const Icon(Icons.check, size: 14),
+                                                  label: const Text('تسديد', style: TextStyle(fontSize: 11)),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              SizedBox(
+                                                height: 28,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () async {
+                                                    final pickedDate = await showDatePicker(
+                                                      context: context, initialDate: DateTime.now().add(const Duration(days: 30)),
+                                                      firstDate: DateTime.now(), lastDate: DateTime(2100),
+                                                    );
+                                                    if (pickedDate != null && context.mounted) {
+                                                      context.read<ScheduleCubit>().handleRollingCheckpoint(
+                                                        contractId: currentContract!.id,
+                                                        scheduleId: schedule.id,
+                                                        actionType: 'paid',
+                                                        nextDueDate: pickedDate,
+                                                      );
+                                                    }
+                                                  },
+                                                  icon: const Icon(Icons.fast_forward, size: 14),
+                                                  label: const Text('قفزة', style: TextStyle(fontSize: 11)),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              SizedBox(
+                                                height: 28,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () {
+                                                    context.read<ScheduleCubit>().handleRollingCheckpoint(
+                                                      contractId: currentContract!.id,
+                                                      scheduleId: schedule.id,
+                                                      actionType: 'missed',
+                                                      nextDueDate: DateTime(schedule.dueDate.year, schedule.dueDate.month + 1, schedule.dueDate.day),
+                                                    );
+                                                  },
+                                                  icon: const Icon(Icons.close, size: 14),
+                                                  label: const Text('ضائع', style: TextStyle(fontSize: 11)),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade800, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 8)),
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         )
                                       ),
@@ -335,11 +407,6 @@ class TraditionalScheduleTab extends StatelessWidget {
     );
   }
 
-  // ==========================================
-  // 🛠️ دوال مساعدة لرسم الواجهة الأفقية
-  // ==========================================
-  
-  // 🌟 دالة الإحصائيات أصبحت أفقية (الاسم والقيمة بجانب بعض)
   Widget _buildDesktopStatItem(String title, String value, Color color, {bool isAlert = false}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -373,7 +440,7 @@ class TraditionalScheduleTab extends StatelessWidget {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Row( // 🌟 تم تحويلها لـ Row لتبدو كبانر (Banner) على الشاشات العريضة
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children:[
           Icon(Icons.query_stats, size: 80, color: Colors.indigo.shade100),
@@ -385,7 +452,7 @@ class TraditionalScheduleTab extends StatelessWidget {
               const Text('الجدولة والمتابعة', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo)),
               const SizedBox(height: 8),
               Text(
-                'استخدم محرك البحث بالأعلى لاختيار عميل.\nيمكنك مراقبة الدفعات، إعادة الجدولة، أو إرسال مطالبات واتساب.',
+                'استخدم محرك البحث بالأعلى لاختيار عميل.\nيمكنك مراقبة الدفعات، وتحديد نقاط التفاعل للمستثمرين.',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5),
               ),
             ],
