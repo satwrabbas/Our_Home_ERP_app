@@ -14,6 +14,8 @@ import 'dialogs/verify_pin_dialog.dart';
 // استيراد الأقسام التي قمنا بفصلها
 import 'widgets/add_contract/historical_section.dart';
 import 'widgets/add_contract/basic_info_section.dart';
+import 'widgets/add_contract/auto_coefficients_section.dart';
+import 'widgets/add_contract/shared_coefficients_section.dart';
 import 'widgets/add_contract/property_section.dart';
 import 'widgets/add_contract/financial_section.dart';
 
@@ -222,6 +224,18 @@ class _AddContractPageState extends State<AddContractPage> {
                           ),
                           const SizedBox(height: 16),
 
+                          // 🌟 هنا نضع القسم الذي يسحب المعاملات الآلية (يظهر فقط للمتخصص)
+                          if (isAllocated)
+                            AutoCoefficientsSection(coefficients: autoImportedCoefficients),
+
+                          // 🌟 هنا نضع قسم التجهيزات المشتركة (يظهر فقط للمتخصص)
+                          if (isAllocated)
+                            SharedCoefficientsSection(
+                              blockCoeffCtrl: blockCoeffCtrl, coloredPlasterCoeffCtrl: coloredPlasterCoeffCtrl,
+                              marbleStairsCoeffCtrl: marbleStairsCoeffCtrl, marbleFinsCoeffCtrl: marbleFinsCoeffCtrl,
+                              plumbingCoeffCtrl: plumbingCoeffCtrl, chimneysCoeffCtrl: chimneysCoeffCtrl,
+                            ),
+                          
                           FinancialSection(
                             isAllocated: isAllocated,
                             isHistoricalContract: isHistoricalContract,
