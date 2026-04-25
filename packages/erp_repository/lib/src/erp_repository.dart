@@ -141,6 +141,7 @@ class ErpRepository {
           totalArea: double.tryParse(c['total_area']?.toString() ?? '0') ?? 0.0,
           baseMeterPriceAtSigning: double.tryParse(c['base_meter_price_at_signing']?.toString() ?? '0') ?? 0.0,
           installmentsCount: drift.Value(int.tryParse(c['installments_count']?.toString() ?? '48') ?? 48),
+          agreedMonthlyAmount: drift.Value(double.tryParse(c['agreed_monthly_amount']?.toString() ?? '0') ?? 0.0),
           coefficients: drift.Value(c['coefficients']?.toString() ?? '{}'),
           contractDate: DateTime.tryParse(c['contract_date']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc(),
           guarantorName: c['guarantor_name']?.toString() ?? 'بدون كفيل', 
@@ -313,6 +314,8 @@ class ErpRepository {
         'total_area': _safeNum(c.totalArea), 
         'base_meter_price_at_signing': _safeNum(c.baseMeterPriceAtSigning), 
         'installments_count': c.installmentsCount, 
+        'agreed_monthly_amount': _safeNum(c.agreedMonthlyAmount),
+        
         'coefficients': c.coefficients, 
         // 🌍 التعديل الضروري: UTC
         'contract_date': c.contractDate.toUtc().toIso8601String(), 
@@ -536,21 +539,20 @@ class ErpRepository {
   Future<void> addContract(ContractsCompanion contractCompanion) async {
     if (currentUserId == null) throw Exception('يجب تسجيل الدخول أولاً.');
     
-    // 1. إضافة الـ User ID
     final companionWithUser = contractCompanion.copyWith(userId: drift.Value(currentUserId!));
-    
-    // 2. استخراج عدد الأشهر وتاريخ البداية
     final int months = contractCompanion.installmentsCount.present ? contractCompanion.installmentsCount.value : 48;
-    // 🌍 التعديل الضروري: التأكد أن البداية UTC
     final DateTime startDate = contractCompanion.contractDate.present ? contractCompanion.contractDate.value : DateTime.now().toUtc();
     
-    // 3. 🌟 تنفيذ العملية المعقدة بأمان تام (Transaction)
-    await _localApi.addContractWithSchedules(companionWithUser, months, startDate, currentUserId!);
+    // 🌟 استخراج نوع العقد
+    final String type = contractCompanion.contractType.present ? contractCompanion.contractType.value : 'متخصص';
     
-    // 4. رفع البيانات للسحابة
+    // 🌟 تمرير النوع لآلة التوليد
+    await _localApi.addContractWithSchedules(companionWithUser, months, startDate, currentUserId!, type);
+    
     await syncPendingData();
   }
 
+  
   Future<void> deleteContract(String contractId) async {
     await _localApi.deleteContract(contractId);
     syncPendingData();

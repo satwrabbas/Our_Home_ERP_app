@@ -1,9 +1,9 @@
+// lib/contracts/cubit/contracts_cubit.dart
 import 'dart:io';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-// 🌟 جلبنا MaterialPricesHistoryCompanion لكي نتمكن من حفظ الأسعار
 import 'package:local_storage_api/local_storage_api.dart' show ContractsCompanion, Contract, Client, MaterialPricesHistoryCompanion;
 import 'package:drift/drift.dart' show Value;
 
@@ -48,9 +48,9 @@ class ContractsCubit extends Cubit<ContractsState> {
     required double basePrice,
     required int installmentsCount, 
     required String guarantorName, 
+    required double agreedMonthlyAmount, // 🌟 السطر الجديد
     Map<String, double> coefficients = const {}, 
-    DateTime? customDate, // 🌟 التاريخ القديم
-    // 🌟 حقول أسعار المواد التاريخية
+    DateTime? customDate, 
     double? histIron,
     double? histCement,
     double? histBlock,
@@ -65,24 +65,21 @@ class ContractsCubit extends Cubit<ContractsState> {
 
       final contractDateToSave = customDate?.toUtc() ?? DateTime.now().toUtc();
 
-      // 🌟 السحر هنا: إذا كان عقداً قديماً وتم إرسال أسعار معه، نحفظها في سجل الأسعار أولاً!
       if (customDate != null && histIron != null) {
         final historicalPrices = MaterialPricesHistoryCompanion.insert(
-          effectiveDate: Value(contractDateToSave), // نحفظها بتاريخ العقد القديم!
+          effectiveDate: Value(contractDateToSave), 
           ironPrice: histIron,
           cementPrice: histCement!,
           block15Price: histBlock!,
           formworkAndPouringWages: histFormwork!,
           aggregateMaterialsPrice: histAggregates!,
           ordinaryWorkerWage: histWorker!,
-          userId: userId, // 🌟 تم إضافة هذا السطر لحل الخطأ!
+          userId: userId, 
         );
         
-        // حفظ الأسعار في المستودع لتدخل في الإحصائيات وترتفع للسحابة
         await _erpRepository.savePrices(historicalPrices);
       }
 
-      // 🌟 ثم نحفظ العقد كالمعتاد
       final newContract = ContractsCompanion.insert(
         clientId: clientId,
         apartmentId: Value(apartmentId), 
@@ -91,6 +88,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         totalArea: area,
         baseMeterPriceAtSigning: basePrice,
         installmentsCount: Value(installmentsCount), 
+        agreedMonthlyAmount: Value(agreedMonthlyAmount), // 🌟 حفظ المبلغ المتفق عليه
         coefficients: Value(jsonEncode(coefficients)),
         contractDate: contractDateToSave, 
         guarantorName: guarantorName, 
@@ -162,7 +160,7 @@ class ContractsCubit extends Cubit<ContractsState> {
     required String details,
     required String guarantorName,
     required int installmentsCount,
-    required DateTime contractDate, // 🌟 إضافة هذا السطر
+    required DateTime contractDate, 
   }) async {
     try {
       await _erpRepository.updateContract(
@@ -170,7 +168,7 @@ class ContractsCubit extends Cubit<ContractsState> {
         apartmentDetails: details,
         guarantorName: guarantorName,
         installmentsCount: installmentsCount,
-        contractDate: contractDate, // 🌟 تمريره للمستودع
+        contractDate: contractDate, 
       );
       await fetchData(); 
     } catch (e) {

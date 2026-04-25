@@ -120,6 +120,10 @@ class Contracts extends Table {
   TextColumn get guarantorName => text()();
   TextColumn get contractFileUrl => text().nullable()();
   
+  // 🌟 السطر الجديد: المبلغ المتفق عليه شهرياً (يفيد حصراً عقود لاحق التخصص)
+  RealColumn get agreedMonthlyAmount => real().withDefault(const Constant(0.0))(); 
+  
+  
   TextColumn get userId => text()();
   
   // 🌍 ملاحظة: هذا الحقل لا يحتاج لـ clientDefault لأنه يُدخل يدوياً عند توقيع العقد، 
@@ -341,13 +345,16 @@ class AppDatabase extends _$AppDatabase {
     ContractsCompanion contract, 
     int installmentsCount, 
     DateTime startDate, 
-    String userId
+    String userId,
+    String contractType,
   ) async {
     return transaction(() async {
       // 1. إضافة العقد والحصول على الـ ID الخاص به
       final contractRow = await into(contracts).insertReturning(contract);
       final String newContractId = contractRow.id;
 
+      final int loopCount = (contractType == 'لاحق التخصص') ? 1 : installmentsCount;
+      
       // 2. توليد الأقساط وإضافتها فوراً داخل نفس العملية
       for (int i = 1; i <= installmentsCount; i++) {
         // 🌍[تعديل التوقيت]: استخدمنا DateTime.utc بدلاً من DateTime العادي

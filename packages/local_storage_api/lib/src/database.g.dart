@@ -2066,6 +2066,18 @@ class $ContractsTable extends Contracts
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _agreedMonthlyAmountMeta =
+      const VerificationMeta('agreedMonthlyAmount');
+  @override
+  late final GeneratedColumn<double> agreedMonthlyAmount =
+      GeneratedColumn<double>(
+        'agreed_monthly_amount',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0.0),
+      );
   static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
   @override
   late final GeneratedColumn<String> userId = GeneratedColumn<String>(
@@ -2191,6 +2203,7 @@ class $ContractsTable extends Contracts
     coefficients,
     guarantorName,
     contractFileUrl,
+    agreedMonthlyAmount,
     userId,
     contractDate,
     isCompleted,
@@ -2305,6 +2318,15 @@ class $ContractsTable extends Contracts
         contractFileUrl.isAcceptableOrUnknown(
           data['contract_file_url']!,
           _contractFileUrlMeta,
+        ),
+      );
+    }
+    if (data.containsKey('agreed_monthly_amount')) {
+      context.handle(
+        _agreedMonthlyAmountMeta,
+        agreedMonthlyAmount.isAcceptableOrUnknown(
+          data['agreed_monthly_amount']!,
+          _agreedMonthlyAmountMeta,
         ),
       );
     }
@@ -2431,6 +2453,10 @@ class $ContractsTable extends Contracts
         DriftSqlType.string,
         data['${effectivePrefix}contract_file_url'],
       ),
+      agreedMonthlyAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}agreed_monthly_amount'],
+      )!,
       userId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}user_id'],
@@ -2488,6 +2514,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   final String coefficients;
   final String guarantorName;
   final String? contractFileUrl;
+  final double agreedMonthlyAmount;
   final String userId;
   final DateTime contractDate;
   final bool isCompleted;
@@ -2509,6 +2536,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     required this.coefficients,
     required this.guarantorName,
     this.contractFileUrl,
+    required this.agreedMonthlyAmount,
     required this.userId,
     required this.contractDate,
     required this.isCompleted,
@@ -2539,6 +2567,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     if (!nullToAbsent || contractFileUrl != null) {
       map['contract_file_url'] = Variable<String>(contractFileUrl);
     }
+    map['agreed_monthly_amount'] = Variable<double>(agreedMonthlyAmount);
     map['user_id'] = Variable<String>(userId);
     map['contract_date'] = Variable<DateTime>(contractDate);
     map['is_completed'] = Variable<bool>(isCompleted);
@@ -2572,6 +2601,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       contractFileUrl: contractFileUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(contractFileUrl),
+      agreedMonthlyAmount: Value(agreedMonthlyAmount),
       userId: Value(userId),
       contractDate: Value(contractDate),
       isCompleted: Value(isCompleted),
@@ -2607,6 +2637,9 @@ class Contract extends DataClass implements Insertable<Contract> {
       coefficients: serializer.fromJson<String>(json['coefficients']),
       guarantorName: serializer.fromJson<String>(json['guarantorName']),
       contractFileUrl: serializer.fromJson<String?>(json['contractFileUrl']),
+      agreedMonthlyAmount: serializer.fromJson<double>(
+        json['agreedMonthlyAmount'],
+      ),
       userId: serializer.fromJson<String>(json['userId']),
       contractDate: serializer.fromJson<DateTime>(json['contractDate']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
@@ -2635,6 +2668,7 @@ class Contract extends DataClass implements Insertable<Contract> {
       'coefficients': serializer.toJson<String>(coefficients),
       'guarantorName': serializer.toJson<String>(guarantorName),
       'contractFileUrl': serializer.toJson<String?>(contractFileUrl),
+      'agreedMonthlyAmount': serializer.toJson<double>(agreedMonthlyAmount),
       'userId': serializer.toJson<String>(userId),
       'contractDate': serializer.toJson<DateTime>(contractDate),
       'isCompleted': serializer.toJson<bool>(isCompleted),
@@ -2659,6 +2693,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     String? coefficients,
     String? guarantorName,
     Value<String?> contractFileUrl = const Value.absent(),
+    double? agreedMonthlyAmount,
     String? userId,
     DateTime? contractDate,
     bool? isCompleted,
@@ -2683,6 +2718,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     contractFileUrl: contractFileUrl.present
         ? contractFileUrl.value
         : this.contractFileUrl,
+    agreedMonthlyAmount: agreedMonthlyAmount ?? this.agreedMonthlyAmount,
     userId: userId ?? this.userId,
     contractDate: contractDate ?? this.contractDate,
     isCompleted: isCompleted ?? this.isCompleted,
@@ -2726,6 +2762,9 @@ class Contract extends DataClass implements Insertable<Contract> {
       contractFileUrl: data.contractFileUrl.present
           ? data.contractFileUrl.value
           : this.contractFileUrl,
+      agreedMonthlyAmount: data.agreedMonthlyAmount.present
+          ? data.agreedMonthlyAmount.value
+          : this.agreedMonthlyAmount,
       userId: data.userId.present ? data.userId.value : this.userId,
       contractDate: data.contractDate.present
           ? data.contractDate.value
@@ -2760,6 +2799,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           ..write('coefficients: $coefficients, ')
           ..write('guarantorName: $guarantorName, ')
           ..write('contractFileUrl: $contractFileUrl, ')
+          ..write('agreedMonthlyAmount: $agreedMonthlyAmount, ')
           ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -2774,7 +2814,7 @@ class Contract extends DataClass implements Insertable<Contract> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     clientId,
     apartmentId,
@@ -2786,6 +2826,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     coefficients,
     guarantorName,
     contractFileUrl,
+    agreedMonthlyAmount,
     userId,
     contractDate,
     isCompleted,
@@ -2795,7 +2836,7 @@ class Contract extends DataClass implements Insertable<Contract> {
     lastActionNote,
     isDeleted,
     isSynced,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2811,6 +2852,7 @@ class Contract extends DataClass implements Insertable<Contract> {
           other.coefficients == this.coefficients &&
           other.guarantorName == this.guarantorName &&
           other.contractFileUrl == this.contractFileUrl &&
+          other.agreedMonthlyAmount == this.agreedMonthlyAmount &&
           other.userId == this.userId &&
           other.contractDate == this.contractDate &&
           other.isCompleted == this.isCompleted &&
@@ -2834,6 +2876,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
   final Value<String> coefficients;
   final Value<String> guarantorName;
   final Value<String?> contractFileUrl;
+  final Value<double> agreedMonthlyAmount;
   final Value<String> userId;
   final Value<DateTime> contractDate;
   final Value<bool> isCompleted;
@@ -2856,6 +2899,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.coefficients = const Value.absent(),
     this.guarantorName = const Value.absent(),
     this.contractFileUrl = const Value.absent(),
+    this.agreedMonthlyAmount = const Value.absent(),
     this.userId = const Value.absent(),
     this.contractDate = const Value.absent(),
     this.isCompleted = const Value.absent(),
@@ -2879,6 +2923,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     this.coefficients = const Value.absent(),
     required String guarantorName,
     this.contractFileUrl = const Value.absent(),
+    this.agreedMonthlyAmount = const Value.absent(),
     required String userId,
     required DateTime contractDate,
     this.isCompleted = const Value.absent(),
@@ -2907,6 +2952,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Expression<String>? coefficients,
     Expression<String>? guarantorName,
     Expression<String>? contractFileUrl,
+    Expression<double>? agreedMonthlyAmount,
     Expression<String>? userId,
     Expression<DateTime>? contractDate,
     Expression<bool>? isCompleted,
@@ -2931,6 +2977,8 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       if (coefficients != null) 'coefficients': coefficients,
       if (guarantorName != null) 'guarantor_name': guarantorName,
       if (contractFileUrl != null) 'contract_file_url': contractFileUrl,
+      if (agreedMonthlyAmount != null)
+        'agreed_monthly_amount': agreedMonthlyAmount,
       if (userId != null) 'user_id': userId,
       if (contractDate != null) 'contract_date': contractDate,
       if (isCompleted != null) 'is_completed': isCompleted,
@@ -2956,6 +3004,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     Value<String>? coefficients,
     Value<String>? guarantorName,
     Value<String?>? contractFileUrl,
+    Value<double>? agreedMonthlyAmount,
     Value<String>? userId,
     Value<DateTime>? contractDate,
     Value<bool>? isCompleted,
@@ -2980,6 +3029,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
       coefficients: coefficients ?? this.coefficients,
       guarantorName: guarantorName ?? this.guarantorName,
       contractFileUrl: contractFileUrl ?? this.contractFileUrl,
+      agreedMonthlyAmount: agreedMonthlyAmount ?? this.agreedMonthlyAmount,
       userId: userId ?? this.userId,
       contractDate: contractDate ?? this.contractDate,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -3031,6 +3081,11 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
     if (contractFileUrl.present) {
       map['contract_file_url'] = Variable<String>(contractFileUrl.value);
     }
+    if (agreedMonthlyAmount.present) {
+      map['agreed_monthly_amount'] = Variable<double>(
+        agreedMonthlyAmount.value,
+      );
+    }
     if (userId.present) {
       map['user_id'] = Variable<String>(userId.value);
     }
@@ -3078,6 +3133,7 @@ class ContractsCompanion extends UpdateCompanion<Contract> {
           ..write('coefficients: $coefficients, ')
           ..write('guarantorName: $guarantorName, ')
           ..write('contractFileUrl: $contractFileUrl, ')
+          ..write('agreedMonthlyAmount: $agreedMonthlyAmount, ')
           ..write('userId: $userId, ')
           ..write('contractDate: $contractDate, ')
           ..write('isCompleted: $isCompleted, ')
@@ -6856,6 +6912,7 @@ typedef $$ContractsTableCreateCompanionBuilder =
       Value<String> coefficients,
       required String guarantorName,
       Value<String?> contractFileUrl,
+      Value<double> agreedMonthlyAmount,
       required String userId,
       required DateTime contractDate,
       Value<bool> isCompleted,
@@ -6880,6 +6937,7 @@ typedef $$ContractsTableUpdateCompanionBuilder =
       Value<String> coefficients,
       Value<String> guarantorName,
       Value<String?> contractFileUrl,
+      Value<double> agreedMonthlyAmount,
       Value<String> userId,
       Value<DateTime> contractDate,
       Value<bool> isCompleted,
@@ -7033,6 +7091,11 @@ class $$ContractsTableFilterComposer
 
   ColumnFilters<String> get contractFileUrl => $composableBuilder(
     column: $table.contractFileUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get agreedMonthlyAmount => $composableBuilder(
+    column: $table.agreedMonthlyAmount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7232,6 +7295,11 @@ class $$ContractsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get agreedMonthlyAmount => $composableBuilder(
+    column: $table.agreedMonthlyAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get userId => $composableBuilder(
     column: $table.userId,
     builder: (column) => ColumnOrderings(column),
@@ -7371,6 +7439,11 @@ class $$ContractsTableAnnotationComposer
 
   GeneratedColumn<String> get contractFileUrl => $composableBuilder(
     column: $table.contractFileUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get agreedMonthlyAmount => $composableBuilder(
+    column: $table.agreedMonthlyAmount,
     builder: (column) => column,
   );
 
@@ -7551,6 +7624,7 @@ class $$ContractsTableTableManager
                 Value<String> coefficients = const Value.absent(),
                 Value<String> guarantorName = const Value.absent(),
                 Value<String?> contractFileUrl = const Value.absent(),
+                Value<double> agreedMonthlyAmount = const Value.absent(),
                 Value<String> userId = const Value.absent(),
                 Value<DateTime> contractDate = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
@@ -7573,6 +7647,7 @@ class $$ContractsTableTableManager
                 coefficients: coefficients,
                 guarantorName: guarantorName,
                 contractFileUrl: contractFileUrl,
+                agreedMonthlyAmount: agreedMonthlyAmount,
                 userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
@@ -7597,6 +7672,7 @@ class $$ContractsTableTableManager
                 Value<String> coefficients = const Value.absent(),
                 required String guarantorName,
                 Value<String?> contractFileUrl = const Value.absent(),
+                Value<double> agreedMonthlyAmount = const Value.absent(),
                 required String userId,
                 required DateTime contractDate,
                 Value<bool> isCompleted = const Value.absent(),
@@ -7619,6 +7695,7 @@ class $$ContractsTableTableManager
                 coefficients: coefficients,
                 guarantorName: guarantorName,
                 contractFileUrl: contractFileUrl,
+                agreedMonthlyAmount: agreedMonthlyAmount,
                 userId: userId,
                 contractDate: contractDate,
                 isCompleted: isCompleted,
