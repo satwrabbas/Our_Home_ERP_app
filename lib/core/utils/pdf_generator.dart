@@ -64,6 +64,7 @@ class PdfGenerator {
       final double discountAmount = hasDiscount ? originalInstallment! - entry.amountPaid : 0.0;
 
       return pw.Container(
+        margin: const pw.EdgeInsets.only(right: 15), // 👈 هذا هو الهامش اليميني
         padding: const pw.EdgeInsets.all(6),
         decoration: pw.BoxDecoration(
           
@@ -93,7 +94,7 @@ class PdfGenerator {
             pw.SizedBox(height: 6),
 
             // ==========================================
-            // 🟩 القسم 8: جدول المواد (الكميات والأسعار)
+            // 🟩 القسم 8: جدول المواد (بدون الكمية)
             // ==========================================
             pw.TableHelper.fromTextArray(
               context: null,
@@ -103,15 +104,15 @@ class PdfGenerator {
               cellStyle: pw.TextStyle(font: arabicFont, fontSize: 7),
               border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
               columnWidths: {
-                0: const pw.FlexColumnWidth(2), 
-                1: const pw.FlexColumnWidth(1.2), 
-                2: const pw.FlexColumnWidth(1.5), 
-                3: const pw.FlexColumnWidth(2), 
-                4: const pw.FlexColumnWidth(1.2), 
-                5: const pw.FlexColumnWidth(1.5), 
+                0: const pw.FlexColumnWidth(2),   // المادة (يمين)
+                1: const pw.FlexColumnWidth(1.5), // السعر (يمين)
+                2: const pw.FlexColumnWidth(2),   // المادة (يسار)
+                3: const pw.FlexColumnWidth(1.5), // السعر (يسار)
               },
-              headers:['المادة', 'الكمية', 'السعر', 'المادة', 'الكمية', 'السعر'],
-              data: [['حديد', '30 كغ', getPrice('iron'), 'كوفراج', '1.0 م3', getPrice('formwork')],['اسمنت', '4 كيس', getPrice('cement'), 'حصويات', '2.0 م3', getPrice('aggregates')],['بلوك', '50', getPrice('block'), 'عمال', '1.0 يوم', getPrice('worker')],
+              headers:['المادة', 'السعر', 'المادة', 'السعر'],
+              data: [['حديد', getPrice('iron'), 'كوفراج', getPrice('formwork')],
+                ['اسمنت', getPrice('cement'), 'حصويات', getPrice('aggregates')],
+                ['بلوك', getPrice('block'), 'عمال', getPrice('worker')],
               ],
             ),
 
