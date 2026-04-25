@@ -1,3 +1,5 @@
+//lib\contracts\view\widgets\add_contract\historical_section.dart
+
 import 'package:flutter/material.dart';
 import '../../../../core/utils/formatters.dart';
 
