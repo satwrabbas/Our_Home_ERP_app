@@ -201,7 +201,7 @@ class PdfGenerator {
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicBoldFont),
-        margin: const pw.EdgeInsets.all(15),
+        margin: const pw.EdgeInsets.all(3),
         build: (pw.Context context) {
           return pw.Align(
             alignment: pw.Alignment.topCenter,
