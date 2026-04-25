@@ -130,7 +130,6 @@ class PdfGenerator {
               child: pw.Column(
                 children:[
                   _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'سعر المتر بتاريخه:', value: '${entry.meterPriceAtPayment.toStringAsFixed(0)} ل.س'),
-                  
                   // 🌟 إضافة سطر نسبة البونص (يظهر فقط إذا تم تمرير نسبة أكبر من صفر)
                   if (bonusPercentage != null && bonusPercentage > 0)
                     _buildFinancialRow(font: arabicFont, boldFont: arabicBoldFont, title: 'نسبة البونص:', value: '%${bonusPercentage.toStringAsFixed(1)}', valueColor: PdfColors.teal),
