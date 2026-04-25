@@ -64,7 +64,7 @@ class PdfGenerator {
       return pw.Container(
         padding: const pw.EdgeInsets.all(6),
         decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: primaryColor, width: 1.0),
+          
           borderRadius: pw.BorderRadius.circular(6),
         ),
         child: pw.Column(
