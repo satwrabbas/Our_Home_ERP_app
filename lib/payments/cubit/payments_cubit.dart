@@ -51,42 +51,48 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   }
 
   // ==========================================
-  // ⚙️ المحرك المركزي الذكي لتوليد الأقساط (Rolling Checkpoint Engine)
+  // ⚙️ المحرك المركزي الذكي لتوليد الأقساط (يعتمد على الرصيد التراكمي)
   // ==========================================
-  Future<void> _autoAdvanceSchedule(String contractId, Contract contract, double paidAmount) async {
-    // 1. جلب الأقساط المعلقة (التي ينتظرها الرادار)
+  Future<void> _syncScheduleWithLedger(String contractId, Contract contract) async {
+    if (contract.agreedMonthlyAmount <= 0) return;
+
+    // 1. جلب الرصيد التراكمي (إجمالي ما دفعه العميل في هذا العقد عبر التاريخ)
+    final ledger = await _erpRepository.getContractLedger(contractId);
+    final double totalPaid = ledger.fold(0.0, (sum, entry) => sum + entry.amountPaid);
+
+    // 2. حساب عدد الأشهر التي "يُفترض" أن تكون مغلقة بناءً على هذا الرصيد
+    final int targetPaidMonths = (totalPaid / contract.agreedMonthlyAmount).floor();
+
+    // 3. جلب الجدول الحالي لمعرفة عدد الأشهر المغلقة فعلياً في شاشة المراقبة
     final schedules = await _erpRepository.getContractSchedule(contractId);
-    final pendingSchedules = schedules.where((s) => s.status == 'pending').toList();
-    
-    if (pendingSchedules.isEmpty) return; // لا يوجد نقاط معلقة
+    final int currentlyPaid = schedules.where((s) => s.status == 'paid').length;
 
-    // 2. حساب كم شهر يغطي هذا المبلغ
-    int monthsToAdvance = 1;
-    if (contract.agreedMonthlyAmount > 0) {
-      monthsToAdvance = (paidAmount / contract.agreedMonthlyAmount).floor();
-      // حتى لو دفع دفعة جزئية (أقل من القسط)، سنتقدم شهراً لكي لا يتوقف الرادار، 
-      // أو يمكنك تعديلها لتشترط سداد القسط كاملاً. حالياً جعلناها 1 كحد أدنى.
-      if (monthsToAdvance < 1) monthsToAdvance = 1; 
-    }
+    // 4. إذا كان الرصيد يغطي أشهراً جديدة، نتقدم للأمام نغلقها ونولد غيرها
+    if (targetPaidMonths > currentlyPaid) {
+      final int monthsToClose = targetPaidMonths - currentlyPaid;
+      
+      for (int i = 0; i < monthsToClose; i++) {
+        // جلب الجدول مجدداً في كل دورة لأننا نولد قسطاً جديداً
+        final currentSchedules = await _erpRepository.getContractSchedule(contractId);
+        final pendingSchedules = currentSchedules.where((s) => s.status == 'pending').toList();
+        
+        if (pendingSchedules.isEmpty) break;
 
-    // 3. التقدم للأمام وإغلاق الأشهر المستحقة
-    for (int i = 0; i < monthsToAdvance; i++) {
-      // نجلب الأقساط مجدداً في كل دورة لأننا نولد قسطاً جديداً
-      final currentSchedules = await _erpRepository.getContractSchedule(contractId);
-      final currentPending = currentSchedules.where((s) => s.status == 'pending').toList();
-      if (currentPending.isEmpty) break;
+        // ترتيب تصاعدي لضمان إغلاق أقدم شهر معلق
+        pendingSchedules.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+        final targetSchedule = pendingSchedules.first;
 
-      final targetSchedule = currentPending.first;
-      // توليد تاريخ الشهر القادم
-      final nextDueDate = DateTime.utc(targetSchedule.dueDate.year, targetSchedule.dueDate.month + 1, targetSchedule.dueDate.day);
+        // توليد تاريخ الشهر الذي يليه
+        final nextDueDate = DateTime.utc(targetSchedule.dueDate.year, targetSchedule.dueDate.month + 1, targetSchedule.dueDate.day);
 
-      // هذه الدالة تغلق القسط الحالي بـ paid، وتولد قسطاً جديداً للشهر القادم!
-      await _erpRepository.handleRollingCheckpoint(
-        contractId: contractId,
-        scheduleId: targetSchedule.id,
-        actionType: 'paid',
-        nextDueDate: nextDueDate,
-      );
+        // إغلاق الشهر وتوليد الجديد
+        await _erpRepository.handleRollingCheckpoint(
+          contractId: contractId,
+          scheduleId: targetSchedule.id,
+          actionType: 'paid',
+          nextDueDate: nextDueDate,
+        );
+      }
     }
   }
 
@@ -211,7 +217,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       await _erpRepository.addLedgerEntry(newEntry);
       
       // 🌟 السحر الحقيقي: بمجرد الحفظ، نقوم بتحريك عجلة الزمن للأمام في صفحة المراقبة!
-      await _autoAdvanceSchedule(contractId, contract, effectiveAmount);
+      await _syncScheduleWithLedger(contractId, contract);
       
       await selectContract(contractId);
       

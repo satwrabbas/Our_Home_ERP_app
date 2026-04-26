@@ -19,7 +19,7 @@ class ClientProfilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('الملف التعريفي الشامل 360°', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text('الملف التعريفي الشامل ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Colors.indigo.shade800,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
