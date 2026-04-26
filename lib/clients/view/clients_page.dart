@@ -1,10 +1,15 @@
 // lib/clients/view/clients_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:erp_repository/erp_repository.dart'; // 🌟 إضافة ضرورية لحقن الـ Repository
 import '../cubit/clients_cubit.dart';
 import 'deleted_clients_page.dart';
 import 'dialogs/add_client_dialog.dart';
 import 'dialogs/edit_client_dialog.dart';
+
+// 🌟 استدعاء ملفات الملف التعريفي الجديدة
+import '../../profile/cubit/client_profile_cubit.dart';
+import '../../profile/view/client_profile_page.dart';
 
 class ClientsPage extends StatelessWidget {
   const ClientsPage({super.key});
@@ -199,18 +204,17 @@ class _ClientsViewState extends State<ClientsView> {
                           clipBehavior: Clip.antiAlias,
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal, 
-                            // 🌟 نفس المسافات والمعادلة المستخدمة في العقود
                             child: ConstrainedBox(
                               constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 90),
                               child: DataTable(
-                                columnSpacing: 22, // 🌟 مسافة متقاربة
+                                columnSpacing: 22, 
                                 horizontalMargin: 20, 
                                 headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
                                 dataRowMinHeight: 55, 
                                 dataRowMaxHeight: 75,
                                 columns: const[
                                   DataColumn(label: Text('مُعرّف (ID)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
-                                  DataColumn(label: Text('اسم العميل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
+                                  DataColumn(label: Text('اسم العميل / الملف التعريفي', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
                                   DataColumn(label: Text('رقم الهاتف', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
                                   DataColumn(label: Text('الرقم الوطني', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
                                   DataColumn(label: Text('تاريخ الإضافة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent, fontSize: 14))),
@@ -228,14 +232,51 @@ class _ClientsViewState extends State<ClientsView> {
                                     cells:[
                                       DataCell(Text(client.id.split('-').first.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 14))),
                                       
+                                      // 🌟 السحر هنا: تحويل الاسم لزر يفتح الملف التعريفي الشامل
                                       DataCell(
                                         ConstrainedBox(
-                                          constraints: const BoxConstraints(maxWidth: 200), // مساحة مرنة لاسم العميل
-                                          child: Text(client.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                          constraints: const BoxConstraints(maxWidth: 200),
+                                          child: InkWell(
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => BlocProvider(
+                                                    create: (context) => ClientProfileCubit(context.read<ErpRepository>())..fetchClientData(client),
+                                                    child: ClientProfilePage(client: client),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo.withOpacity(0.05),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.indigo.withOpacity(0.2))
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children:[
+                                                  const Icon(Icons.open_in_new, size: 14, color: Colors.indigo),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Text(
+                                                      client.name, 
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.indigo), 
+                                                      maxLines: 2, 
+                                                      overflow: TextOverflow.ellipsis
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
                                         )
                                       ),
                                       
-                                      DataCell(Text(client.phone, style: const TextStyle(fontSize: 14, color: Colors.indigo))),
+                                      DataCell(Text(client.phone, style: const TextStyle(fontSize: 14, color: Colors.black87))),
                                       
                                       DataCell(Text(client.nationalId ?? 'غير متوفر', style: TextStyle(fontSize: 14, color: client.nationalId != null ? Colors.black87 : Colors.grey))),
                                       
