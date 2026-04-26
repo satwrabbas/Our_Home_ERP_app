@@ -1,3 +1,4 @@
+//lib\contracts\view\widgets\empty_contracts_view.dart
 import 'package:flutter/material.dart';
 
 class EmptyContractsView extends StatelessWidget {
