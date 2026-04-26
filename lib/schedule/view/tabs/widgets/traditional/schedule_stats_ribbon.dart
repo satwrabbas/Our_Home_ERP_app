@@ -1,4 +1,3 @@
-// lib/schedule/view/tabs/widgets/traditional/schedule_stats_ribbon.dart
 import 'package:flutter/material.dart';
 
 class ScheduleStatsRibbon extends StatelessWidget {
@@ -6,7 +5,7 @@ class ScheduleStatsRibbon extends StatelessWidget {
   final int paidInstallments;
   final int pendingInstallments;
   final int overdueInstallments;
-  final bool isPostAllocation;
+  final bool isPostAllocation; // لم نعد نحتاجها كشرط، لكن سنبقيها كي لا ينكسر الكود القديم
   final String formattedAgreedAmount;
   final double metersPerInstallment;
 
@@ -39,15 +38,13 @@ class ScheduleStatsRibbon extends StatelessWidget {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children:[
-                _buildDesktopStatItem(isPostAllocation ? 'نقاط التفاعل' : 'إجمالي الأقساط', totalInstallments.toString(), Colors.indigo),
+                // 🌟 توحيد المصطلحات لتناسب المدة المفتوحة
+                _buildDesktopStatItem('الأشهر المُسجلة', totalInstallments.toString(), Colors.indigo),
                 _buildDesktopStatItem('تم السداد', paidInstallments.toString(), Colors.green),
-                _buildDesktopStatItem('المتبقي/المعلق', pendingInstallments.toString(), Colors.orange),
-                _buildDesktopStatItem('المتأخر', overdueInstallments.toString(), Colors.red, isAlert: overdueInstallments > 0),
-                
-                if (isPostAllocation)
-                  _buildDesktopStatItem('المطلوب شهرياً', '$formattedAgreedAmount ل.س', Colors.teal)
-                else
-                  _buildDesktopStatItem('متوسط القسط', '~ ${metersPerInstallment.toStringAsFixed(1)} م²', Colors.teal),
+                _buildDesktopStatItem('الاستحقاق القادم', pendingInstallments.toString(), Colors.orange),
+                _buildDesktopStatItem('أشهر متأخرة', overdueInstallments.toString(), Colors.red, isAlert: overdueInstallments > 0),
+                // 🌟 عرض المبلغ الشهري لجميع العقود
+                _buildDesktopStatItem('المطلوب شهرياً', '$formattedAgreedAmount ل.س', Colors.teal),
               ],
             ),
           ),
@@ -60,10 +57,8 @@ class ScheduleStatsRibbon extends StatelessWidget {
               _buildLegendItem(Colors.orange, 'معلق'),
               const SizedBox(width: 12),
               _buildLegendItem(Colors.red, 'متأخر'),
-              if (isPostAllocation) ...[
-                const SizedBox(width: 12),
-                _buildLegendItem(Colors.grey.shade800, 'ضائع'),
-              ]
+              const SizedBox(width: 12),
+              _buildLegendItem(Colors.grey.shade800, 'ضائع'),
             ],
           ),
         ],

@@ -51,31 +51,42 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   }
 
   // ==========================================
-  // ⚙️ المحرك المحاسبي المركزي (إعادة وزن الأقساط)
+  // ⚙️ المحرك المركزي الذكي لتوليد الأقساط (Rolling Checkpoint Engine)
   // ==========================================
-  /// يتم استدعاء هذه الدالة بعد (إضافة، تعديل، حذف، أو استعادة) أي دفعة 
-  /// لتقوم بجمع الأمتار من الصفر وإعادة توزيع الأقساط المستحقة برمجياً.
-  Future<void> _recalculateInstallmentsStatus(String contractId, Contract contract) async {
-    // 1. جلب كل الدفعات "السليمة" فقط
-    final allEntries = await _erpRepository.getContractLedger(contractId);
-    
-    // 2. جمع كل الأمتار المحولة
-    double totalConvertedMetersAccumulated = allEntries.fold(0, (sum, item) => sum + item.convertedMeters);
-
-    // 3. حساب كم شهر تم تسديده بالكامل
-    final int monthsCount = contract.installmentsCount > 0 ? contract.installmentsCount : 48;
-    final double requiredMetersPerMonth = contract.totalArea / monthsCount;
-    final int fullyPaidMonths = (totalConvertedMetersAccumulated / requiredMetersPerMonth).floor();
-    
-    // 4. جلب الأقساط وإعادة ضبط حالتها
+  Future<void> _autoAdvanceSchedule(String contractId, Contract contract, double paidAmount) async {
+    // 1. جلب الأقساط المعلقة (التي ينتظرها الرادار)
     final schedules = await _erpRepository.getContractSchedule(contractId);
+    final pendingSchedules = schedules.where((s) => s.status == 'pending').toList();
+    
+    if (pendingSchedules.isEmpty) return; // لا يوجد نقاط معلقة
 
-    for (var schedule in schedules) {
-      String targetStatus = (schedule.installmentNumber <= fullyPaidMonths) ? 'paid' : 'pending';
-      // تحديث فقط إذا كانت الحالة تحتاج لتغيير لتقليل استهلاك قاعدة البيانات
-      if (schedule.status != targetStatus) {
-        await _erpRepository.updateScheduleStatus(schedule.id, targetStatus);
-      }
+    // 2. حساب كم شهر يغطي هذا المبلغ
+    int monthsToAdvance = 1;
+    if (contract.agreedMonthlyAmount > 0) {
+      monthsToAdvance = (paidAmount / contract.agreedMonthlyAmount).floor();
+      // حتى لو دفع دفعة جزئية (أقل من القسط)، سنتقدم شهراً لكي لا يتوقف الرادار، 
+      // أو يمكنك تعديلها لتشترط سداد القسط كاملاً. حالياً جعلناها 1 كحد أدنى.
+      if (monthsToAdvance < 1) monthsToAdvance = 1; 
+    }
+
+    // 3. التقدم للأمام وإغلاق الأشهر المستحقة
+    for (int i = 0; i < monthsToAdvance; i++) {
+      // نجلب الأقساط مجدداً في كل دورة لأننا نولد قسطاً جديداً
+      final currentSchedules = await _erpRepository.getContractSchedule(contractId);
+      final currentPending = currentSchedules.where((s) => s.status == 'pending').toList();
+      if (currentPending.isEmpty) break;
+
+      final targetSchedule = currentPending.first;
+      // توليد تاريخ الشهر القادم
+      final nextDueDate = DateTime.utc(targetSchedule.dueDate.year, targetSchedule.dueDate.month + 1, targetSchedule.dueDate.day);
+
+      // هذه الدالة تغلق القسط الحالي بـ paid، وتولد قسطاً جديداً للشهر القادم!
+      await _erpRepository.handleRollingCheckpoint(
+        contractId: contractId,
+        scheduleId: targetSchedule.id,
+        actionType: 'paid',
+        nextDueDate: nextDueDate,
+      );
     }
   }
 
@@ -198,7 +209,10 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       );
       
       await _erpRepository.addLedgerEntry(newEntry);
-      await _recalculateInstallmentsStatus(contractId, contract);
+      
+      // 🌟 السحر الحقيقي: بمجرد الحفظ، نقوم بتحريك عجلة الزمن للأمام في صفحة المراقبة!
+      await _autoAdvanceSchedule(contractId, contract, effectiveAmount);
+      
       await selectContract(contractId);
       
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
@@ -235,8 +249,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         newConvertedMeters: newConvertedMeters,
       );
 
-      // 🌟 تشغيل المحرك المركزي لإعادة توزيع الأقساط بعد تعديل الأمتار
-      await _recalculateInstallmentsStatus(entryToEdit.contractId, contract);
 
       await selectContract(entryToEdit.contractId); // تحديث الواجهة
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
@@ -265,8 +277,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       // 2. الحذف الوهمي (Soft Delete)
       await _erpRepository.softDeleteLedgerEntry(entryToDelete.id);
 
-      // 3. 🌟 تشغيل المحرك المركزي (لأن الأمتار نقصت، يجب أن تعود بعض الأقساط إلى pending)
-      await _recalculateInstallmentsStatus(entryToDelete.contractId, contract);
 
       await selectContract(entryToDelete.contractId);
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
@@ -294,8 +304,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       
       final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
       
-      // 🌟 تشغيل المحرك المركزي لأن الأمتار رجعت!
-      await _recalculateInstallmentsStatus(entry.contractId, contract);
 
       await fetchDeletedEntries(); // تحديث السلة
       await selectContract(entry.contractId); // تحديث الواجهة الأم
