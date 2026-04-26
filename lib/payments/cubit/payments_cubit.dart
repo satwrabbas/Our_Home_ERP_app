@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:local_storage_api/local_storage_api.dart'; 
 import 'package:drift/drift.dart' show Value;
 import 'package:local_storage_api/local_storage_api.dart' show PaymentsLedgerCompanion, PaymentsLedgerData, Contract, Client, Apartment, Building, MaterialPricesHistoryCompanion, MaterialPricesHistoryData; 
 
@@ -49,46 +48,10 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     }
   }
 
-  // ==========================================
-  // ⚙️ المحرك المركزي الذكي لتوليد الأقساط (يعتمد على الرصيد التراكمي)
-  // ==========================================
-  Future<void> _syncScheduleWithLedger(String contractId, Contract contract) async {
-    if (contract.agreedMonthlyAmount <= 0) return;
-
-    final ledger = await _erpRepository.getContractLedger(contractId);
-    final double totalPaid = ledger.fold(0.0, (sum, entry) => sum + entry.amountPaid);
-
-    final int targetPaidMonths = (totalPaid / contract.agreedMonthlyAmount).floor();
-
-    final schedules = await _erpRepository.getContractSchedule(contractId);
-    final int currentlyPaid = schedules.where((s) => s.status == 'paid').length;
-
-    if (targetPaidMonths > currentlyPaid) {
-      final int monthsToClose = targetPaidMonths - currentlyPaid;
-      
-      for (int i = 0; i < monthsToClose; i++) {
-        final currentSchedules = await _erpRepository.getContractSchedule(contractId);
-        final pendingSchedules = currentSchedules.where((s) => s.status == 'pending').toList();
-        
-        if (pendingSchedules.isEmpty) break;
-
-        pendingSchedules.sort((a, b) => a.dueDate.compareTo(b.dueDate));
-        final targetSchedule = pendingSchedules.first;
-
-        final nextDueDate = DateTime.utc(targetSchedule.dueDate.year, targetSchedule.dueDate.month + 1, targetSchedule.dueDate.day);
-
-        await _erpRepository.handleRollingCheckpoint(
-          contractId: contractId,
-          scheduleId: targetSchedule.id,
-          actionType: 'paid',
-          nextDueDate: nextDueDate,
-        );
-      }
-    }
-  }
+  // 🌟 (تم حذف دالة _syncScheduleWithLedger القديمة المسببة للمشكلة تماماً) 🌟
 
   // ==========================================
-  // 🌟 دالة الإضافة المعدلة لتدعم (الوضع الطبيعي / القديم السريع / القديم التفصيلي)
+  // 2. 🌟 الدفع بنظام القيمة (Value-Based Payment) - التعديل الجوهري
   // ==========================================
   Future<void> addLedgerEntry({
     required String contractId, 
@@ -109,7 +72,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول.');
 
-      // 🌟🌟🌟 الحل الجذري هنا: قراءة الـ JSON بأمان تام! 🌟🌟🌟
+      // قراءة الـ JSON بأمان تام
       Map<String, double> contractCoefficients = {};
       try {
         if (contract.coefficients.isNotEmpty && contract.coefficients != '{}') {
@@ -124,7 +87,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
 
       // حماية المساحة لكي لا نرسل صفر للحاسبة
       final double safeAreaForCalculation = contract.totalArea > 0 ? contract.totalArea : 1.0;
-
       final paymentDateToSave = customDate?.toUtc() ?? DateTime.now().toUtc();
       
       double meterPriceToUse = 0.0;
@@ -137,7 +99,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
           'note': 'إدخال تاريخي سريع',
           'manual_meter_price': customMeterPrice
         });
-        
       } else if (customDate != null && histIron != null) {
         final historicalPrices = MaterialPricesHistoryCompanion.insert(
           effectiveDate: Value(paymentDateToSave), 
@@ -165,7 +126,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
           'iron': histIron, 'cement': histCement, 'block': histBlock,
           'formwork': histFormwork, 'aggregates': histAggregates, 'worker': histWorker,
         });
-
       } else {
         final currentPrices = await _erpRepository.getLatestPrices();
         if (currentPrices == null) throw Exception('يرجى إضافة أسعار المواد أولاً في الإعدادات.');
@@ -182,9 +142,11 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         });
       }
 
+      // حساب المبالغ والأمتار الفعلية المشتراة
       final double effectiveAmount = amountPaid + (amountPaid * (discountPercentage / 100));
       final double convertedMeters = effectiveAmount / meterPriceToUse;
 
+      // 1. تسجيل الدفعة الحقيقية في دفتر الأستاذ (بالمبلغ الكامل الذي دفعه)
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
@@ -199,11 +161,35 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       
       await _erpRepository.addLedgerEntry(newEntry);
       
-      // 🌟 تحديث المراقبة آلياً
-      await _syncScheduleWithLedger(contractId, contract);
+      // 🌟🌟🌟 التعديل الجوهري السحري (بديل الـ Loop المزعج) 🌟🌟🌟
+      // إذا كان هناك قسط مرتبط بهذه الدفعة، نغلقه هو "فقط" ونولد الشهر القادم
+      if (scheduleId != null) {
+        // جلب جدول الاستحقاقات لمعرفة تاريخ القسط الذي ندفعه الآن
+        final currentSchedules = await _erpRepository.getContractSchedule(contractId);
+        final targetScheduleIndex = currentSchedules.indexWhere((s) => s.id == scheduleId);
+        
+        if (targetScheduleIndex != -1) {
+          final targetSchedule = currentSchedules[targetScheduleIndex];
+          
+          // تحديد تاريخ القسط القادم (بعد شهر واحد بالضبط)
+          final nextDueDate = DateTime.utc(
+            targetSchedule.dueDate.year, 
+            targetSchedule.dueDate.month + 1, 
+            targetSchedule.dueDate.day
+          );
+
+          // إغلاق هذا القسط (باعتباره مسدداً) وتوليد نقطة المراقبة للشهر القادم
+          await _erpRepository.handleRollingCheckpoint(
+            contractId: contractId,
+            scheduleId: scheduleId,
+            actionType: 'paid',
+            nextDueDate: nextDueDate,
+          );
+        }
+      }
       
+      // تحديث الواجهة
       await selectContract(contractId);
-      
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
       
     } catch (e) {
