@@ -7,54 +7,78 @@ import 'tabs/radar_tab.dart';
 import 'tabs/traditional_schedule_tab.dart';
 import 'tabs/overdue_radar_tab.dart'; 
 
-class SchedulePage extends StatelessWidget {
+class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const ScheduleView();
-  }
+  State<SchedulePage> createState() => _SchedulePageState();
 }
 
-class ScheduleView extends StatelessWidget {
-  const ScheduleView({super.key});
+class _SchedulePageState extends State<SchedulePage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🌟 1. إنشاء المتحكم وقراءة الرقم الحالي من الكيوبت (في حال تم فتحه من شاشة أخرى)
+    final initialIndex = context.read<ScheduleCubit>().state.activeTabIndex;
+    _tabController = TabController(initialIndex: initialIndex, length: 3, vsync: this);
+    
+    // 🌟 2. إذا قام المستخدم بتغيير التبويب بيده (سحب الشاشة)، نخبر الكيوبت
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final cubit = context.read<ScheduleCubit>();
+        if (cubit.state.activeTabIndex != _tabController.index) {
+          cubit.changeTab(_tabController.index);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3, 
+    // 🌟 3. السحر هنا: نستمع للكيوبت بشكل دائم، وإذا أرسل أمر انتقال، نحرك الشاشة آلياً!
+    return BlocListener<ScheduleCubit, ScheduleState>(
+      listenWhen: (previous, current) => previous.activeTabIndex != current.activeTabIndex,
+      listener: (context, state) {
+        if (_tabController.index != state.activeTabIndex) {
+          _tabController.animateTo(state.activeTabIndex);
+        }
+      },
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.indigo,
           elevation: 0,
-          toolbarHeight: 70, // مساحة مريحة للسطر الواحد
-          // 🌟 وضعنا التبويبات في الـ title لدمجهم في سطر واحد احترافي
+          toolbarHeight: 70, 
           title: Container(
             height: 45, 
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15), // خلفية شفافة أنيقة للتبويبات
+              color: Colors.white.withOpacity(0.15), 
               borderRadius: BorderRadius.circular(25),
             ),
             child: TabBar(
-              dividerColor: Colors.transparent, // إزالة الخط السفلي الافتراضي
+              controller: _tabController, // 🌟 ربط المتحكم الذكي
+              dividerColor: Colors.transparent, 
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
                 color: Colors.orange,
-                borderRadius: BorderRadius.circular(25), // مؤشر بشكل زر (Pill)
+                borderRadius: BorderRadius.circular(25), 
                 boxShadow: const[
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
+                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
                 ],
               ),
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
-              labelPadding: EdgeInsets.zero, // لمنع تجاوز النصوص للشاشة
+              labelPadding: EdgeInsets.zero, 
               tabs:[
                 _buildCompactTab(Icons.warning_amber_rounded, 'المتعثرين'),
-                _buildCompactTab(Icons.radar, 'الرادار'), // تم الاختصار لجمالية السطر الواحد
+                _buildCompactTab(Icons.radar, 'الرادار'), 
                 _buildCompactTab(Icons.table_chart, 'الجدول'), 
               ],
             ),
@@ -67,18 +91,16 @@ class ScheduleView extends StatelessWidget {
             }
             if (state.clients.isEmpty || state.contracts.isEmpty) {
               return const Center(
-                child: Text(
-                  'لا يوجد بيانات كافية.', 
-                  style: TextStyle(fontSize: 18, color: Colors.grey)
-                )
+                child: Text('لا يوجد بيانات كافية.', style: TextStyle(fontSize: 18, color: Colors.grey))
               );
             }
 
             return TabBarView(
+              controller: _tabController, // 🌟 ربط المتحكم بالشاشات الداخلية
               children:[
-                OverdueRadarTab(state: state),
-                RadarTab(state: state),
-                TraditionalScheduleTab(state: state),
+                OverdueRadarTab(state: state),         // Index 0
+                RadarTab(state: state),                // Index 1
+                TraditionalScheduleTab(state: state),  // Index 2
               ],
             );
           },
@@ -87,7 +109,7 @@ class ScheduleView extends StatelessWidget {
     );
   }
 
-  // 🌟 دالة مساعدة لإنشاء التبويبات (أيقونة ونص) في سطر واحد وبشكل متناسق
+  // 🌟 دالة مساعدة لإنشاء التبويبات
   Widget _buildCompactTab(IconData icon, String title) {
     return Tab(
       child: Row(
@@ -98,10 +120,7 @@ class ScheduleView extends StatelessWidget {
           Flexible(
             child: Text(
               title,
-              style: const TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               overflow: TextOverflow.ellipsis,
             ),
           ),

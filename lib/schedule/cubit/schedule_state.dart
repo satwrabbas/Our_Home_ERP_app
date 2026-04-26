@@ -46,6 +46,7 @@ class ScheduleState extends Equatable {
     this.allocationAlerts = const[], 
     this.overdueAlerts = const[], 
     this.selectedContractId,
+    this.activeTabIndex = 0, // 🌟 تمت الإضافة: التبويب الافتراضي هو 0 (المتعثرين)
     this.errorMessage,
   });
 
@@ -56,6 +57,7 @@ class ScheduleState extends Equatable {
   final List<AllocationAlertData> allocationAlerts; 
   final List<OverdueContractAlert> overdueAlerts; 
   final String? selectedContractId;
+  final int activeTabIndex; // 🌟 تمت الإضافة
   final String? errorMessage;
 
   ScheduleState copyWith({
@@ -66,6 +68,7 @@ class ScheduleState extends Equatable {
     List<AllocationAlertData>? allocationAlerts, 
     List<OverdueContractAlert>? overdueAlerts, 
     String? selectedContractId,
+    int? activeTabIndex, // 🌟 تمت الإضافة
     String? errorMessage,
   }) {
     return ScheduleState(
@@ -76,12 +79,14 @@ class ScheduleState extends Equatable {
       allocationAlerts: allocationAlerts ?? this.allocationAlerts, 
       overdueAlerts: overdueAlerts ?? this.overdueAlerts, 
       selectedContractId: selectedContractId ?? this.selectedContractId,
+      activeTabIndex: activeTabIndex ?? this.activeTabIndex, // 🌟 تمت الإضافة
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
   @override
+  // 🌟 تمت الإضافة في الـ props لكي يتم تحديث الشاشة عند تغيير الرقم
   List<Object?> get props =>[
-    status, clients, contracts, scheduleList, allocationAlerts, overdueAlerts, selectedContractId, errorMessage
+    status, clients, contracts, scheduleList, allocationAlerts, overdueAlerts, selectedContractId, activeTabIndex, errorMessage
   ];
 }

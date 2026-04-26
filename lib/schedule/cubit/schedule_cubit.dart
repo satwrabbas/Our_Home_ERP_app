@@ -13,6 +13,13 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   final ErpRepository _erpRepository;
   final double targetAllocationMeters = 50.0; // 🌟 هدف التخصص (يمكنك تغييره إلى 40 أو أي رقم)
 
+  // ==========================================
+  // 🎯 التحكم في التبويبات الداخلية لصفحة المراقبة
+  // ==========================================
+  void changeTab(int index) {
+    emit(state.copyWith(activeTabIndex: index));
+  }
+
   Future<void> fetchInitialData() async {
     if (state.status == ScheduleStatus.initial) emit(state.copyWith(status: ScheduleStatus.loading));
     try {
