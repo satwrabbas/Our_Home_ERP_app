@@ -20,6 +20,9 @@ class ScheduleToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 متغير للتحقق مما إذا كانت القائمة فارغة
+    final bool hasContracts = state.contracts.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
       decoration: BoxDecoration(
@@ -34,6 +37,23 @@ class ScheduleToolbar extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                // 🌟 الحل الذكي: إذا لم يكن هناك عقود، نعرض حقل معطل بشكل أنيق
+                if (!hasContracts) {
+                  return TextField(
+                    enabled: false,
+                    decoration: InputDecoration(
+                      hintText: 'لا يوجد عملاء أو عقود حالياً...',
+                      hintStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.grey.shade200, // لون يدل على التعطيل
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  );
+                }
+
+                // 🌟 إذا كان هناك عقود، نعرض قائمة البحث الطبيعية
                 return DropdownMenu<String>(
                   width: constraints.maxWidth,
                   enableSearch: true,
@@ -78,7 +98,6 @@ class ScheduleToolbar extends StatelessWidget {
                 icon: const Icon(Icons.settings, size: 16),
                 label: const Text('الخصائص', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () {
-                  // 🌟 إضافة علامة التعجب ! هنا
                   if (currentContract != null) showEditScheduleDialog(context, currentContract!);
                 },
               ),
@@ -96,7 +115,6 @@ class ScheduleToolbar extends StatelessWidget {
                 icon: const Icon(Icons.autorenew, size: 16),
                 label: const Text('إعادة جدولة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () {
-                  // 🌟 وإضافة علامة التعجب ! هنا أيضاً
                   if (currentContract != null) showRescheduleDialog(context, currentContract!);
                 },
               ),
