@@ -39,7 +39,7 @@ class _AddContractPageState extends State<AddContractPage> {
   final guarantorController = TextEditingController(); 
   final monthlyAmountCtrl = TextEditingController(); 
 
-  // معاملات إضافية (تم تركها للتبسيط أو يمكن وضعها في ماب)
+  // معاملات إضافية للتجهيزات المشتركة
   final blockCoeffCtrl = TextEditingController(text: '0');
   final coloredPlasterCoeffCtrl = TextEditingController(text: '0');
   final marbleStairsCoeffCtrl = TextEditingController(text: '0');
@@ -102,12 +102,41 @@ class _AddContractPageState extends State<AddContractPage> {
   }
 
   // ==========================================
+  // 🌟 دالة مساعدة لتجميع كافة المعاملات بنظافة
+  // ==========================================
+  Map<String, double> _buildFinalCoefficients(bool isAllocated) {
+    Map<String, double> finalCoeffs = {};
+    if (!isAllocated) return finalCoeffs; // لا يوجد معاملات للاحق التخصص
+
+    // 1. المعاملات الآلية (الطابق، الواجهة، الخ)
+    autoImportedCoefficients.forEach((key, value) => finalCoeffs[key] = value / 100.0);
+
+    // 2. نسبة التقسيط
+    double? durVal = double.tryParse(durationCoefficientCtrl.text);
+    if (durVal != null && durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
+
+    // 3. التجهيزات المشتركة (الإضافة المفقودة!)
+    void addSharedCoeff(String key, TextEditingController ctrl) {
+      double? val = double.tryParse(ctrl.text);
+      if (val != null && val != 0.0) finalCoeffs[key] = val / 100.0;
+    }
+
+    addSharedCoeff('بلوك معزول', blockCoeffCtrl);
+    addSharedCoeff('طينة ملونة', coloredPlasterCoeffCtrl);
+    addSharedCoeff('أدراج رخام', marbleStairsCoeffCtrl);
+    addSharedCoeff('زعانف رخام', marbleFinsCoeffCtrl);
+    addSharedCoeff('تمديد صحي', plumbingCoeffCtrl);
+    addSharedCoeff('مداخن', chimneysCoeffCtrl);
+
+    return finalCoeffs;
+  }
+
+  // ==========================================
   // 🧮 دالة الحساب الذكية (معدلة)
   // ==========================================
   void _calculatePrice(MaterialPricesHistoryData? currentPrices) {
     bool isAllocated = selectedContractType == 'متخصص';
 
-    // 🌟 1. تجاوز التحقق من المساحة إذا كان لاحق التخصص
     if (isAllocated && areaController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('البيانات غير مكتملة! أدخل المساحة.'), backgroundColor: Colors.red));
       return;
@@ -133,14 +162,9 @@ class _AddContractPageState extends State<AddContractPage> {
       targetPrices = currentPrices;
     }
 
-    Map<String, double> finalCoeffs = {};
-    if (isAllocated) {
-      double? durVal = double.tryParse(durationCoefficientCtrl.text);
-      if (durVal != null && durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
-      autoImportedCoefficients.forEach((key, value) => finalCoeffs[key] = value / 100.0);
-    }
+    // 🌟 تجميع كافة المعاملات عبر الدالة المساعدة
+    Map<String, double> finalCoeffs = _buildFinalCoefficients(isAllocated);
 
-    // 🌟 2. إذا كان العقد لاحق التخصص، نرسل (مساحة 1 متر وهمية) للحاسبة فقط لكي تُخرج لنا سعر المتر وتتجنب القسمة على صفر
     double dummyAreaForCalculation = isAllocated ? double.parse(areaController.text) : 1.0;
 
     final calculations = CalculatorHelper.calculateContractValues(
@@ -149,7 +173,7 @@ class _AddContractPageState extends State<AddContractPage> {
       coefficients: finalCoeffs, 
     );
     priceController.text = NumberFormatters.formatWithCommas(calculations['pricePerSqm']!);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isHistoricalContract ? 'تم الحساب بناءً على المواد التاريخية ✅' : 'تم الحساب بناءً على أسعار اليوم ✅'), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isHistoricalContract ? 'تم الحساب بنجاح ✅' : 'تم الحساب بنجاح ✅'), backgroundColor: Colors.green));
   }
 
 
@@ -205,7 +229,6 @@ class _AddContractPageState extends State<AddContractPage> {
                             onTypeChanged: (val) {
                               setState(() {
                                 selectedContractType = val ?? 'متخصص';
-                                // 🌟 تم حذف أمر المسح (monthlyAmountCtrl.clear) من الـ else
                                 if (!isAllocated) { 
                                   autoImportedCoefficients.clear(); 
                                   selectedBuildingId = null; 
@@ -228,11 +251,9 @@ class _AddContractPageState extends State<AddContractPage> {
                           ),
                           const SizedBox(height: 16),
 
-                          // 🌟 هنا نضع القسم الذي يسحب المعاملات الآلية (يظهر فقط للمتخصص)
                           if (isAllocated)
                             AutoCoefficientsSection(coefficients: autoImportedCoefficients),
 
-                          // 🌟 هنا نضع قسم التجهيزات المشتركة (يظهر فقط للمتخصص)
                           if (isAllocated)
                             SharedCoefficientsSection(
                               blockCoeffCtrl: blockCoeffCtrl, coloredPlasterCoeffCtrl: coloredPlasterCoeffCtrl,
@@ -247,7 +268,7 @@ class _AddContractPageState extends State<AddContractPage> {
                             monthsController: monthsController,
                             durationCoefficientCtrl: durationCoefficientCtrl,
                             priceController: priceController,
-                            monthlyAmountCtrl: monthlyAmountCtrl, // 🌟 تمرير الحقل هنا
+                            monthlyAmountCtrl: monthlyAmountCtrl,
                             onCalculate: () => _calculatePrice(settingsState.currentPrices),
                           ),
                           const SizedBox(height: 100), 
@@ -264,7 +285,6 @@ class _AddContractPageState extends State<AddContractPage> {
     );
   }
 
-  // --- دالة الحفظ السفلية بقيت هنا لاحتياجها لجميع القيم ---
   Widget _buildBottomBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -286,7 +306,7 @@ class _AddContractPageState extends State<AddContractPage> {
   }
 
   // ==========================================
-  // 🚀 دالة الإرسال والحفظ للـ Backend (معدلة للنظام المفتوح)
+  // 🚀 دالة الإرسال والحفظ للـ Backend
   // ==========================================
   Future<void> _saveContract() async {
     bool isAllocated = selectedContractType == 'متخصص'; 
@@ -295,15 +315,10 @@ class _AddContractPageState extends State<AddContractPage> {
     if (isAllocated && areaController.text.isEmpty) return _showError('يرجى تعبئة المساحة!');
     if (priceController.text.isEmpty) return _showError('يرجى حساب السعر أولاً!');
     
-    // 🌟 التعديل 1: إجبار المستخدم على إدخال المبلغ الشهري لجميع أنواع العقود
     if (monthlyAmountCtrl.text.isEmpty) return _showError('يرجى إدخال المبلغ المتفق عليه شهرياً!');
 
-    Map<String, double> finalCoeffs = {};
-    if (isAllocated) {
-      autoImportedCoefficients.forEach((key, value) => finalCoeffs[key] = value / 100.0);
-      double? durVal = double.tryParse(durationCoefficientCtrl.text);
-      if (durVal != null && durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
-    }
+    // 🌟 تجميع المعاملات عبر الدالة المساعدة
+    Map<String, double> finalCoeffs = _buildFinalCoefficients(isAllocated);
 
     String generatedDetails = '';
     if (isAllocated) {
@@ -316,12 +331,10 @@ class _AddContractPageState extends State<AddContractPage> {
       generatedDetails = 'محفظة استثمارية (عقد لاحق التخصص)';
     }
 
-    // 🌟 التعديل 2: أخذ المبلغ الشهري بغض النظر عن نوع العقد
     final double agreedAmount = double.tryParse(monthlyAmountCtrl.text.replaceAll(',', '')) ?? 0.0;
     if (agreedAmount <= 0) return _showError('المبلغ الشهري يجب أن يكون أكبر من صفر!');
 
     final double finalArea = isAllocated ? double.parse(areaController.text) : 0.0;
-    // 🌟 التعديل 3: نبقي الـ 48 شهراً شكلياً للمتخصص لكي لا تنكسر واجهاتك القديمة حالياً
     final int finalMonths = isAllocated ? int.parse(monthsController.text) : 48; 
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري الحفظ وتوقيع العقد... ⏳'), backgroundColor: Colors.teal));
@@ -335,8 +348,8 @@ class _AddContractPageState extends State<AddContractPage> {
       basePrice: double.parse(priceController.text.replaceAll(',', '')), 
       installmentsCount: finalMonths, 
       guarantorName: guarantorController.text.trim(),
-      agreedMonthlyAmount: agreedAmount, // 🌟 يتم إرساله دائماً
-      coefficients: finalCoeffs, 
+      agreedMonthlyAmount: agreedAmount, 
+      coefficients: finalCoeffs, // 🌟 الآن تحتوي على كافة المعاملات المشتركة
       customDate: isHistoricalContract ? selectedHistoricalDate : null, 
       histIron: isHistoricalContract ? double.parse(histIronCtrl.text.replaceAll(',', '')) : null, 
       histCement: isHistoricalContract ? double.parse(histCementCtrl.text.replaceAll(',', '')) : null,
