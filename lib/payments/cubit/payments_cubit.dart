@@ -42,7 +42,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   Future<void> selectContract(String contractId) async {
     emit(state.copyWith(selectedContractId: contractId, status: PaymentsStatus.loading));
     try {
-      // نفترض أن المستودع يرجع الدفعات مرتبة من الأحدث للأقدم!
       final ledgerEntries = await _erpRepository.getContractLedger(contractId);
       emit(state.copyWith(status: PaymentsStatus.success, ledgerEntries: ledgerEntries));
     } catch (e) {
@@ -56,36 +55,28 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   Future<void> _syncScheduleWithLedger(String contractId, Contract contract) async {
     if (contract.agreedMonthlyAmount <= 0) return;
 
-    // 1. جلب الرصيد التراكمي (إجمالي ما دفعه العميل في هذا العقد عبر التاريخ)
     final ledger = await _erpRepository.getContractLedger(contractId);
     final double totalPaid = ledger.fold(0.0, (sum, entry) => sum + entry.amountPaid);
 
-    // 2. حساب عدد الأشهر التي "يُفترض" أن تكون مغلقة بناءً على هذا الرصيد
     final int targetPaidMonths = (totalPaid / contract.agreedMonthlyAmount).floor();
 
-    // 3. جلب الجدول الحالي لمعرفة عدد الأشهر المغلقة فعلياً في شاشة المراقبة
     final schedules = await _erpRepository.getContractSchedule(contractId);
     final int currentlyPaid = schedules.where((s) => s.status == 'paid').length;
 
-    // 4. إذا كان الرصيد يغطي أشهراً جديدة، نتقدم للأمام نغلقها ونولد غيرها
     if (targetPaidMonths > currentlyPaid) {
       final int monthsToClose = targetPaidMonths - currentlyPaid;
       
       for (int i = 0; i < monthsToClose; i++) {
-        // جلب الجدول مجدداً في كل دورة لأننا نولد قسطاً جديداً
         final currentSchedules = await _erpRepository.getContractSchedule(contractId);
         final pendingSchedules = currentSchedules.where((s) => s.status == 'pending').toList();
         
         if (pendingSchedules.isEmpty) break;
 
-        // ترتيب تصاعدي لضمان إغلاق أقدم شهر معلق
         pendingSchedules.sort((a, b) => a.dueDate.compareTo(b.dueDate));
         final targetSchedule = pendingSchedules.first;
 
-        // توليد تاريخ الشهر الذي يليه
         final nextDueDate = DateTime.utc(targetSchedule.dueDate.year, targetSchedule.dueDate.month + 1, targetSchedule.dueDate.day);
 
-        // إغلاق الشهر وتوليد الجديد
         await _erpRepository.handleRollingCheckpoint(
           contractId: contractId,
           scheduleId: targetSchedule.id,
@@ -104,9 +95,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     required double amountPaid,
     double discountPercentage = 0, 
     String? scheduleId, 
-    DateTime? customDate, // 🌟 تاريخ الدفعة القديمة
-    double? customMeterPrice, // 🌟 سعر المتر المُدخل يدوياً للسرعة
-    // 🌟 حقول المواد للحالة التفصيلية
+    DateTime? customDate, 
+    double? customMeterPrice, 
     double? histIron, double? histCement, double? histBlock, 
     double? histFormwork, double? histAggregates, double? histWorker,
   }) async {
@@ -119,25 +109,29 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       final String? userId = _erpRepository.currentUserId;
       if (userId == null) throw Exception('يجب تسجيل الدخول.');
 
-      // جلب معاملات العقد (التي تؤثر على سعر المتر)
+      // 🌟🌟🌟 الحل الجذري هنا: قراءة الـ JSON بأمان تام! 🌟🌟🌟
       Map<String, double> contractCoefficients = {};
       try {
         if (contract.coefficients.isNotEmpty && contract.coefficients != '{}') {
-          contractCoefficients = jsonDecode(contract.coefficients).map<String, double>((key, value) => MapEntry(key, (value as num).toDouble()));
+          final Map<String, dynamic> decodedMap = jsonDecode(contract.coefficients);
+          decodedMap.forEach((key, value) {
+            contractCoefficients[key.toString()] = (value as num).toDouble();
+          });
         }
-      } catch (_) {}
+      } catch (e) {
+        print('⚠️ تحذير: فشل في قراءة معاملات العقد: $e');
+      }
 
-      // 🌍 تحديد تاريخ الدفعة الفعلي
+      // حماية المساحة لكي لا نرسل صفر للحاسبة
+      final double safeAreaForCalculation = contract.totalArea > 0 ? contract.totalArea : 1.0;
+
       final paymentDateToSave = customDate?.toUtc() ?? DateTime.now().toUtc();
       
       double meterPriceToUse = 0.0;
       String pricesSnapshotJson = '{}';
 
-      // 🧠 المحرك الذكي لتحديد السعر واللقطة (Snapshot):
+      // 🧠 حساب السعر:
       if (customDate != null && customMeterPrice != null && histIron == null) {
-        // ----------------------------------------------------
-        // 🚀 الحالة 1: دفعة قديمة (سريعة) - تم إدخال سعر المتر مباشرة
-        // ----------------------------------------------------
         meterPriceToUse = customMeterPrice;
         pricesSnapshotJson = jsonEncode({
           'note': 'إدخال تاريخي سريع',
@@ -145,9 +139,6 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         });
         
       } else if (customDate != null && histIron != null) {
-        // ----------------------------------------------------
-        // 🛠️ الحالة 2: دفعة قديمة (تفصيلية) - تم إدخال مواد لتُحفظ في السجل
-        // ----------------------------------------------------
         final historicalPrices = MaterialPricesHistoryCompanion.insert(
           effectiveDate: Value(paymentDateToSave), 
           ironPrice: histIron, cementPrice: histCement!, block15Price: histBlock!,
@@ -155,10 +146,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
           ordinaryWorkerWage: histWorker!, userId: userId,
         );
         
-        // 1. حفظ التسعيرة رسمياً في الإعدادات
         await _erpRepository.savePrices(historicalPrices);
 
-        // 2. إنشاء كائن وهمي لتمريره للحاسبة
         final targetPrices = MaterialPricesHistoryData(
           id: 'dummy', effectiveDate: paymentDateToSave, ironPrice: histIron,
           cementPrice: histCement, block15Price: histBlock, formworkAndPouringWages: histFormwork,
@@ -167,9 +156,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
           isDeleted: false, isSynced: false,
         );
 
-        // 3. حساب السعر النهائي بناءً على معاملات العقد والمواد القديمة
         final calculations = CalculatorHelper.calculateContractValues(
-          area: contract.totalArea, currentPrices: targetPrices, coefficients: contractCoefficients,
+          area: safeAreaForCalculation, currentPrices: targetPrices, coefficients: contractCoefficients,
         );
         
         meterPriceToUse = calculations['pricePerSqm']!;
@@ -179,14 +167,11 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         });
 
       } else {
-        // ----------------------------------------------------
-        // 🟢 الحالة 3: الوضع الطبيعي (دفعة اليوم)
-        // ----------------------------------------------------
         final currentPrices = await _erpRepository.getLatestPrices();
         if (currentPrices == null) throw Exception('يرجى إضافة أسعار المواد أولاً في الإعدادات.');
         
         final calculations = CalculatorHelper.calculateContractValues(
-          area: contract.totalArea, currentPrices: currentPrices, coefficients: contractCoefficients,
+          area: safeAreaForCalculation, currentPrices: currentPrices, coefficients: contractCoefficients,
         );
         
         meterPriceToUse = calculations['pricePerSqm']!;
@@ -197,17 +182,15 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         });
       }
 
-      // 💰 الحساب المالي الموحد
       final double effectiveAmount = amountPaid + (amountPaid * (discountPercentage / 100));
       final double convertedMeters = effectiveAmount / meterPriceToUse;
 
-      // 💾 حفظ الدفعة
       final newEntry = PaymentsLedgerCompanion.insert(
         contractId: contractId,
         scheduleId: scheduleId != null ? Value(scheduleId) : const Value.absent(), 
-        paymentDate: paymentDateToSave, // 🌍 التاريخ المعالج
+        paymentDate: paymentDateToSave, 
         amountPaid: amountPaid, 
-        meterPriceAtPayment: meterPriceToUse, // 💰 السعر المعالج
+        meterPriceAtPayment: meterPriceToUse, 
         convertedMeters: convertedMeters, 
         pricesSnapshot: Value(pricesSnapshotJson), 
         fees: Value(discountPercentage), 
@@ -216,7 +199,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
       
       await _erpRepository.addLedgerEntry(newEntry);
       
-      // 🌟 السحر الحقيقي: بمجرد الحفظ، نقوم بتحريك عجلة الزمن للأمام في صفحة المراقبة!
+      // 🌟 تحديث المراقبة آلياً
       await _syncScheduleWithLedger(contractId, contract);
       
       await selectContract(contractId);
@@ -230,7 +213,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
 
 
   // ==========================================
-  // 3. ✏️ تعديل دفعة (بصلاحيات الإدارة) - يُستخدم للقيود القديمة
+  // 3. ✏️ تعديل دفعة (بصلاحيات الإدارة) 
   // ==========================================
   Future<void> editOldLedgerEntry({
     required PaymentsLedgerData entryToEdit,
@@ -241,13 +224,9 @@ class PaymentsCubit extends Cubit<PaymentsState> {
     try {
       final contract = state.contracts.firstWhere((c) => c.id == entryToEdit.contractId);
 
-      // 🌟 الحساب المالي الدقيق: 
-      // نحن نعدل قيمة المبلغ فقط، لكننا نستخدم *سعر المتر القديم* المحفوظ في الإيصال 
-      // لكي لا نفسد الدفعة بأسعار اليوم!
       final double effectiveAmount = newAmountPaid + (newAmountPaid * (newDiscountPercentage / 100));
       final double newConvertedMeters = effectiveAmount / entryToEdit.meterPriceAtPayment;
 
-      // تحديث القاعدة
       await _erpRepository.updateLedgerEntryAmount(
         entryId: entryToEdit.id,
         newAmount: newAmountPaid,
@@ -255,8 +234,7 @@ class PaymentsCubit extends Cubit<PaymentsState> {
         newConvertedMeters: newConvertedMeters,
       );
 
-
-      await selectContract(entryToEdit.contractId); // تحديث الواجهة
+      await selectContract(entryToEdit.contractId); 
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
 
     } catch (e) {
@@ -270,19 +248,13 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   Future<void> softDeleteLastEntry(PaymentsLedgerData entryToDelete) async {
     emit(state.copyWith(status: PaymentsStatus.loading));
     try {
-      // 1. الحماية المالية: التأكد أن هذه الدفعة هي "الأحدث" ترتيباً
       final allEntriesForContract = await _erpRepository.getContractLedger(entryToDelete.contractId);
       
-      // نفترض أن القائمة مرتبة بحيث العنصر 0 هو الأحدث
       if (allEntriesForContract.isEmpty || allEntriesForContract.first.id != entryToDelete.id) {
         throw Exception('تحذير مالي: لا يمكن حذف دفعة قديمة، يمكنك فقط تعديل قيمتها بصلاحيات الإدارة. يسمح بحذف آخر دفعة فقط.');
       }
 
-      final contract = state.contracts.firstWhere((c) => c.id == entryToDelete.contractId);
-
-      // 2. الحذف الوهمي (Soft Delete)
       await _erpRepository.softDeleteLedgerEntry(entryToDelete.id);
-
 
       await selectContract(entryToDelete.contractId);
       _erpRepository.forceSyncWithCloud().catchError((e) => print('Sync Error: $e'));
@@ -307,12 +279,8 @@ class PaymentsCubit extends Cubit<PaymentsState> {
   Future<void> restoreLedgerEntry(PaymentsLedgerData entry) async {
     try {
       await _erpRepository.restoreLedgerEntry(entry.id);
-      
-      final contract = state.contracts.firstWhere((c) => c.id == entry.contractId);
-      
-
-      await fetchDeletedEntries(); // تحديث السلة
-      await selectContract(entry.contractId); // تحديث الواجهة الأم
+      await fetchDeletedEntries(); 
+      await selectContract(entry.contractId); 
     } catch (e) {
       emit(state.copyWith(status: PaymentsStatus.failure, errorMessage: e.toString()));
     }

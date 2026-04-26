@@ -11,7 +11,6 @@ import '../../buildings/cubit/buildings_cubit.dart';
 import '../cubit/contracts_cubit.dart';
 import 'dialogs/verify_pin_dialog.dart';
 
-// استيراد الأقسام التي قمنا بفصلها
 import 'widgets/add_contract/historical_section.dart';
 import 'widgets/add_contract/basic_info_section.dart';
 import 'widgets/add_contract/auto_coefficients_section.dart';
@@ -78,6 +77,19 @@ class _AddContractPageState extends State<AddContractPage> {
     super.dispose();
   }
 
+  // ==========================================
+  // 🛡️ دوال الحماية السحرية (لمنع الكراشات)
+  // ==========================================
+  double _safeParseDouble(TextEditingController ctrl) {
+    if (ctrl.text.trim().isEmpty) return 0.0;
+    return double.tryParse(ctrl.text.replaceAll(',', '')) ?? 0.0;
+  }
+
+  int _safeParseInt(TextEditingController ctrl, {int defaultValue = 0}) {
+    if (ctrl.text.trim().isEmpty) return defaultValue;
+    return int.tryParse(ctrl.text.replaceAll(',', '')) ?? defaultValue;
+  }
+
   // --- دوال المنطق ---
   void _onApartmentSelected(String? aptId, List<dynamic> availableApartments, List<dynamic> buildings) {
     setState(() {
@@ -108,17 +120,17 @@ class _AddContractPageState extends State<AddContractPage> {
     Map<String, double> finalCoeffs = {};
     if (!isAllocated) return finalCoeffs; // لا يوجد معاملات للاحق التخصص
 
-    // 1. المعاملات الآلية (الطابق، الواجهة، الخ)
+    // 1. المعاملات الآلية
     autoImportedCoefficients.forEach((key, value) => finalCoeffs[key] = value / 100.0);
 
-    // 2. نسبة التقسيط
-    double? durVal = double.tryParse(durationCoefficientCtrl.text);
-    if (durVal != null && durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
+    // 2. نسبة التقسيط (باستخدام الدالة الآمنة)
+    double durVal = _safeParseDouble(durationCoefficientCtrl);
+    if (durVal != 0.0) finalCoeffs['نسبة التقسيط'] = durVal / 100.0;
 
-    // 3. التجهيزات المشتركة (الإضافة المفقودة!)
+    // 3. التجهيزات المشتركة (باستخدام الدالة الآمنة)
     void addSharedCoeff(String key, TextEditingController ctrl) {
-      double? val = double.tryParse(ctrl.text);
-      if (val != null && val != 0.0) finalCoeffs[key] = val / 100.0;
+      double val = _safeParseDouble(ctrl);
+      if (val != 0.0) finalCoeffs[key] = val / 100.0;
     }
 
     addSharedCoeff('بلوك معزول', blockCoeffCtrl);
@@ -132,7 +144,7 @@ class _AddContractPageState extends State<AddContractPage> {
   }
 
   // ==========================================
-  // 🧮 دالة الحساب الذكية (معدلة)
+  // 🧮 دالة الحساب الذكية (مضادة للانهيار)
   // ==========================================
   void _calculatePrice(MaterialPricesHistoryData? currentPrices) {
     bool isAllocated = selectedContractType == 'متخصص';
@@ -144,15 +156,20 @@ class _AddContractPageState extends State<AddContractPage> {
 
     MaterialPricesHistoryData targetPrices;
     if (isHistoricalContract) {
-      if (histIronCtrl.text.isEmpty || histCementCtrl.text.isEmpty || histWorkerCtrl.text.isEmpty) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الرجاء تعبئة جميع أسعار المواد التاريخية!'), backgroundColor: Colors.red));
+      // التحقق الآمن من الحقول
+      if (_safeParseDouble(histIronCtrl) == 0 || _safeParseDouble(histCementCtrl) == 0 || _safeParseDouble(histWorkerCtrl) == 0) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الرجاء تعبئة أسعار المواد التاريخية الأساسية بشكل صحيح!'), backgroundColor: Colors.red));
          return;
       }
+      
       targetPrices = MaterialPricesHistoryData(
         id: 'dummy', effectiveDate: selectedHistoricalDate, userId: 'dummy', createdAt: DateTime.now(), updatedAt: DateTime.now(), isDeleted: false, isSynced: false,
-        ironPrice: double.parse(histIronCtrl.text.replaceAll(',', '')), cementPrice: double.parse(histCementCtrl.text.replaceAll(',', '')),
-        block15Price: double.parse(histBlockCtrl.text.replaceAll(',', '')), formworkAndPouringWages: double.parse(histFormworkCtrl.text.replaceAll(',', '')),
-        aggregateMaterialsPrice: double.parse(histAggregatesCtrl.text.replaceAll(',', '')), ordinaryWorkerWage: double.parse(histWorkerCtrl.text.replaceAll(',', '')),
+        ironPrice: _safeParseDouble(histIronCtrl), 
+        cementPrice: _safeParseDouble(histCementCtrl),
+        block15Price: _safeParseDouble(histBlockCtrl), 
+        formworkAndPouringWages: _safeParseDouble(histFormworkCtrl),
+        aggregateMaterialsPrice: _safeParseDouble(histAggregatesCtrl), 
+        ordinaryWorkerWage: _safeParseDouble(histWorkerCtrl),
       );
     } else {
       if (currentPrices == null) {
@@ -162,10 +179,11 @@ class _AddContractPageState extends State<AddContractPage> {
       targetPrices = currentPrices;
     }
 
-    // 🌟 تجميع كافة المعاملات عبر الدالة المساعدة
+    // 🌟 تجميع كافة المعاملات بأمان
     Map<String, double> finalCoeffs = _buildFinalCoefficients(isAllocated);
 
-    double dummyAreaForCalculation = isAllocated ? double.parse(areaController.text) : 1.0;
+    double dummyAreaForCalculation = isAllocated ? _safeParseDouble(areaController) : 1.0;
+    if (dummyAreaForCalculation == 0.0) dummyAreaForCalculation = 1.0; // حماية إضافية من القسمة على صفر
 
     final calculations = CalculatorHelper.calculateContractValues(
       area: dummyAreaForCalculation,
@@ -173,9 +191,8 @@ class _AddContractPageState extends State<AddContractPage> {
       coefficients: finalCoeffs, 
     );
     priceController.text = NumberFormatters.formatWithCommas(calculations['pricePerSqm']!);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isHistoricalContract ? 'تم الحساب بنجاح ✅' : 'تم الحساب بنجاح ✅'), backgroundColor: Colors.green));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isHistoricalContract ? 'تم الحساب بناءً على المواد التاريخية ✅' : 'تم الحساب بناءً على أسعار اليوم ✅'), backgroundColor: Colors.green));
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +334,7 @@ class _AddContractPageState extends State<AddContractPage> {
     
     if (monthlyAmountCtrl.text.isEmpty) return _showError('يرجى إدخال المبلغ المتفق عليه شهرياً!');
 
-    // 🌟 تجميع المعاملات عبر الدالة المساعدة
+    // 🌟 تجميع المعاملات بأمان تام
     Map<String, double> finalCoeffs = _buildFinalCoefficients(isAllocated);
 
     String generatedDetails = '';
@@ -331,11 +348,11 @@ class _AddContractPageState extends State<AddContractPage> {
       generatedDetails = 'محفظة استثمارية (عقد لاحق التخصص)';
     }
 
-    final double agreedAmount = double.tryParse(monthlyAmountCtrl.text.replaceAll(',', '')) ?? 0.0;
+    final double agreedAmount = _safeParseDouble(monthlyAmountCtrl);
     if (agreedAmount <= 0) return _showError('المبلغ الشهري يجب أن يكون أكبر من صفر!');
 
-    final double finalArea = isAllocated ? double.parse(areaController.text) : 0.0;
-    final int finalMonths = isAllocated ? int.parse(monthsController.text) : 48; 
+    final double finalArea = isAllocated ? _safeParseDouble(areaController) : 0.0;
+    final int finalMonths = isAllocated ? _safeParseInt(monthsController, defaultValue: 48) : 48; 
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري الحفظ وتوقيع العقد... ⏳'), backgroundColor: Colors.teal));
     
@@ -345,18 +362,20 @@ class _AddContractPageState extends State<AddContractPage> {
       details: generatedDetails, 
       apartmentId: isAllocated ? selectedApartmentId : null,
       area: finalArea, 
-      basePrice: double.parse(priceController.text.replaceAll(',', '')), 
+      basePrice: _safeParseDouble(priceController), 
       installmentsCount: finalMonths, 
       guarantorName: guarantorController.text.trim(),
       agreedMonthlyAmount: agreedAmount, 
-      coefficients: finalCoeffs, // 🌟 الآن تحتوي على كافة المعاملات المشتركة
+      coefficients: finalCoeffs, 
       customDate: isHistoricalContract ? selectedHistoricalDate : null, 
-      histIron: isHistoricalContract ? double.parse(histIronCtrl.text.replaceAll(',', '')) : null, 
-      histCement: isHistoricalContract ? double.parse(histCementCtrl.text.replaceAll(',', '')) : null,
-      histBlock: isHistoricalContract ? double.parse(histBlockCtrl.text.replaceAll(',', '')) : null,
-      histFormwork: isHistoricalContract ? double.parse(histFormworkCtrl.text.replaceAll(',', '')) : null,
-      histAggregates: isHistoricalContract ? double.parse(histAggregatesCtrl.text.replaceAll(',', '')) : null,
-      histWorker: isHistoricalContract ? double.parse(histWorkerCtrl.text.replaceAll(',', '')) : null,
+      
+      // 🛡️ الحفظ الآمن للمواد التاريخية
+      histIron: isHistoricalContract ? _safeParseDouble(histIronCtrl) : null, 
+      histCement: isHistoricalContract ? _safeParseDouble(histCementCtrl) : null,
+      histBlock: isHistoricalContract ? _safeParseDouble(histBlockCtrl) : null,
+      histFormwork: isHistoricalContract ? _safeParseDouble(histFormworkCtrl) : null,
+      histAggregates: isHistoricalContract ? _safeParseDouble(histAggregatesCtrl) : null,
+      histWorker: isHistoricalContract ? _safeParseDouble(histWorkerCtrl) : null,
     );
 
     if (mounted) { 
