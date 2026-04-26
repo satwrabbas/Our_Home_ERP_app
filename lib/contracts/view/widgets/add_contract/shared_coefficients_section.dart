@@ -1,3 +1,4 @@
+//lib\contracts\view\widgets\add_contract\shared_coefficients_section.dart
 import 'package:flutter/material.dart';
 
 class SharedCoefficientsSection extends StatelessWidget {
