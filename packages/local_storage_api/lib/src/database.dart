@@ -18,7 +18,7 @@ const _uuid = Uuid();
 class Clients extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get name => text().withLength(min: 2, max: 100)();
-  TextColumn get phone => text().unique()(); 
+  TextColumn get phone => text()(); 
   TextColumn get nationalId => text().nullable()(); 
   
   // 🌟 من قام بإضافة هذا العميل؟ (حقل التدقيق المالي)

@@ -39,7 +39,6 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _nationalIdMeta = const VerificationMeta(
     'nationalId',
