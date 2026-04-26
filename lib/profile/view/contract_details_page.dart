@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:local_storage_api/local_storage_api.dart' show Contract, Client;
 import 'package:url_launcher/url_launcher.dart'; // تأكد من وجود هذه المكتبة لفتح رابط العقد
 
+import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../cubit/client_profile_cubit.dart';
 // 🌟 استدعاء الكيوبتات للقفز السريع (تأكد من مساراتها في مشروعك)
 import '../../payments/cubit/payments_cubit.dart';
 import '../../schedule/cubit/schedule_cubit.dart';
-// إذا كنت تستخدم DashboardCubit للتنقل بين التبويبات الرئيسية، يمكنك استدعاؤه هنا
-// import '../../dashboard/cubit/dashboard_cubit.dart'; 
+
 
 String formatWithCommas(num number) {
   RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
@@ -155,10 +155,12 @@ class ContractDetailsPage extends StatelessWidget {
                   onTap: () {
                     // 1. تحديد العقد في صفحة الدفعات
                     context.read<PaymentsCubit>().selectContract(contract.id);
-                    // 2. إغلاق الصفحات الجانبية للعودة للرئيسية
+                    
+                    // 2. تغيير التبويب الرئيسي إلى 4 (الأقساط/دفتر الأستاذ)
+                    context.read<DashboardCubit>().changeTab(4);
+                    
+                    // 3. إغلاق الصفحات المنبثقة والعودة للرئيسية
                     Navigator.of(context).popUntil((route) => route.isFirst);
-                    // 3. (اختياري) إذا كنت تستخدم DashboardCubit لتبديل التبويبات الرئيسية، قم باستدعائه هنا:
-                    // context.read<DashboardCubit>().changeTab(1); // استبدل 1 برقم تبويب دفتر الأستاذ
                     
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحويلك لدفتر الأستاذ الخاص بهذا العقد!')));
                   },
@@ -173,10 +175,12 @@ class ContractDetailsPage extends StatelessWidget {
                   onTap: () {
                     // 1. تحديد العقد في صفحة المراقبة
                     context.read<ScheduleCubit>().selectContract(contract.id);
-                    // 2. إغلاق الصفحات الجانبية
+                    
+                    // 2. تغيير التبويب الرئيسي إلى 5 (الجدولة والمراقبة)
+                    context.read<DashboardCubit>().changeTab(5);
+                    
+                    // 3. إغلاق الصفحات المنبثقة
                     Navigator.of(context).popUntil((route) => route.isFirst);
-                    // 3. (اختياري) تبديل التبويب الرئيسي
-                    // context.read<DashboardCubit>().changeTab(2); // استبدل 2 برقم تبويب الجدولة
                     
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحويلك لجدول المراقبة الخاص بهذا العقد!')));
                   },

@@ -7,6 +7,10 @@ import 'deleted_clients_page.dart';
 import 'dialogs/add_client_dialog.dart';
 import 'dialogs/edit_client_dialog.dart';
 
+
+import '../../dashboard/cubit/dashboard_cubit.dart';
+import '../../payments/cubit/payments_cubit.dart';
+import '../../schedule/cubit/schedule_cubit.dart';
 // 🌟 استدعاء ملفات الملف التعريفي الجديدة
 import '../../profile/cubit/client_profile_cubit.dart';
 import '../../profile/view/client_profile_page.dart';
@@ -238,11 +242,21 @@ class _ClientsViewState extends State<ClientsView> {
                                           constraints: const BoxConstraints(maxWidth: 200),
                                           child: InkWell(
                                             onTap: () {
+                                              // 🌟 حفظنا الكيوبتات لكي لا تضيع عندما نفتح نافذة جديدة
+                                              final dashboardCubit = context.read<DashboardCubit>();
+                                              final paymentsCubit = context.read<PaymentsCubit>();
+                                              final scheduleCubit = context.read<ScheduleCubit>();
+
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) => BlocProvider(
-                                                    create: (context) => ClientProfileCubit(context.read<ErpRepository>())..fetchClientData(client),
+                                                  builder: (_) => MultiBlocProvider(
+                                                    providers:[
+                                                      BlocProvider.value(value: dashboardCubit),
+                                                      BlocProvider.value(value: paymentsCubit),
+                                                      BlocProvider.value(value: scheduleCubit),
+                                                      BlocProvider(create: (_) => ClientProfileCubit(context.read<ErpRepository>())..fetchClientData(client)),
+                                                    ],
                                                     child: ClientProfilePage(client: client),
                                                   ),
                                                 ),

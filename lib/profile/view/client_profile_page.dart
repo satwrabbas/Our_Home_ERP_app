@@ -4,6 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:local_storage_api/local_storage_api.dart' show Client;
 import '../cubit/client_profile_cubit.dart';
 
+
+import '../../dashboard/cubit/dashboard_cubit.dart';
+import '../../payments/cubit/payments_cubit.dart';
+import '../../schedule/cubit/schedule_cubit.dart';
 // 🌟 سيتم إنشاء هذا الملف في الخطوة القادمة
 import 'contract_details_page.dart'; 
 
@@ -149,13 +153,25 @@ class ClientProfilePage extends StatelessWidget {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
+                              // حفظ الكيوبتات من الصفحة الحالية
+                              final dashboardCubit = context.read<DashboardCubit>();
+                              final paymentsCubit = context.read<PaymentsCubit>();
+                              final scheduleCubit = context.read<ScheduleCubit>();
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => ContractDetailsPage(
-                                    contract: contract, 
-                                    client: client,
-                                    summary: summary,
+                                  builder: (_) => MultiBlocProvider(
+                                    providers:[
+                                      BlocProvider.value(value: dashboardCubit),
+                                      BlocProvider.value(value: paymentsCubit),
+                                      BlocProvider.value(value: scheduleCubit),
+                                    ],
+                                    child: ContractDetailsPage(
+                                      contract: contract, 
+                                      client: client,
+                                      summary: summary,
+                                    ),
                                   ),
                                 ),
                               );
