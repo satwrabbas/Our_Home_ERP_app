@@ -7,9 +7,14 @@ import '../../cubit/contracts_cubit.dart';
 import '../../../core/utils/formatters.dart';
 import '../dialogs/edit_contract_dialog.dart';
 
-// 🌟 المسارات الصحيحة (استخدمنا profile بدلاً من client_profile)
+// 🌟 المسارات الصحيحة لصفحة التفاصيل
 import '../../../profile/view/contract_details_page.dart'; 
 import '../../../profile/cubit/client_profile_cubit.dart'; 
+
+// 🌟🌟🌟 الإضافة الجديدة: استدعاء الكيوبتات لكي نحملها معنا للصفحة القادمة 🌟🌟🌟
+import '../../../dashboard/cubit/dashboard_cubit.dart';
+import '../../../payments/cubit/payments_cubit.dart';
+import '../../../schedule/cubit/schedule_cubit.dart';
 
 class ContractsDataTable extends StatelessWidget {
   final List<dynamic> contracts; 
@@ -57,22 +62,35 @@ class ContractsDataTable extends StatelessWidget {
                   DataCell(_buildFileAction(context, contract)),
                   
                   // 🌟 هنا قمنا بتعديل الإجراءات لتصبح (صف من الأزرار)
-                  DataCell(Row(
+                 DataCell(Row(
                     mainAxisSize: MainAxisSize.min,
                     children:[
-                      // 1. زر التفاصيل (الجديد) 👁️
+                      // 1. زر التفاصيل 👁️
                       IconButton(
                         tooltip: 'عرض التفاصيل والقفز السريع',
                         icon: const Icon(Icons.visibility, color: Colors.indigo),
                         onPressed: () {
                           if (actualClient != null) {
+                            
+                            // 🌟🌟🌟 الحل السحري: نمسك الكيوبتات من الصفحة الحالية قبل أن نقفز
+                            final dashboardCubit = context.read<DashboardCubit>();
+                            final paymentsCubit = context.read<PaymentsCubit>();
+                            final scheduleCubit = context.read<ScheduleCubit>();
+
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ContractDetailsPage(
-                                  contract: contract,
-                                  client: actualClient,
-                                  // 🌟 تم حذف الـ summary بالكامل من هنا لأنه أصبح اختيارياً!
+                                builder: (context) => MultiBlocProvider(
+                                  // 🌟 ونقوم بتمريرها كـ "قيمة" للصفحة الجديدة لكي تراها الأزرار هناك
+                                  providers:[
+                                    BlocProvider.value(value: dashboardCubit),
+                                    BlocProvider.value(value: paymentsCubit),
+                                    BlocProvider.value(value: scheduleCubit),
+                                  ],
+                                  child: ContractDetailsPage(
+                                    contract: contract,
+                                    client: actualClient,
+                                  ),
                                 ),
                               ),
                             );
@@ -84,7 +102,7 @@ class ContractsDataTable extends StatelessWidget {
                         },
                       ),
                       
-                      // 2. زر التعديل (القديم) ✏️
+                      // 2. زر التعديل ✏️
                       IconButton(
                         tooltip: 'تعديل بيانات العقد',
                         icon: const Icon(Icons.edit_note, color: Colors.blue),
