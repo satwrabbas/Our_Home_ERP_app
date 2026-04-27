@@ -1,3 +1,4 @@
+//lib\profile\view\contract_details_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,13 +20,13 @@ String formatWithCommas(num number) {
 class ContractDetailsPage extends StatelessWidget {
   final Contract contract;
   final Client client;
-  final ContractProfileSummary summary;
+  final ContractProfileSummary? summary;
 
   const ContractDetailsPage({
     super.key,
     required this.contract,
     required this.client,
-    required this.summary,
+    this.summary,
   });
 
   @override

@@ -1,4 +1,4 @@
-//lib\contracts\view\widgets\contracts_search_bar.dart
+// lib/contracts/view/widgets/contracts_data_table.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,6 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../cubit/contracts_cubit.dart';
 import '../../../core/utils/formatters.dart';
 import '../dialogs/edit_contract_dialog.dart';
+
+// 🌟 المسارات الصحيحة (استخدمنا profile بدلاً من client_profile)
+import '../../../profile/view/contract_details_page.dart'; 
+import '../../../profile/cubit/client_profile_cubit.dart'; 
 
 class ContractsDataTable extends StatelessWidget {
   final List<dynamic> contracts; 
@@ -38,21 +42,55 @@ class ContractsDataTable extends StatelessWidget {
               final index = entry.key;
               final contract = entry.value;
               
-              // 🌟 الحل هنا: استخدام indexWhere لتفادي خطأ الـ Null
+              // البحث عن العميل المرتبط بالعقد
               final clientIdx = clients.indexWhere((c) => c.id == contract.clientId);
-              final clientName = clientIdx >= 0 ? clients[clientIdx].name : 'عميل محذوف';
+              final actualClient = clientIdx >= 0 ? clients[clientIdx] : null;
+              final clientName = actualClient != null ? actualClient.name : 'عميل محذوف';
 
               return DataRow(
                 color: WidgetStateProperty.resolveWith<Color?>((states) => index.isEven ? Colors.grey.withOpacity(0.03) : null),
                 cells:[
                   DataCell(Text(contract.id.split('-').first.toUpperCase())),
-                  DataCell(Text(clientName)), // 🌟 استخدام الاسم مباشرة هنا
+                  DataCell(Text(clientName)), 
                   DataCell(Text(contract.contractType)),
                   DataCell(Text('${NumberFormatters.formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س')),
                   DataCell(_buildFileAction(context, contract)),
-                  DataCell(IconButton(
-                    icon: const Icon(Icons.edit_note, color: Colors.blue),
-                    onPressed: () => showEditContractDialog(context, contract),
+                  
+                  // 🌟 هنا قمنا بتعديل الإجراءات لتصبح (صف من الأزرار)
+                  DataCell(Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children:[
+                      // 1. زر التفاصيل (الجديد) 👁️
+                      IconButton(
+                        tooltip: 'عرض التفاصيل والقفز السريع',
+                        icon: const Icon(Icons.visibility, color: Colors.indigo),
+                        onPressed: () {
+                          if (actualClient != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ContractDetailsPage(
+                                  contract: contract,
+                                  client: actualClient,
+                                  // 🌟 تم حذف الـ summary بالكامل من هنا لأنه أصبح اختيارياً!
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('لا يمكن عرض التفاصيل لأن العميل محذوف!'), backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                      ),
+                      
+                      // 2. زر التعديل (القديم) ✏️
+                      IconButton(
+                        tooltip: 'تعديل بيانات العقد',
+                        icon: const Icon(Icons.edit_note, color: Colors.blue),
+                        onPressed: () => showEditContractDialog(context, contract),
+                      ),
+                    ],
                   )),
                 ],
               );
