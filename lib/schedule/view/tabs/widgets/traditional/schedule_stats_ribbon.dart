@@ -1,3 +1,4 @@
+//lib\schedule\view\tabs\widgets\traditional\schedule_stats_ribbon.dart
 import 'package:flutter/material.dart';
 
 class ScheduleStatsRibbon extends StatelessWidget {
