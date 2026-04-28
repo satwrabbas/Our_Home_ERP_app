@@ -1201,6 +1201,18 @@ class $ApartmentsTable extends Apartments
       'REFERENCES buildings (id)',
     ),
   );
+  static const VerificationMeta _unitTypeMeta = const VerificationMeta(
+    'unitType',
+  );
+  @override
+  late final GeneratedColumn<String> unitType = GeneratedColumn<String>(
+    'unit_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('apartment'),
+  );
   static const VerificationMeta _apartmentNumberMeta = const VerificationMeta(
     'apartmentNumber',
   );
@@ -1333,6 +1345,7 @@ class $ApartmentsTable extends Apartments
   List<GeneratedColumn> get $columns => [
     id,
     buildingId,
+    unitType,
     apartmentNumber,
     area,
     floorName,
@@ -1367,6 +1380,12 @@ class $ApartmentsTable extends Apartments
       );
     } else if (isInserting) {
       context.missing(_buildingIdMeta);
+    }
+    if (data.containsKey('unit_type')) {
+      context.handle(
+        _unitTypeMeta,
+        unitType.isAcceptableOrUnknown(data['unit_type']!, _unitTypeMeta),
+      );
     }
     if (data.containsKey('apartment_number')) {
       context.handle(
@@ -1468,6 +1487,10 @@ class $ApartmentsTable extends Apartments
         DriftSqlType.string,
         data['${effectivePrefix}building_id'],
       )!,
+      unitType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unit_type'],
+      )!,
       apartmentNumber: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}apartment_number'],
@@ -1524,6 +1547,7 @@ class $ApartmentsTable extends Apartments
 class Apartment extends DataClass implements Insertable<Apartment> {
   final String id;
   final String buildingId;
+  final String unitType;
   final String apartmentNumber;
   final double area;
   final String floorName;
@@ -1538,6 +1562,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
   const Apartment({
     required this.id,
     required this.buildingId,
+    required this.unitType,
     required this.apartmentNumber,
     required this.area,
     required this.floorName,
@@ -1555,6 +1580,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['building_id'] = Variable<String>(buildingId);
+    map['unit_type'] = Variable<String>(unitType);
     map['apartment_number'] = Variable<String>(apartmentNumber);
     map['area'] = Variable<double>(area);
     map['floor_name'] = Variable<String>(floorName);
@@ -1573,6 +1599,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
     return ApartmentsCompanion(
       id: Value(id),
       buildingId: Value(buildingId),
+      unitType: Value(unitType),
       apartmentNumber: Value(apartmentNumber),
       area: Value(area),
       floorName: Value(floorName),
@@ -1595,6 +1622,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
     return Apartment(
       id: serializer.fromJson<String>(json['id']),
       buildingId: serializer.fromJson<String>(json['buildingId']),
+      unitType: serializer.fromJson<String>(json['unitType']),
       apartmentNumber: serializer.fromJson<String>(json['apartmentNumber']),
       area: serializer.fromJson<double>(json['area']),
       floorName: serializer.fromJson<String>(json['floorName']),
@@ -1616,6 +1644,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'buildingId': serializer.toJson<String>(buildingId),
+      'unitType': serializer.toJson<String>(unitType),
       'apartmentNumber': serializer.toJson<String>(apartmentNumber),
       'area': serializer.toJson<double>(area),
       'floorName': serializer.toJson<String>(floorName),
@@ -1633,6 +1662,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
   Apartment copyWith({
     String? id,
     String? buildingId,
+    String? unitType,
     String? apartmentNumber,
     double? area,
     String? floorName,
@@ -1647,6 +1677,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
   }) => Apartment(
     id: id ?? this.id,
     buildingId: buildingId ?? this.buildingId,
+    unitType: unitType ?? this.unitType,
     apartmentNumber: apartmentNumber ?? this.apartmentNumber,
     area: area ?? this.area,
     floorName: floorName ?? this.floorName,
@@ -1665,6 +1696,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
       buildingId: data.buildingId.present
           ? data.buildingId.value
           : this.buildingId,
+      unitType: data.unitType.present ? data.unitType.value : this.unitType,
       apartmentNumber: data.apartmentNumber.present
           ? data.apartmentNumber.value
           : this.apartmentNumber,
@@ -1690,6 +1722,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
     return (StringBuffer('Apartment(')
           ..write('id: $id, ')
           ..write('buildingId: $buildingId, ')
+          ..write('unitType: $unitType, ')
           ..write('apartmentNumber: $apartmentNumber, ')
           ..write('area: $area, ')
           ..write('floorName: $floorName, ')
@@ -1709,6 +1742,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
   int get hashCode => Object.hash(
     id,
     buildingId,
+    unitType,
     apartmentNumber,
     area,
     floorName,
@@ -1727,6 +1761,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
       (other is Apartment &&
           other.id == this.id &&
           other.buildingId == this.buildingId &&
+          other.unitType == this.unitType &&
           other.apartmentNumber == this.apartmentNumber &&
           other.area == this.area &&
           other.floorName == this.floorName &&
@@ -1743,6 +1778,7 @@ class Apartment extends DataClass implements Insertable<Apartment> {
 class ApartmentsCompanion extends UpdateCompanion<Apartment> {
   final Value<String> id;
   final Value<String> buildingId;
+  final Value<String> unitType;
   final Value<String> apartmentNumber;
   final Value<double> area;
   final Value<String> floorName;
@@ -1758,6 +1794,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
   const ApartmentsCompanion({
     this.id = const Value.absent(),
     this.buildingId = const Value.absent(),
+    this.unitType = const Value.absent(),
     this.apartmentNumber = const Value.absent(),
     this.area = const Value.absent(),
     this.floorName = const Value.absent(),
@@ -1774,6 +1811,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
   ApartmentsCompanion.insert({
     this.id = const Value.absent(),
     required String buildingId,
+    this.unitType = const Value.absent(),
     required String apartmentNumber,
     required double area,
     required String floorName,
@@ -1794,6 +1832,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
   static Insertable<Apartment> custom({
     Expression<String>? id,
     Expression<String>? buildingId,
+    Expression<String>? unitType,
     Expression<String>? apartmentNumber,
     Expression<double>? area,
     Expression<String>? floorName,
@@ -1810,6 +1849,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (buildingId != null) 'building_id': buildingId,
+      if (unitType != null) 'unit_type': unitType,
       if (apartmentNumber != null) 'apartment_number': apartmentNumber,
       if (area != null) 'area': area,
       if (floorName != null) 'floor_name': floorName,
@@ -1828,6 +1868,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
   ApartmentsCompanion copyWith({
     Value<String>? id,
     Value<String>? buildingId,
+    Value<String>? unitType,
     Value<String>? apartmentNumber,
     Value<double>? area,
     Value<String>? floorName,
@@ -1844,6 +1885,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
     return ApartmentsCompanion(
       id: id ?? this.id,
       buildingId: buildingId ?? this.buildingId,
+      unitType: unitType ?? this.unitType,
       apartmentNumber: apartmentNumber ?? this.apartmentNumber,
       area: area ?? this.area,
       floorName: floorName ?? this.floorName,
@@ -1867,6 +1909,9 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
     }
     if (buildingId.present) {
       map['building_id'] = Variable<String>(buildingId.value);
+    }
+    if (unitType.present) {
+      map['unit_type'] = Variable<String>(unitType.value);
     }
     if (apartmentNumber.present) {
       map['apartment_number'] = Variable<String>(apartmentNumber.value);
@@ -1912,6 +1957,7 @@ class ApartmentsCompanion extends UpdateCompanion<Apartment> {
     return (StringBuffer('ApartmentsCompanion(')
           ..write('id: $id, ')
           ..write('buildingId: $buildingId, ')
+          ..write('unitType: $unitType, ')
           ..write('apartmentNumber: $apartmentNumber, ')
           ..write('area: $area, ')
           ..write('floorName: $floorName, ')
@@ -6335,6 +6381,7 @@ typedef $$ApartmentsTableCreateCompanionBuilder =
     ApartmentsCompanion Function({
       Value<String> id,
       required String buildingId,
+      Value<String> unitType,
       required String apartmentNumber,
       required double area,
       required String floorName,
@@ -6352,6 +6399,7 @@ typedef $$ApartmentsTableUpdateCompanionBuilder =
     ApartmentsCompanion Function({
       Value<String> id,
       Value<String> buildingId,
+      Value<String> unitType,
       Value<String> apartmentNumber,
       Value<double> area,
       Value<String> floorName,
@@ -6419,6 +6467,11 @@ class $$ApartmentsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unitType => $composableBuilder(
+    column: $table.unitType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6540,6 +6593,11 @@ class $$ApartmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get unitType => $composableBuilder(
+    column: $table.unitType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get apartmentNumber => $composableBuilder(
     column: $table.apartmentNumber,
     builder: (column) => ColumnOrderings(column),
@@ -6630,6 +6688,9 @@ class $$ApartmentsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get unitType =>
+      $composableBuilder(column: $table.unitType, builder: (column) => column);
 
   GeneratedColumn<String> get apartmentNumber => $composableBuilder(
     column: $table.apartmentNumber,
@@ -6749,6 +6810,7 @@ class $$ApartmentsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> buildingId = const Value.absent(),
+                Value<String> unitType = const Value.absent(),
                 Value<String> apartmentNumber = const Value.absent(),
                 Value<double> area = const Value.absent(),
                 Value<String> floorName = const Value.absent(),
@@ -6764,6 +6826,7 @@ class $$ApartmentsTableTableManager
               }) => ApartmentsCompanion(
                 id: id,
                 buildingId: buildingId,
+                unitType: unitType,
                 apartmentNumber: apartmentNumber,
                 area: area,
                 floorName: floorName,
@@ -6781,6 +6844,7 @@ class $$ApartmentsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String buildingId,
+                Value<String> unitType = const Value.absent(),
                 required String apartmentNumber,
                 required double area,
                 required String floorName,
@@ -6796,6 +6860,7 @@ class $$ApartmentsTableTableManager
               }) => ApartmentsCompanion.insert(
                 id: id,
                 buildingId: buildingId,
+                unitType: unitType,
                 apartmentNumber: apartmentNumber,
                 area: area,
                 floorName: floorName,
