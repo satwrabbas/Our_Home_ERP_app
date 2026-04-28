@@ -73,6 +73,7 @@ class OverdueRadarTab extends StatelessWidget {
               final double cardWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850;
               
               return Scrollbar(
+                thickness:0.0, 
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
