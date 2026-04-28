@@ -73,6 +73,10 @@ class Apartments extends Table {
   TextColumn get id => text().clientDefault(() => _uuid.v4())();
   TextColumn get buildingId => text().references(Buildings, #id)(); // 🌟 الارتباط بالمحضر
   
+    // 🌟 السطر الجديد: لتحديد هل هي شقة أم محل تجاري
+  TextColumn get unitType => text().withDefault(const Constant('apartment'))(); 
+  
+  
   TextColumn get apartmentNumber => text()(); // مثال: 101 أو A1
   RealColumn get area => real()(); 
   

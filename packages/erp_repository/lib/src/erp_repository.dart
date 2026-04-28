@@ -242,6 +242,7 @@ class ErpRepository {
         final apartment = ApartmentsCompanion.insert(
           id: drift.Value(a['id'].toString()),
           buildingId: a['building_id'].toString(),
+          unitType: drift.Value(a['unit_type']?.toString() ?? 'apartment'), // 🌟 السطر الجديد
           apartmentNumber: a['apartment_number'].toString(),
           area: double.tryParse(a['area']?.toString() ?? '0') ?? 0.0,
           floorName: a['floor_name'].toString(),

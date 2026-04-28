@@ -54,11 +54,13 @@ class BuildingsCubit extends Cubit<BuildingsState> {
     required double area,
     required String floorName,
     required String directionName,
+    String unitType = 'apartment', // 🌟 تمت الإضافة (افتراضياً شقة)
     Map<String, double> customCoeffs = const {},
   }) async {
     try {
       final apartment = ApartmentsCompanion.insert(
         buildingId: buildingId,
+        unitType: Value(unitType),
         apartmentNumber: aptNumber,
         area: area,
         floorName: floorName,
