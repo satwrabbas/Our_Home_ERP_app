@@ -100,15 +100,27 @@ class _AddContractPageState extends State<AddContractPage> {
         areaController.text = apt.area.toString();
         autoImportedCoefficients.clear();
         try {
+          // سحب معاملات المحضر
           final Map<String, dynamic> bldGeneralMap = jsonDecode(bld.directionCoefficients);
           bldGeneralMap.forEach((k, v) {
-            if (k != 'شمالي' && k != 'جنوبي' && k != 'شرقي' && k != 'غربي') autoImportedCoefficients[k] = (v as num).toDouble();
+            // نتجاهل الاتجاهات وكلمة المصعد
+            if (k != 'شمالي' && k != 'جنوبي' && k != 'شرقي' && k != 'غربي' && k != 'المصعد') {
+              autoImportedCoefficients[k] = (v as num).toDouble();
+            }
           });
+          
+          // سحب معاملات الشقة/المحل
           final Map<String, dynamic> aptMap = jsonDecode(apt.customCoefficients);
           aptMap.forEach((k, v) {
-            if (!k.startsWith('مساحة')) autoImportedCoefficients[k] = (v as num).toDouble();
+            // 🌟 الفلتر الذكي: نتجاهل أي مفتاح يبدأ بكلمة مساحة، أو يحتوي على (متر) أو (م2) 
+            // لأنها بيانات هندسية وصفية وليست أرقاماً مالية للضرب!
+            if (!k.startsWith('مساحة') && !k.contains('(متر)') && !k.contains('(م2)')) {
+              autoImportedCoefficients[k] = (v as num).toDouble();
+            }
           });
-        } catch (e) { debugPrint('خطأ: $e'); }
+        } catch (e) { 
+          debugPrint('خطأ في قراءة المعاملات: $e'); 
+        }
       }
     });
   }
