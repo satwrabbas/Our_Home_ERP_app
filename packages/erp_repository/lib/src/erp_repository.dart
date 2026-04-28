@@ -442,6 +442,7 @@ class ErpRepository {
         await _cloudApi.upsertApartment({
           'id': a.id,
           'building_id': a.buildingId,
+          'unit_type': a.unitType,
           'apartment_number': a.apartmentNumber,
           'area': _safeNum(a.area),
           'floor_name': a.floorName,
