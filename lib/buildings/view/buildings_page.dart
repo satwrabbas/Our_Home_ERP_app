@@ -44,7 +44,7 @@ class BuildingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('كتالوج المشاريع والشقق', style: TextStyle(color: Colors.white)),
+        title: const Text(' المشاريع والشقق', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
         centerTitle: true,
       ),
