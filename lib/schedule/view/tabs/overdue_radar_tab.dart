@@ -63,142 +63,164 @@ class OverdueRadarTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             side: BorderSide(color: borderColor.withOpacity(0.5), width: 1), // إطار نحيف
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 🌟 تقليل الحشوة
-            child: Row( // 🌟 استخدام Row بدلاً من Column كحاوية رئيسية
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children:[
-                
-                // 🌟 العمود الأول: بيانات العميل والحالة (يأخذ حوالي 35% من العرض)
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // 🌟 يمنع التمدد الطولي
-                    children:[
-                      Row(
+          
+          // ==========================================
+          // 🌟 سحر التمرير الأفقي لكل بطاقة بشكل منفصل
+          // ==========================================
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // نحدد العرض الأدنى المسموح به للبطاقة (850 بكسل مناسب جداً هنا)
+              final double cardWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850;
+              
+              return Scrollbar(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: cardWidth, // 👈 تثبيت العرض لكي تعمل عناصر الـ Expanded
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 🌟 تقليل الحشوة
+                      child: Row( // 🌟 استخدام Row بدلاً من Column كحاوية رئيسية
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children:[
-                          Flexible(
-                            child: Text(
-                              alert.client.name,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // بادج الحالة مدمج في نفس السطر
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: borderColor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          
+                          // ==========================================
+                          // 🌟 العمود الأول: تثبيت عرض الاسم (250 بكسل) لمنعه من التقلص
+                          // ==========================================
+                          SizedBox(
+                            width: 250,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min, // 🌟 يمنع التمدد الطولي
                               children:[
-                                Icon(icon, size: 12, color: Colors.white),
-                                const SizedBox(width: 4),
+                                Row(
+                                  children:[
+                                    Flexible(
+                                      child: Text(
+                                        alert.client.name,
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // بادج الحالة مدمج في نفس السطر
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: borderColor,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children:[
+                                          Icon(icon, size: 12, color: Colors.white),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '$warningTitle (${alert.maxDaysOverdue} يوم)', 
+                                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  '$warningTitle (${alert.maxDaysOverdue} يوم)', 
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                  '${alert.contract.apartmentDetails} | 📱 ${alert.client.phone}',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${alert.contract.apartmentDetails} | 📱 ${alert.client.phone}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(width: 16),
-                Container(height: 30, width: 1, color: borderColor.withOpacity(0.3)), // 🌟 خط فاصل عمودي أنيق
-                const SizedBox(width: 16),
+                          
+                          const SizedBox(width: 16),
+                          Container(height: 30, width: 1, color: borderColor.withOpacity(0.3)), // 🌟 خط فاصل عمودي أنيق
+                          const SizedBox(width: 16),
 
-                // 🌟 العمود الثاني: تفاصيل الأقساط المتأخرة (يأخذ حوالي 45% من العرض)
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children:[
-                      Row(
-                        children:[
-                          const Icon(Icons.receipt_long, size: 14, color: Colors.indigo),
-                          const SizedBox(width: 4),
-                          const Text('الديون المتراكمة: ', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
-                          Text('${alert.overdueSchedules.length} أقساط', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children:[
-                          Icon(Icons.event_busy, size: 14, color: borderColor),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              'أقدم قسط: رقم (${oldestSchedule.installmentNumber}) مستحق في ${oldestSchedule.dueDate.year}/${oldestSchedule.dueDate.month}/${oldestSchedule.dueDate.day}',
-                              style: TextStyle(fontSize: 11, color: borderColor, fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          // 🌟 العمود الثاني: تفاصيل الأقساط المتأخرة (يأخذ المساحة المتبقية المرنة)
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children:[
+                                Row(
+                                  children:[
+                                    const Icon(Icons.receipt_long, size: 14, color: Colors.indigo),
+                                    const SizedBox(width: 4),
+                                    const Text('الديون المتراكمة: ', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                                    Text('${alert.overdueSchedules.length} أقساط', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo)),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children:[
+                                    Icon(Icons.event_busy, size: 14, color: borderColor),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        'أقدم قسط: رقم (${oldestSchedule.installmentNumber}) مستحق في ${oldestSchedule.dueDate.year}/${oldestSchedule.dueDate.month}/${oldestSchedule.dueDate.day}',
+                                        style: TextStyle(fontSize: 11, color: borderColor, fontWeight: FontWeight.w600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(width: 16),
+
+                          // 🌟 العمود الثالث: زر الواتساب (عرض ثابت 130 بكسل)
+                          SizedBox(
+                            width: 130, // 🌟 عرض ثابت لمنع التمدد العشوائي
+                            height: 36, // 🌟 ارتفاع مضغوط جداً
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600, // لون الواتساب المعترف به
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              icon: const Icon(Icons.chat, size: 14),
+                              label: const Text('مطالبة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              onPressed: () async {
+                                final success = await WhatsAppHelper.sendReminderMessage(
+                                  schedule: oldestSchedule,
+                                  contract: alert.contract,
+                                  client: alert.client,
+                                );
+
+                                if (context.mounted) {
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                      content: Text('تم فتح الواتساب للمطالبة!'), 
+                                      backgroundColor: Colors.green,
+                                      behavior: SnackBarBehavior.floating, // للظهور بشكل منبثق وأنيق
+                                    ));
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                      content: Text('فشل فتح تطبيق الواتساب.'), 
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                    ));
+                                  }
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 16),
-
-                // 🌟 العمود الثالث: زر الواتساب (عرض ثابت 130 بكسل)
-                SizedBox(
-                  width: 130, // 🌟 عرض ثابت لمنع التمدد العشوائي
-                  height: 36, // 🌟 ارتفاع مضغوط جداً
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600, // لون الواتساب المعترف به
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
-                    icon: const Icon(Icons.chat, size: 14),
-                    label: const Text('مطالبة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    onPressed: () async {
-                      final success = await WhatsAppHelper.sendReminderMessage(
-                        schedule: oldestSchedule,
-                        contract: alert.contract,
-                        client: alert.client,
-                      );
-
-                      if (context.mounted) {
-                        if (success) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('تم فتح الواتساب للمطالبة!'), 
-                            backgroundColor: Colors.green,
-                            behavior: SnackBarBehavior.floating, // للظهور بشكل منبثق وأنيق
-                          ));
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('فشل فتح تطبيق الواتساب.'), 
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ));
-                        }
-                      }
-                    },
                   ),
                 ),
-              ],
-            ),
+              );
+            }
           ),
         );
       },
