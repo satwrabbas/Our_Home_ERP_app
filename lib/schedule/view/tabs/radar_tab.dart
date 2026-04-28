@@ -181,8 +181,12 @@ class _RadarTabState extends State<RadarTab> {
                           child: Row( 
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children:[
-                              Expanded(
-                                flex: 2,
+                              
+                              // ==========================================
+                              // 🌟 1. تعديل قسم الاسم ليصبح بحجم ثابت (مثلاً 250 بكسل) لمنع انضغاطه نهائياً
+                              // ==========================================
+                              SizedBox(
+                                width: 250, 
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisSize: MainAxisSize.min, 
@@ -274,13 +278,22 @@ class _RadarTabState extends State<RadarTab> {
 
                               const SizedBox(width: 16),
 
+                              // ==========================================
+                              // 🌟 2. تقليل المسافة بين المقاييس باستخدام SizedBox بدلاً من التوزيع التلقائي
+                              // ==========================================
                               Expanded(
                                 flex: 3,
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment: MainAxisAlignment.center, // رصها في المنتصف بدلاً من نشرها
                                   children:[
                                     _buildDesktopMetric(Icons.speed, 'السرعة', '${alert.averageMetersPerMonth.toStringAsFixed(1)} م²/ش', isActionTaken ? Colors.grey : Colors.blue),
+                                    
+                                    const SizedBox(width: 24), // 👈 مسافة ثابتة (يمكنك زيادتها أو تقليلها)
+                                    
                                     _buildDesktopMetric(Icons.timelapse, 'العمر', '${DateTime.now().difference(alert.contract.contractDate).inDays ~/ 30} ش', isActionTaken ? Colors.grey : Colors.purple),
+                                    
+                                    const SizedBox(width: 24), // 👈 مسافة ثابتة
+                                    
                                     _buildDesktopMetric(Icons.flag, 'المتبقي', alert.estimatedMonthsLeft == 999 ? '∞' : '${alert.estimatedMonthsLeft} ش', progressColor),
                                   ],
                                 ),
