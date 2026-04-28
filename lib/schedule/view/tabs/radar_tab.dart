@@ -168,6 +168,7 @@ class _RadarTabState extends State<RadarTab> {
                             final double cardWidth = constraints.maxWidth > 950 ? constraints.maxWidth : 950;
                             
                             return Scrollbar(
+                              thickness: 0.0, 
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
