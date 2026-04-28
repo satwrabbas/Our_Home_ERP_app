@@ -31,17 +31,12 @@ class _RadarTabState extends State<RadarTab> {
 
     // 🌟 تطبيق الفلترة المركبة (خطورة + سرعة دقيقة)
     final filteredAlerts = widget.state.allocationAlerts.where((alert) {
-      // 1. فحص الخطورة
       bool passUrgency = true;
       if (_urgencyFilter != 'all') {
         passUrgency = alert.urgencyLevel == _urgencyFilter;
       }
 
-      // 2. فحص السرعة بناءً على الشريط
       bool passSpeed = alert.averageMetersPerMonth >= _speedRange.start;
-      
-      // إذا لم يكن المؤشر الأيمن عند الحد الأقصى (10)، نطبق الحد الأعلى
-      // أما إذا كان عند 10، فنعتبره (10 فما فوق)
       if (_speedRange.end < 10.0) {
         passSpeed = passSpeed && alert.averageMetersPerMonth <= _speedRange.end;
       }
@@ -49,7 +44,6 @@ class _RadarTabState extends State<RadarTab> {
       return passUrgency && passSpeed;
     }).toList();
 
-    // نتحقق إذا كان هناك أي فلتر نشط
     final bool hasActiveFilters = _urgencyFilter != 'all' || _speedRange.start > 0.0 || _speedRange.end < 10.0;
 
     return Scaffold(
@@ -66,7 +60,7 @@ class _RadarTabState extends State<RadarTab> {
       
       body: Column(
         children:[
-          // 🌟 شريط الفلاتر النشطة (تم تحسينه للسرعة الجديدة)
+          // 🌟 شريط الفلاتر النشطة
           if (hasActiveFilters)
             Container(
               margin: const EdgeInsets.all(16),
@@ -95,7 +89,6 @@ class _RadarTabState extends State<RadarTab> {
                   ),
                   const SizedBox(width: 12),
                   
-                  // زر إلغاء الفلتر
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade50,
@@ -107,7 +100,7 @@ class _RadarTabState extends State<RadarTab> {
                     onPressed: () {
                       setState(() {
                         _urgencyFilter = 'all';
-                        _speedRange = const RangeValues(0.0, 10.0); // إعادة التصفير
+                        _speedRange = const RangeValues(0.0, 10.0);
                       });
                     },
                     icon: const Icon(Icons.clear, size: 18),
@@ -139,31 +132,20 @@ class _RadarTabState extends State<RadarTab> {
                       double progress = alert.accumulatedMeters / target;
                       if (progress > 1.0) progress = 1.0;
 
-                      Color cardColor;
-                      Color progressColor;
-                      IconData urgencyIcon;
-                      String urgencyText;
+                      Color cardColor; Color progressColor; IconData urgencyIcon; String urgencyText;
 
                       if (alert.urgencyLevel == 'action_taken') {
-                        cardColor = Colors.grey;
-                        progressColor = Colors.grey.shade500;
-                        urgencyIcon = Icons.done_all;
-                        urgencyText = 'تم إجراء';
+                        cardColor = Colors.grey; progressColor = Colors.grey.shade500;
+                        urgencyIcon = Icons.done_all; urgencyText = 'تم إجراء';
                       } else if (alert.urgencyLevel == 'high') {
-                        cardColor = Colors.redAccent;
-                        progressColor = Colors.redAccent;
-                        urgencyIcon = Icons.local_fire_department;
-                        urgencyText = alert.accumulatedMeters >= target ? 'تجاوز!' : 'خطر (${alert.estimatedMonthsLeft} ش)';
+                        cardColor = Colors.redAccent; progressColor = Colors.redAccent;
+                        urgencyIcon = Icons.local_fire_department; urgencyText = alert.accumulatedMeters >= target ? 'تجاوز!' : 'خطر (${alert.estimatedMonthsLeft} ش)';
                       } else if (alert.urgencyLevel == 'medium') {
-                        cardColor = Colors.orange;
-                        progressColor = Colors.orange;
-                        urgencyIcon = Icons.warning_amber_rounded;
-                        urgencyText = 'متوسط (${alert.estimatedMonthsLeft} ش)';
+                        cardColor = Colors.orange; progressColor = Colors.orange;
+                        urgencyIcon = Icons.warning_amber_rounded; urgencyText = 'متوسط (${alert.estimatedMonthsLeft} ش)';
                       } else {
-                        cardColor = Colors.green;
-                        progressColor = Colors.green;
-                        urgencyIcon = Icons.shield;
-                        urgencyText = alert.estimatedMonthsLeft == 999 ? 'لا دفعات' : 'آمن (${alert.estimatedMonthsLeft} ش)';
+                        cardColor = Colors.green; progressColor = Colors.green;
+                        urgencyIcon = Icons.shield; urgencyText = alert.estimatedMonthsLeft == 999 ? 'لا دفعات' : 'آمن (${alert.estimatedMonthsLeft} ش)';
                       }
 
                       final bool isActionTaken = alert.urgencyLevel == 'action_taken';
@@ -176,152 +158,166 @@ class _RadarTabState extends State<RadarTab> {
                           borderRadius: BorderRadius.circular(8), 
                           side: BorderSide(color: isActionTaken ? Colors.grey.shade300 : cardColor.withOpacity(0.4), width: 1),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
-                          child: Row( 
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children:[
-                              
-                              // ==========================================
-                              // 🌟 1. تعديل قسم الاسم ليصبح بحجم ثابت (مثلاً 250 بكسل) لمنع انضغاطه نهائياً
-                              // ==========================================
-                              SizedBox(
-                                width: 250, 
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min, 
-                                  children:[
-                                    Row(
+                        
+                        // ==========================================
+                        // 🌟 سحر التمرير الأفقي لكل بطاقة بشكل منفصل
+                        // ==========================================
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            // نحدد عرض المحتوى الداخلي: إما أن يتمدد مع الشاشة، أو يتوقف عند 950 بكسل ويبدأ التمرير
+                            final double cardWidth = constraints.maxWidth > 950 ? constraints.maxWidth : 950;
+                            
+                            return Scrollbar(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: SizedBox(
+                                  width: cardWidth, // 👈 تثبيت العرض لكي تعمل عناصر الـ Expanded
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+                                    child: Row( 
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children:[
-                                        Flexible(
-                                          child: Text(
-                                            alert.client.name,
-                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isActionTaken ? Colors.grey.shade700 : Colors.black87),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(color: cardColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: cardColor.withOpacity(0.5))),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
+                                        
+                                        // 1. قسم الاسم (عرض ثابت لا يتقلص أبداً)
+                                        SizedBox(
+                                          width: 250, 
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min, 
                                             children:[
-                                              Icon(urgencyIcon, size: 12, color: cardColor),
-                                              const SizedBox(width: 4),
-                                              Text(urgencyText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: cardColor)),
+                                              Row(
+                                                children:[
+                                                  Flexible(
+                                                    child: Text(
+                                                      alert.client.name,
+                                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isActionTaken ? Colors.grey.shade700 : Colors.black87),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(color: cardColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: cardColor.withOpacity(0.5))),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children:[
+                                                        Icon(urgencyIcon, size: 12, color: cardColor),
+                                                        const SizedBox(width: 4),
+                                                        Text(urgencyText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: cardColor)),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                alert.contract.apartmentDetails,
+                                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ],
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      alert.contract.apartmentDetails,
-                                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              
-                              const SizedBox(width: 16),
+                                        
+                                        const SizedBox(width: 16),
 
-                              Expanded(
-                                flex: 3,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children:[
-                                    Row(
-                                      children:[
-                                        const Text('التخصص: ', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                                        // 2. قسم شريط التقدم
                                         Expanded(
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: LinearProgressIndicator(
-                                              value: progress,
-                                              minHeight: 6,
-                                              backgroundColor: Colors.grey.shade200,
-                                              color: progressColor,
-                                            ),
+                                          flex: 3,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children:[
+                                              Row(
+                                                children:[
+                                                  const Text('التخصص: ', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                                                  Expanded(
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      child: LinearProgressIndicator(
+                                                        value: progress,
+                                                        minHeight: 6,
+                                                        backgroundColor: Colors.grey.shade200,
+                                                        color: progressColor,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    '${alert.accumulatedMeters.toStringAsFixed(1)} / $target م²',
+                                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: progressColor),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (alert.lastActionNote != null) ...[
+                                                const SizedBox(height: 6),
+                                                Row(
+                                                  children:[
+                                                    const Icon(Icons.history_edu, size: 12, color: Colors.teal),
+                                                    const SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: Text(
+                                                        'إجراء سابق (${alert.lastActionDate?.year}/${alert.lastActionDate?.month}/${alert.lastActionDate?.day}): ${alert.lastActionNote}',
+                                                        style: const TextStyle(fontSize: 11, color: Colors.teal),
+                                                        maxLines: 1, 
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '${alert.accumulatedMeters.toStringAsFixed(1)} / $target م²',
-                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: progressColor),
+
+                                        const SizedBox(width: 16),
+
+                                        // 3. قسم المقاييس (تم تعديل المسافة بينها بناءً على طلبك)
+                                        Expanded(
+                                          flex: 3,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center, 
+                                            children:[
+                                              _buildDesktopMetric(Icons.speed, 'السرعة', '${alert.averageMetersPerMonth.toStringAsFixed(1)} م²/ش', isActionTaken ? Colors.grey : Colors.blue),
+                                              const SizedBox(width: 24), 
+                                              _buildDesktopMetric(Icons.timelapse, 'العمر', '${DateTime.now().difference(alert.contract.contractDate).inDays ~/ 30} ش', isActionTaken ? Colors.grey : Colors.purple),
+                                              const SizedBox(width: 24), 
+                                              _buildDesktopMetric(Icons.flag, 'المتبقي', alert.estimatedMonthsLeft == 999 ? '∞' : '${alert.estimatedMonthsLeft} ش', progressColor),
+                                            ],
+                                          ),
+                                        ),
+
+                                        const SizedBox(width: 16),
+
+                                        // 4. قسم الزر
+                                        SizedBox(
+                                          width: 110, 
+                                          height: 36, 
+                                          child: ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: isActionTaken ? Colors.grey.shade300 : Colors.teal,
+                                              foregroundColor: isActionTaken ? Colors.black87 : Colors.white,
+                                              elevation: 0,
+                                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                            ),
+                                            icon: Icon(isActionTaken ? Icons.edit : Icons.handshake, size: 14),
+                                            label: Text(
+                                              isActionTaken ? 'تحديث' : 'إجراء',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                            ),
+                                            onPressed: () => showTakeActionDialog(context, alert.contract),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    if (alert.lastActionNote != null) ...[
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children:[
-                                          const Icon(Icons.history_edu, size: 12, color: Colors.teal),
-                                          const SizedBox(width: 4),
-                                          Expanded(
-                                            child: Text(
-                                              'إجراء سابق (${alert.lastActionDate?.year}/${alert.lastActionDate?.month}/${alert.lastActionDate?.day}): ${alert.lastActionNote}',
-                                              style: const TextStyle(fontSize: 11, color: Colors.teal),
-                                              maxLines: 1, 
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(width: 16),
-
-                              // ==========================================
-                              // 🌟 2. تقليل المسافة بين المقاييس باستخدام SizedBox بدلاً من التوزيع التلقائي
-                              // ==========================================
-                              Expanded(
-                                flex: 3,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center, // رصها في المنتصف بدلاً من نشرها
-                                  children:[
-                                    _buildDesktopMetric(Icons.speed, 'السرعة', '${alert.averageMetersPerMonth.toStringAsFixed(1)} م²/ش', isActionTaken ? Colors.grey : Colors.blue),
-                                    
-                                    const SizedBox(width: 24), // 👈 مسافة ثابتة (يمكنك زيادتها أو تقليلها)
-                                    
-                                    _buildDesktopMetric(Icons.timelapse, 'العمر', '${DateTime.now().difference(alert.contract.contractDate).inDays ~/ 30} ش', isActionTaken ? Colors.grey : Colors.purple),
-                                    
-                                    const SizedBox(width: 24), // 👈 مسافة ثابتة
-                                    
-                                    _buildDesktopMetric(Icons.flag, 'المتبقي', alert.estimatedMonthsLeft == 999 ? '∞' : '${alert.estimatedMonthsLeft} ش', progressColor),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(width: 16),
-
-                              SizedBox(
-                                width: 110, 
-                                height: 36, 
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isActionTaken ? Colors.grey.shade300 : Colors.teal,
-                                    foregroundColor: isActionTaken ? Colors.black87 : Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                   ),
-                                  icon: Icon(isActionTaken ? Icons.edit : Icons.handshake, size: 14),
-                                  label: Text(
-                                    isActionTaken ? 'تحديث' : 'إجراء',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                  onPressed: () => showTakeActionDialog(context, alert.contract),
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          }
                         ),
                       );
                     },
@@ -350,12 +346,9 @@ class _RadarTabState extends State<RadarTab> {
     );
   }
 
-  // ==========================================
-  // 🌟 نافذة الفلترة السفلية (مع شريط السحب RangeSlider)
-  // ==========================================
   void _showFilterBottomSheet() {
     String tempUrgency = _urgencyFilter;
-    RangeValues tempSpeedRange = _speedRange; // 🌟 أخذ نسخة من شريط السحب الحالي
+    RangeValues tempSpeedRange = _speedRange; 
 
     showModalBottomSheet(
       context: context,
@@ -379,7 +372,6 @@ class _RadarTabState extends State<RadarTab> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // 1. قسم فلترة الخطورة
                   const Text('1. مستوى الخطورة والاقتراب من الهدف:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
                   const SizedBox(height: 12),
                   Wrap(
@@ -396,7 +388,6 @@ class _RadarTabState extends State<RadarTab> {
                   
                   const Divider(height: 32, thickness: 1.5),
 
-                  // 🌟 2. قسم فلترة السرعة (شريط سحب متقدم RangeSlider)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children:[
@@ -413,7 +404,6 @@ class _RadarTabState extends State<RadarTab> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // شريط السحب
                   SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       activeTrackColor: Colors.indigo,
@@ -427,7 +417,7 @@ class _RadarTabState extends State<RadarTab> {
                       values: tempSpeedRange,
                       min: 0.0,
                       max: 10.0,
-                      divisions: 100, // ليتحرك بمقدار 0.1
+                      divisions: 100, 
                       labels: RangeLabels(
                         tempSpeedRange.start.toStringAsFixed(1),
                         tempSpeedRange.end == 10.0 ? '10+' : tempSpeedRange.end.toStringAsFixed(1),
@@ -442,7 +432,6 @@ class _RadarTabState extends State<RadarTab> {
                   
                   const SizedBox(height: 32),
                   
-                  // زر التطبيق
                   SizedBox(
                     width: double.infinity,
                     height: 50,
