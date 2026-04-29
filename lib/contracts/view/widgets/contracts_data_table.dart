@@ -7,11 +7,9 @@ import '../../cubit/contracts_cubit.dart';
 import '../../../core/utils/formatters.dart';
 import '../dialogs/edit_contract_dialog.dart';
 
-// 🌟 المسارات الصحيحة لصفحة التفاصيل
 import '../../../profile/view/contract_details_page.dart'; 
 import '../../../profile/cubit/client_profile_cubit.dart'; 
 
-// 🌟🌟🌟 الإضافة الجديدة: استدعاء الكيوبتات لكي نحملها معنا للصفحة القادمة 🌟🌟🌟
 import '../../../dashboard/cubit/dashboard_cubit.dart';
 import '../../../payments/cubit/payments_cubit.dart';
 import '../../../schedule/cubit/schedule_cubit.dart';
@@ -25,16 +23,18 @@ class ContractsDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 3,
-      margin: const EdgeInsets.all(24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      margin: EdgeInsets.zero, // 🌟 إزالة الهوامش المهدورة لأن الـ ListView تتكفل بها
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48),
+          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32),
           child: DataTable(
             headingRowColor: WidgetStateProperty.all(Colors.teal.shade50),
+            dataRowMinHeight: 55, // 🌟 تصغير الأسطر
+            dataRowMaxHeight: 70, // 🌟 تصغير الأسطر
             columns: const[
               DataColumn(label: Text('رقم العقد', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
               DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal))),
@@ -47,7 +47,6 @@ class ContractsDataTable extends StatelessWidget {
               final index = entry.key;
               final contract = entry.value;
               
-              // البحث عن العميل المرتبط بالعقد
               final clientIdx = clients.indexWhere((c) => c.id == contract.clientId);
               final actualClient = clientIdx >= 0 ? clients[clientIdx] : null;
               final clientName = actualClient != null ? actualClient.name : 'عميل محذوف';
@@ -55,24 +54,20 @@ class ContractsDataTable extends StatelessWidget {
               return DataRow(
                 color: WidgetStateProperty.resolveWith<Color?>((states) => index.isEven ? Colors.grey.withOpacity(0.03) : null),
                 cells:[
-                  DataCell(Text(contract.id.split('-').first.toUpperCase())),
-                  DataCell(Text(clientName)), 
+                  DataCell(Text(contract.id.split('-').first.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 13))),
+                  DataCell(Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold))), 
                   DataCell(Text(contract.contractType)),
-                  DataCell(Text('${NumberFormatters.formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س')),
+                  DataCell(Text('${NumberFormatters.formatWithCommas(contract.baseMeterPriceAtSigning)} ل.س', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold))),
                   DataCell(_buildFileAction(context, contract)),
                   
-                  // 🌟 هنا قمنا بتعديل الإجراءات لتصبح (صف من الأزرار)
                  DataCell(Row(
                     mainAxisSize: MainAxisSize.min,
                     children:[
-                      // 1. زر التفاصيل 👁️
                       IconButton(
                         tooltip: 'عرض التفاصيل والقفز السريع',
-                        icon: const Icon(Icons.visibility, color: Colors.indigo),
+                        icon: const Icon(Icons.visibility, color: Colors.indigo, size: 22),
                         onPressed: () {
                           if (actualClient != null) {
-                            
-                            // 🌟🌟🌟 الحل السحري: نمسك الكيوبتات من الصفحة الحالية قبل أن نقفز
                             final dashboardCubit = context.read<DashboardCubit>();
                             final paymentsCubit = context.read<PaymentsCubit>();
                             final scheduleCubit = context.read<ScheduleCubit>();
@@ -81,7 +76,6 @@ class ContractsDataTable extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => MultiBlocProvider(
-                                  // 🌟 ونقوم بتمريرها كـ "قيمة" للصفحة الجديدة لكي تراها الأزرار هناك
                                   providers:[
                                     BlocProvider.value(value: dashboardCubit),
                                     BlocProvider.value(value: paymentsCubit),
@@ -102,10 +96,9 @@ class ContractsDataTable extends StatelessWidget {
                         },
                       ),
                       
-                      // 2. زر التعديل ✏️
                       IconButton(
                         tooltip: 'تعديل بيانات العقد',
-                        icon: const Icon(Icons.edit_note, color: Colors.blue),
+                        icon: const Icon(Icons.edit_note, color: Colors.blue, size: 22),
                         onPressed: () => showEditContractDialog(context, contract),
                       ),
                     ],
@@ -123,7 +116,7 @@ class ContractsDataTable extends StatelessWidget {
     bool hasFile = contract.contractFileUrl != null && contract.contractFileUrl!.isNotEmpty;
     return TextButton.icon(
       icon: Icon(hasFile ? Icons.download : Icons.upload_file, color: hasFile ? Colors.green : Colors.orange, size: 18),
-      label: Text(hasFile ? 'فتح' : 'إرفاق', style: TextStyle(color: hasFile ? Colors.green : Colors.orange)),
+      label: Text(hasFile ? 'فتح' : 'إرفاق', style: TextStyle(color: hasFile ? Colors.green : Colors.orange, fontWeight: FontWeight.bold)),
       onPressed: () async {
         if (hasFile) {
           final url = Uri.parse(contract.contractFileUrl!);
