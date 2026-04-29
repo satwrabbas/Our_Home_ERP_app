@@ -7,7 +7,6 @@ import '../cubit/client_profile_cubit.dart';
 import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../../payments/cubit/payments_cubit.dart';
 import '../../schedule/cubit/schedule_cubit.dart';
-// 🌟 سيتم إنشاء هذا الملف في الخطوة القادمة
 import 'contract_details_page.dart'; 
 
 String formatWithCommas(num number) {
@@ -23,8 +22,7 @@ class ClientProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      // 🌟 تم إزالة הـ AppBar بالكامل لتوسيع الشاشة ودمجنا زر الرجوع في الأسفل
+      backgroundColor: Colors.grey.shade50,
       body: SafeArea(
         child: BlocBuilder<ClientProfileCubit, ClientProfileState>(
           builder: (context, state) {
@@ -40,97 +38,123 @@ class ClientProfilePage extends StatelessWidget {
             return CustomScrollView(
               slivers:[
                 // ==========================================
-                // 🌟 قسم الهيدر (معلومات العميل والتقييم) مدمج به زر الرجوع
+                // 🌟 قسم الهيدر الاحترافي (Overlapping Layout)
                 // ==========================================
                 SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.shade800,
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(32),
-                        bottomRight: Radius.circular(32),
-                      ),
-                    ),
-                    child: Column(
-                      children:[
-                        // 🌟 شريط علوي صغير للرجوع واسم الصفحة
-                        Row(
-                          children:[
-                            IconButton(
-                              icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
-                              tooltip: 'عودة إلى قائمة العملاء',
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                'الملف التعريفي الشامل', 
-                                style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            const SizedBox(width: 48), // لموازنة زر الرجوع في المنتصف
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.white24,
-                          child: Text(
-                            client.name.isNotEmpty ? client.name.substring(0, 1) : '?',
-                            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children:[
+                      // 1. الخلفية الزرقاء المدمجة
+                      Container(
+                        height: 200, 
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors:[Colors.indigo.shade800, Colors.indigo.shade600],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(24),
+                            bottomRight: Radius.circular(24),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Text(client.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        child: Column(
                           children:[
-                            const Icon(Icons.phone, color: Colors.white70, size: 16),
-                            const SizedBox(width: 4),
-                            Text(client.phone, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-                            const SizedBox(width: 16),
-                            if (client.nationalId != null && client.nationalId!.isNotEmpty) ...[
-                              const Icon(Icons.badge, color: Colors.white70, size: 16),
-                              const SizedBox(width: 4),
-                              Text(client.nationalId!, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-                            ]
+                            Row(
+                              children:[
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                                const Text('الملف التعريفي للعميل', style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            
+                            Row(
+                              children:[
+                                CircleAvatar(
+                                  radius: 32,
+                                  backgroundColor: Colors.white.withOpacity(0.15),
+                                  child: Text(
+                                    client.name.isNotEmpty ? client.name.substring(0, 1) : '?',
+                                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children:[
+                                      Text(client.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children:[
+                                          const Icon(Icons.phone, color: Colors.white70, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text(client.phone, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+                                          
+                                          if (client.nationalId != null && client.nationalId!.isNotEmpty) ...[
+                                            const SizedBox(width: 16),
+                                            const Icon(Icons.badge, color: Colors.white70, size: 14),
+                                            const SizedBox(width: 4),
+                                            Text(client.nationalId!, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+                                          ]
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 32),
-                        
-                        // 📊 شريط الإحصائيات المالي المجمع
-                        Container(
-                          padding: const EdgeInsets.all(20),
+                      ),
+
+                      // 2. بطاقة الإحصائيات الطافية
+                      Positioned(
+                        top: 150, 
+                        left: 20,
+                        right: 20,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                            boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                            border: Border.all(color: Colors.indigo.shade50),
                           ),
                           child: Row(
                             children:[
                               _buildTopStat('إجمالي العقود', summaries.length.toString(), Icons.folder_shared, Colors.indigo),
-                              Container(height: 40, width: 1, color: Colors.grey.shade300),
+                              Container(height: 30, width: 1, color: Colors.grey.shade200),
                               _buildTopStat('إجمالي المدفوعات', '${formatWithCommas(state.grandTotalPaid)} ل.س', Icons.account_balance_wallet, Colors.green),
-                              Container(height: 40, width: 1, color: Colors.grey.shade300),
+                              Container(height: 30, width: 1, color: Colors.grey.shade200),
                               _buildTopStat('أقساط متأخرة', state.totalOverdueAcrossAll.toString(), Icons.warning_rounded, state.totalOverdueAcrossAll > 0 ? Colors.red : Colors.green),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 70)),
 
                 // ==========================================
                 // 🌟 قائمة العقود (المحفظة)
                 // ==========================================
-                const SliverToBoxAdapter(
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 16),
-                    child: Text('عقود وممتلكات العميل (المحفظة)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children:[
+                        Icon(Icons.real_estate_agent, color: Colors.blueGrey.shade400, size: 22),
+                        const SizedBox(width: 8),
+                        const Text('المحفظة العقارية للعميل', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -138,7 +162,7 @@ class ClientProfilePage extends StatelessWidget {
                   SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(32.0),
+                        padding: const EdgeInsets.all(40.0),
                         child: Column(
                           children:[
                             Icon(Icons.folder_off, size: 60, color: Colors.grey.shade300),
@@ -150,149 +174,132 @@ class ClientProfilePage extends StatelessWidget {
                     ),
                   )
                 else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final summary = summaries[index];
-                        final contract = summary.contract;
-                        final isAllocated = contract.contractType == 'متخصص';
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final summary = summaries[index];
+                          final contract = summary.contract;
+                          final isAllocated = contract.contractType == 'متخصص';
 
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                          // 🌟 التعديل هنا: إضافة InkWell للبطاقة للذهاب لشاشة التفاصيل
-                          child: Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            elevation: 1,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                // حفظ الكيوبتات من الصفحة الحالية
-                                final dashboardCubit = context.read<DashboardCubit>();
-                                final paymentsCubit = context.read<PaymentsCubit>();
-                                final scheduleCubit = context.read<ScheduleCubit>();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Material(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  final dashboardCubit = context.read<DashboardCubit>();
+                                  final paymentsCubit = context.read<PaymentsCubit>();
+                                  final scheduleCubit = context.read<ScheduleCubit>();
 
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => MultiBlocProvider(
-                                      providers:[
-                                        BlocProvider.value(value: dashboardCubit),
-                                        BlocProvider.value(value: paymentsCubit),
-                                        BlocProvider.value(value: scheduleCubit),
-                                      ],
-                                      child: ContractDetailsPage(
-                                        contract: contract, 
-                                        client: client,
-                                        summary: summary,
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MultiBlocProvider(
+                                        providers:[
+                                          BlocProvider.value(value: dashboardCubit),
+                                          BlocProvider.value(value: paymentsCubit),
+                                          BlocProvider.value(value: scheduleCubit),
+                                        ],
+                                        child: ContractDetailsPage(
+                                          contract: contract, 
+                                          client: client,
+                                          summary: summary,
+                                        ),
                                       ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    // 🌟 الحل الجذري الآمن: إطار بلون موحد لتجنب خطأ الـ RenderBox
+                                    border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children:[
+                                        // الأيقونة (تقوم بتمييز نوع العقد لغوياً وبصرياً بأمان)
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: isAllocated ? Colors.amber.shade50 : Colors.blue.shade50,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(isAllocated ? Icons.apartment : Icons.savings, color: isAllocated ? Colors.amber.shade700 : Colors.blue.shade700, size: 24),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        
+                                        // التفاصيل الأساسية
+                                        Expanded(
+                                          flex: 3,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children:[
+                                              Text(contract.apartmentDetails, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children:[
+                                                  Text(contract.contractType, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isAllocated ? Colors.amber.shade800 : Colors.blue.shade800)),
+                                                  const SizedBox(width: 8),
+                                                  Text('•  توقيع: ${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children:[
+                                                  const Icon(Icons.price_check, size: 14, color: Colors.green),
+                                                  const SizedBox(width: 4),
+                                                  Text('المدفوع: ${formatWithCommas(summary.totalPaid)} ل.س', style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold)),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        
+                                        // خط فاصل خفيف
+                                        Container(width: 1, height: 50, color: Colors.grey.shade200, margin: const EdgeInsets.symmetric(horizontal: 12)),
+                                        
+                                        // حالة المراقبة في الجهة اليسرى
+                                        Expanded(
+                                          flex: 1,
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children:[
+                                              if (summary.overdueSchedulesCount > 0)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(6)),
+                                                  child: Text('${summary.overdueSchedulesCount} متأخر', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                )
+                                              else
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(6)),
+                                                  child: const Text('منتظم ✓', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                ),
+                                              const SizedBox(height: 6),
+                                              Text('${summary.paidSchedulesCount} تسديدات', style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Icon(Icons.chevron_left, color: Colors.grey),
+                                      ],
                                     ),
                                   ),
-                                );
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Column(
-                                  children:[
-                                    // رأس البطاقة
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: isAllocated ? Colors.amber.shade50 : Colors.blue.shade50,
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children:[
-                                          Row(
-                                            children:[
-                                              Icon(isAllocated ? Icons.apartment : Icons.savings, color: isAllocated ? Colors.amber.shade800 : Colors.blue.shade700),
-                                              const SizedBox(width: 8),
-                                              Text(contract.contractType, style: TextStyle(fontWeight: FontWeight.bold, color: isAllocated ? Colors.amber.shade800 : Colors.blue.shade700)),
-                                            ],
-                                          ),
-                                          Row(
-                                            children:[
-                                              Text(
-                                                'تاريخ التوقيع: ${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}',
-                                                style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.bold),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // محتوى البطاقة
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Row(
-                                        children:[
-                                          Expanded(
-                                            flex: 2,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children:[
-                                                Text(contract.apartmentDetails, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)),
-                                                const SizedBox(height: 8),
-                                                Row(
-                                                  children:[
-                                                    const Icon(Icons.payments, size: 14, color: Colors.grey),
-                                                    const SizedBox(width: 4),
-                                                    Text('المطلوب شهرياً: ${formatWithCommas(contract.agreedMonthlyAmount)} ل.س', style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children:[
-                                                    const Icon(Icons.price_check, size: 14, color: Colors.green),
-                                                    const SizedBox(width: 4),
-                                                    Text('المدفوع لهذا العقد: ${formatWithCommas(summary.totalPaid)} ل.س', style: const TextStyle(color: Colors.green, fontSize: 13, fontWeight: FontWeight.bold)),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(width: 1, height: 60, color: Colors.grey.shade200, margin: const EdgeInsets.symmetric(horizontal: 16)),
-                                          Expanded(
-                                            flex: 1,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.center,
-                                              children:[
-                                                const Text('حالة المراقبة', style: TextStyle(color: Colors.blueGrey, fontSize: 11)),
-                                                const SizedBox(height: 4),
-                                                if (summary.overdueSchedulesCount > 0)
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.red.shade200)),
-                                                    child: Text('${summary.overdueSchedulesCount} متأخر', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
-                                                  )
-                                                else
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.green.shade200)),
-                                                    child: const Text('منتظم ✓', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
-                                                  ),
-                                                const SizedBox(height: 4),
-                                                Text('${summary.paidSchedulesCount} أشهر مُسددة', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                      childCount: summaries.length,
+                          );
+                        },
+                        childCount: summaries.length,
+                      ),
                     ),
                   ),
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
@@ -304,16 +311,17 @@ class ClientProfilePage extends StatelessWidget {
     );
   }
 
+  // دالة مساعدة لبطاقة الإحصائيات بتصميم مضغوط
   Widget _buildTopStat(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children:[
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center),
+          Icon(icon, color: color.withOpacity(0.8), size: 22),
+          const SizedBox(height: 6),
+          Text(value, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
         ],
       ),
     );
