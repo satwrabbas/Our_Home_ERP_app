@@ -6,12 +6,28 @@ import '../../cubit/buildings_cubit.dart';
 
 String _getArabicFloorName(int floorNumber) {
   if (floorNumber == 0) return 'الطابق الأرضي';
+  
   if (floorNumber > 0) {
-    const names = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس'];
-    return 'الطابق ${names[floorNumber - 1]}';
+    const names =[
+      'الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 
+      'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر',
+      'الحادي عشر', 'الثاني عشر', 'الثالث عشر', 'الرابع عشر', 'الخامس عشر'
+    ];
+    // شرط حماية: إذا كان الرقم ضمن القائمة نعرضه نصاً، وإلا نعرضه رقماً
+    if (floorNumber <= names.length) {
+      return 'الطابق ${names[floorNumber - 1]}';
+    }
+    return 'الطابق $floorNumber'; // Fallback
+
   } else {
-    const names = ['الأول', 'الثاني', 'الثالث'];
-    return 'القبو ${names[floorNumber.abs() - 1]}';
+    const names =['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];
+    final absFloor = floorNumber.abs();
+    
+    // شرط حماية للأقبية أيضاً
+    if (absFloor <= names.length) {
+      return 'القبو ${names[absFloor - 1]}';
+    }
+    return 'القبو $absFloor'; // Fallback
   }
 }
 
@@ -38,21 +54,61 @@ void showAddBuildingDialog(BuildContext parentContext) {
     builder: (dialogCtx) => StatefulBuilder(
       builder: (statefulCtx, setState) {
         
+        // 🌟 دالة مساعدة لتوحيد تصميم حقول الإدخال
+        Widget buildField({
+          required TextEditingController controller, 
+          required String label, 
+          IconData? icon, 
+          Color? fillColor, 
+          TextInputType keyboardType = TextInputType.number,
+        }) {
+          return TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            decoration: InputDecoration(
+              labelText: label,
+              prefixIcon: icon != null ? Icon(icon, size: 20, color: Colors.grey.shade600) : null,
+              filled: true,
+              fillColor: fillColor ?? Colors.grey.shade50,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.indigo.shade400, width: 2)),
+            ),
+          );
+        }
+
         List<Widget> buildFloorInputs() {
-          List<Widget> widgets = [];
+          List<Widget> widgets =[];
           for (int i = -basementsCount; i <= floorsCount; i++) {
             floorControllers.putIfAbsent(i, () => TextEditingController(text: '0'));
             widgets.add(
               Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
+                padding: const EdgeInsets.only(bottom: 12.0),
                 child: Row(
-                  children: [
-                    SizedBox(width: 120, child: Text(_getArabicFloorName(i), style: const TextStyle(fontWeight: FontWeight.bold))),
+                  children:[
+                    Container(
+                      width: 140,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: i < 0 ? Colors.brown.shade50 : (i == 0 ? Colors.green.shade50 : Colors.indigo.shade50),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: i < 0 ? Colors.brown.shade200 : (i == 0 ? Colors.green.shade200 : Colors.indigo.shade200)),
+                      ),
+                      child: Text(
+                        _getArabicFloorName(i), 
+                        style: TextStyle(fontWeight: FontWeight.bold, color: i < 0 ? Colors.brown.shade800 : (i == 0 ? Colors.green.shade800 : Colors.indigo.shade800)),
+                        textAlign: TextAlign.center,
+                      )
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: TextField(
-                        controller: floorControllers[i],
-                        decoration: const InputDecoration(labelText: 'نسبة التمييز %', border: OutlineInputBorder(), isDense: true),
-                        keyboardType: TextInputType.number,
+                      child: buildField(
+                        controller: floorControllers[i]!,
+                        label: 'نسبة التمييز المالي %',
+                        icon: Icons.percent,
+                        fillColor: Colors.white,
                       ),
                     ),
                   ],
@@ -64,122 +120,266 @@ void showAddBuildingDialog(BuildContext parentContext) {
         }
 
         return AlertDialog(
-          title: const Text('إضافة محضر جديد (إعداد الهيكل)'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          contentPadding: const EdgeInsets.all(24),
+          title: Row(
+            children:[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.domain_add, color: Colors.indigo.shade700, size: 28),
+              ),
+              const SizedBox(width: 16),
+              const Text('إضافة محضر جديد (إعداد الهيكل)', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 22)),
+            ],
+          ),
           content: SizedBox(
-            width: 550,
+            width: 600, // 🌟 عرض احترافي 600 بكسل
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'اسم المحضر', border: OutlineInputBorder())),
-                  const SizedBox(height: 12),
-                  TextField(controller: locCtrl, decoration: const InputDecoration(labelText: 'الموقع', border: OutlineInputBorder())),
-                  
-                  const Divider(height: 30, thickness: 2),
-                  const Text('معاملات المحضر العامة (%)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-                  const SizedBox(height: 12),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  // ==========================================
+                  // 🌟 1. المعلومات الأساسية للمحضر
+                  // ==========================================
                   Row(
-                    children: [
-                      Expanded(child: TextField(controller: locationCoeffCtrl, decoration: const InputDecoration(labelText: 'الموقع %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: streetCoeffCtrl, decoration: const InputDecoration(labelText: 'الشارع %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: elevatorCoeffCtrl, decoration: const InputDecoration(labelText: 'المصعد %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                    children:[
+                      Expanded(
+                        flex: 3,
+                        child: buildField(
+                          controller: nameCtrl, 
+                          label: 'اسم المحضر / المشروع', 
+                          icon: Icons.business, 
+                          keyboardType: TextInputType.text,
+                          fillColor: Colors.white
+                        )
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: buildField(
+                          controller: locCtrl, 
+                          label: 'الموقع', 
+                          icon: Icons.location_on, 
+                          keyboardType: TextInputType.text,
+                          fillColor: Colors.white
+                        )
+                      ),
                     ],
                   ),
 
-                  // 🌟 قسم الجهات الأربعة
-                  const Divider(height: 30, thickness: 2),
-                  const Text('معاملات الجهات الجغرافية للمحضر (%)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.teal)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: TextField(controller: northCtrl, decoration: const InputDecoration(labelText: 'شمالي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: southCtrl, decoration: const InputDecoration(labelText: 'جنوبي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: TextField(controller: eastCtrl, decoration: const InputDecoration(labelText: 'شرقي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: TextField(controller: westCtrl, decoration: const InputDecoration(labelText: 'غربي %', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
-                    ],
-                  ),
-
-                  const Divider(height: 30, thickness: 2),
-                  const Text('هيكل الطوابق ونسب التمييز لكل طابق', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   
+                  // ==========================================
+                  // 💰 2. معاملات المحضر العامة
+                  // ==========================================
                   Container(
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.indigo.shade50,
-                    child: Row(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.shade200, width: 1.5),
+                      boxShadow:[BoxShadow(color: Colors.green.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: basementsCount,
-                            decoration: const InputDecoration(labelText: 'عدد الأقبية (تحت الأرض)'),
-                            items: [0, 1, 2, 3].map((e) => DropdownMenuItem(value: e, child: Text('$e قبو'))).toList(),
-                            onChanged: (val) => setState(() => basementsCount = val!),
-                          ),
+                        Row(
+                          children:[
+                            Icon(Icons.tune, color: Colors.green.shade600),
+                            const SizedBox(width: 8),
+                            const Text('معاملات المحضر العامة (%)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: floorsCount,
-                            decoration: const InputDecoration(labelText: 'عدد الطوابق (فوق الأرضي)'),
-                            items: [0, 1, 2, 3, 4].map((e) => DropdownMenuItem(value: e, child: Text('$e طابق'))).toList(),
-                            onChanged: (val) => setState(() => floorsCount = val!),
-                          ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children:[
+                            Expanded(child: buildField(controller: locationCoeffCtrl, label: 'الموقع %', icon: Icons.map, fillColor: Colors.white)),
+                            const SizedBox(width: 12),
+                            Expanded(child: buildField(controller: streetCoeffCtrl, label: 'الشارع %', icon: Icons.add_road, fillColor: Colors.white)),
+                            const SizedBox(width: 12),
+                            Expanded(child: buildField(controller: elevatorCoeffCtrl, label: 'المصعد %', icon: Icons.elevator, fillColor: Colors.white)),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ...buildFloorInputs(),
+
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // 🧭 3. قسم الجهات الأربعة
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.teal.shade200, width: 1.5),
+                      boxShadow:[BoxShadow(color: Colors.teal.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children:[
+                            Icon(Icons.explore, color: Colors.teal.shade600),
+                            const SizedBox(width: 8),
+                            const Text('معاملات الجهات الجغرافية للمحضر (%)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.teal)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children:[
+                            Expanded(child: buildField(controller: northCtrl, label: 'شمالي %', icon: Icons.north, fillColor: Colors.white)),
+                            const SizedBox(width: 12),
+                            Expanded(child: buildField(controller: southCtrl, label: 'جنوبي %', icon: Icons.south, fillColor: Colors.white)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children:[
+                            Expanded(child: buildField(controller: eastCtrl, label: 'شرقي %', icon: Icons.east, fillColor: Colors.white)),
+                            const SizedBox(width: 12),
+                            Expanded(child: buildField(controller: westCtrl, label: 'غربي %', icon: Icons.west, fillColor: Colors.white)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // 🏢 4. هيكل الطوابق ونسب التمييز
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+                      boxShadow:[BoxShadow(color: Colors.indigo.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children:[
+                            Icon(Icons.layers, color: Colors.indigo.shade600),
+                            const SizedBox(width: 8),
+                            const Text('هيكل الطوابق ونسب التمييز لكل طابق', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Dropdowns لاختيار عدد الطوابق
+                        Row(
+                          children:[
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                value: basementsCount,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                                decoration: InputDecoration(
+                                  labelText: 'عدد الأقبية (تحت الأرض)',
+                                  prefixIcon: Icon(Icons.arrow_downward, color: Colors.brown.shade400),
+                                  filled: true, fillColor: Colors.brown.shade50,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.brown.shade200)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.brown.shade200)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.indigo.shade400, width: 2)),
+                                ),
+                                items: [0, 1, 2, 3].map((e) => DropdownMenuItem(value: e, child: Text('$e قبو'))).toList(),
+                                onChanged: (val) => setState(() => basementsCount = val!),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                value: floorsCount,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                                decoration: InputDecoration(
+                                  labelText: 'عدد الطوابق (فوق الأرضي)',
+                                  prefixIcon: Icon(Icons.arrow_upward, color: Colors.indigo.shade400),
+                                  filled: true, fillColor: Colors.indigo.shade50,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.indigo.shade200)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.indigo.shade200)),
+                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.indigo.shade400, width: 2)),
+                                ),
+                                items:[0, 1, 2, 3, 4, 5, 6, 7].map((e) => DropdownMenuItem(value: e, child: Text('$e طابق'))).toList(),
+                                onChanged: (val) => setState(() => floorsCount = val!),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // توليد الحقول الديناميكية للطوابق
+                        ...buildFloorInputs(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
-            ElevatedButton(
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          actions:[
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx), 
+              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+              child: const Text('إلغاء', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey))
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo.shade600, 
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 2,
+              ),
               onPressed: () {
-                if (nameCtrl.text.isNotEmpty) {
-                  Map<String, double> finalFloorCoeffs = {};
-                  floorControllers.forEach((floorNum, ctrl) {
-                    final val = double.tryParse(ctrl.text);
-                    if (val != null) finalFloorCoeffs[_getArabicFloorName(floorNum)] = val;
-                  });
-
-                  Map<String, double> finalDirCoeffs = {};
-                  void addGeneralVal(String key, String val) {
-                    final parsed = double.tryParse(val);
-                    if (parsed != null && parsed != 0.0) finalDirCoeffs[key] = parsed;
-                  }
-                  
-                  addGeneralVal('الموقع', locationCoeffCtrl.text);
-                  addGeneralVal('الشارع', streetCoeffCtrl.text);
-                  addGeneralVal('المصعد', elevatorCoeffCtrl.text);
-                  
-                  // 🌟 حفظ قيم الجهات
-                  addGeneralVal('شمالي', northCtrl.text);
-                  addGeneralVal('جنوبي', southCtrl.text);
-                  addGeneralVal('شرقي', eastCtrl.text);
-                  addGeneralVal('غربي', westCtrl.text);
-
-                  parentContext.read<BuildingsCubit>().addBuilding(
-                    name: nameCtrl.text, 
-                    location: locCtrl.text,
-                    floorCoeffs: finalFloorCoeffs,
-                    dirCoeffs: finalDirCoeffs,
-                  );
-                  Navigator.pop(dialogCtx);
+                if (nameCtrl.text.trim().isEmpty) {
+                   ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('⚠️ الرجاء إدخال اسم المحضر!'), backgroundColor: Colors.red));
+                   return;
                 }
+
+                Map<String, double> finalFloorCoeffs = {};
+                floorControllers.forEach((floorNum, ctrl) {
+                  final val = double.tryParse(ctrl.text);
+                  if (val != null) finalFloorCoeffs[_getArabicFloorName(floorNum)] = val;
+                });
+
+                Map<String, double> finalDirCoeffs = {};
+                void addGeneralVal(String key, String val) {
+                  final parsed = double.tryParse(val);
+                  if (parsed != null && parsed != 0.0) finalDirCoeffs[key] = parsed;
+                }
+                
+                addGeneralVal('الموقع', locationCoeffCtrl.text);
+                addGeneralVal('الشارع', streetCoeffCtrl.text);
+                addGeneralVal('المصعد', elevatorCoeffCtrl.text);
+                
+                // 🌟 حفظ قيم الجهات
+                addGeneralVal('شمالي', northCtrl.text);
+                addGeneralVal('جنوبي', southCtrl.text);
+                addGeneralVal('شرقي', eastCtrl.text);
+                addGeneralVal('غربي', westCtrl.text);
+
+                parentContext.read<BuildingsCubit>().addBuilding(
+                  name: nameCtrl.text.trim(), 
+                  location: locCtrl.text.trim(),
+                  floorCoeffs: finalFloorCoeffs,
+                  dirCoeffs: finalDirCoeffs,
+                );
+                Navigator.pop(dialogCtx);
+                
               },
-              child: const Text('اعتماد وحفظ المحضر'),
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('اعتماد وحفظ المحضر', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             )
           ],
         );
