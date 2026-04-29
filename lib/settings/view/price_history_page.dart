@@ -19,106 +19,159 @@ class PriceHistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('سجل التسعيرات التاريخية', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.indigo,
-        elevation: 0,
-      ),
-      // 🌟 الزر العائم الجديد لإضافة تسعيرة قديمة
+      // 🌟 تم إزالة الـ AppBar بالكامل لتوسيع مساحة الجدول
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showAddHistoricalPriceDialog(context),
         icon: const Icon(Icons.add_chart),
         label: const Text('إضافة تسعيرة قديمة', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo.shade600,
         foregroundColor: Colors.white,
       ),
-      body: BlocBuilder<SettingsCubit, SettingsState>(
-        builder: (context, state) {
-          if (state.priceHistory.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children:[
-                  Icon(Icons.history_toggle_off, size: 80, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  const Text('لا يوجد سجل أسعار محفوظ بعد.', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                  const SizedBox(height: 8),
-                  const Text('اضغط على الزر بالأسفل لإضافة تسعيرة.', style: TextStyle(color: Colors.blueGrey)),
-                ],
-              ),
-            );
-          }
+      body: SafeArea(
+        child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, state) {
+            
+            final sortedHistory = List.of(state.priceHistory)..sort((a, b) {
+              return b.effectiveDate.compareTo(a.effectiveDate); 
+            });
 
-          final sortedHistory = List.of(state.priceHistory)..sort((a, b) {
-            return b.effectiveDate.compareTo(a.effectiveDate); 
-          });
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children:[
+                // 🌟 عنوان مدمج وأنيق يحتوي على (زر الرجوع المخصص)
+                _buildHeader(context, sortedHistory.length),
 
-          return ListView(
-            padding: const EdgeInsets.all(24.0),
-            children:[
-              Card(
-                elevation: 3,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                clipBehavior: Clip.antiAlias,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 48),
-                    child: DataTable(
-                      headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
-                      dataRowMaxHeight: 65,
-                      columnSpacing: 30,
-                      columns: const[
-                        DataColumn(label: Text('تاريخ التسعيرة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('حديد (كغ)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('اسمنت (كيس)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('بلوك 15', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('كوفراج (م³)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('حصويات (م³)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('عامل (يوم)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                        DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
-                      ],
-                      rows: sortedHistory.asMap().entries.map((mapEntry) {
-                        final index = mapEntry.key;
-                        final price = mapEntry.value;
-                        
-                        final hour = price.effectiveDate.hour;
-                        final minute = price.effectiveDate.minute.toString().padLeft(2, '0');
-                        final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}  ($hour:$minute)";
+                Expanded(
+                  child: state.priceHistory.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children:[
+                            Icon(Icons.history_toggle_off, size: 80, color: Colors.grey.shade300),
+                            const SizedBox(height: 16),
+                            const Text('لا يوجد سجل أسعار محفوظ بعد.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            const Text('اضغط على الزر بالأسفل لإضافة تسعيرة.', style: TextStyle(color: Colors.blueGrey)),
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        // 🌟 أضفنا مسافة 100 בـالأسفل لكي لا يحجب الزر العائم آخر تسعيرة
+                        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), 
+                        children:[
+                          Card(
+                            elevation: 2,
+                            margin: EdgeInsets.zero, // إزالة الهوامش المهدورة
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                            clipBehavior: Clip.antiAlias,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32),
+                                child: DataTable(
+                                  headingRowColor: WidgetStateProperty.all(Colors.indigo.shade50),
+                                  dataRowMinHeight: 55, // 🌟 ضغط ارتفاع الأسطر
+                                  dataRowMaxHeight: 70, // 🌟 ضغط ارتفاع الأسطر
+                                  columnSpacing: 30,
+                                  horizontalMargin: 20,
+                                  columns: const[
+                                    DataColumn(label: Text('تاريخ التسعيرة', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('حديد (كغ)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('اسمنت (كيس)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('بلوك 15', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('كوفراج (م³)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('حصويات (م³)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('عامل (يوم)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                    DataColumn(label: Text('إجراء', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo))),
+                                  ],
+                                  rows: sortedHistory.asMap().entries.map((mapEntry) {
+                                    final index = mapEntry.key;
+                                    final price = mapEntry.value;
+                                    
+                                    final hour = price.effectiveDate.hour;
+                                    final minute = price.effectiveDate.minute.toString().padLeft(2, '0');
+                                    final date = "${price.effectiveDate.year}/${price.effectiveDate.month}/${price.effectiveDate.day}  ($hour:$minute)";
 
-                        return DataRow(
-                          color: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
-                            if (index.isEven) return Colors.grey.withOpacity(0.03); 
-                            return null; 
-                          }),
-                          cells:[
-                            DataCell(Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 13))), 
-                            DataCell(Text(formatWithCommas(price.ironPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(formatWithCommas(price.cementPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(formatWithCommas(price.block15Price), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(formatWithCommas(price.formworkAndPouringWages), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(formatWithCommas(price.aggregateMaterialsPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(Text(formatWithCommas(price.ordinaryWorkerWage), style: const TextStyle(fontWeight: FontWeight.bold))),
-                            DataCell(
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                tooltip: 'حذف هذه التسعيرة',
-                                onPressed: () {
-                                  context.read<SettingsCubit>().deleteHistoricalPrice(price.id);
-                                },
+                                    return DataRow(
+                                      color: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
+                                        if (index.isEven) return Colors.grey.withOpacity(0.03); 
+                                        return null; 
+                                      }),
+                                      cells:[
+                                        DataCell(Text(date, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo, fontSize: 13))), 
+                                        DataCell(Text(formatWithCommas(price.ironPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(Text(formatWithCommas(price.cementPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(Text(formatWithCommas(price.block15Price), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(Text(formatWithCommas(price.formworkAndPouringWages), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(Text(formatWithCommas(price.aggregateMaterialsPrice), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(Text(formatWithCommas(price.ordinaryWorkerWage), style: const TextStyle(fontWeight: FontWeight.bold))),
+                                        DataCell(
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                            tooltip: 'حذف هذه التسعيرة',
+                                            onPressed: () {
+                                              context.read<SettingsCubit>().deleteHistoricalPrice(price.id);
+                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حذف التسعيرة بنجاح'), backgroundColor: Colors.green));
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                          ),
+                        ],
+                      ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // 🌟 دالة مساعدة لإنشاء العنوان المدمج (مع زر الرجوع)
+  Widget _buildHeader(BuildContext context, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 24, 16),
+      child: Row(
+        children:[
+          // 🌟 زر الرجوع المخصص
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_ios, color: Colors.blueGrey, size: 24),
+            tooltip: 'العودة للإعدادات',
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.history, color: Colors.indigo.shade700, size: 26),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'سجل التسعيرات التاريخية',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.indigo.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.indigo.shade100)
+            ),
+            child: Text(
+              'الإجمالي: $count',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo.shade700, fontSize: 14),
+            ),
+          )
+        ],
       ),
     );
   }
