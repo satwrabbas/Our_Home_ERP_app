@@ -109,4 +109,25 @@ class BuildingsCubit extends Cubit<BuildingsState> {
       emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: 'فشل تعديل الشقة: $e'));
     }
   }
+
+  /// 🗑️ حذف محضر (ينقله لسلة المحذوفات)
+  Future<void> deleteBuilding(String buildingId) async {
+    try {
+      await _erpRepository.softDeleteBuilding(buildingId);
+      await loadData(); // تحديث الشاشة بعد الحذف
+    } catch (e) {
+      // إرسال رسالة الخطأ للواجهة (ستظهر كـ SnackBar أحمر)
+      emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: e.toString().replaceAll('Exception:', '').trim()));
+    }
+  }
+
+  /// 🗑️ حذف شقة/محل (ينقله لسلة المحذوفات)
+  Future<void> deleteApartment(String apartmentId) async {
+    try {
+      await _erpRepository.softDeleteApartment(apartmentId);
+      await loadData(); // تحديث الشاشة بعد الحذف
+    } catch (e) {
+      emit(state.copyWith(status: BuildingsStatus.failure, errorMessage: e.toString().replaceAll('Exception:', '').trim()));
+    }
+  }
 }

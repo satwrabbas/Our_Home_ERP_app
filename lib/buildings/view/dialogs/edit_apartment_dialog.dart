@@ -5,20 +5,17 @@ import 'package:local_storage_api/local_storage_api.dart' show Apartment;
 import '../../cubit/buildings_cubit.dart';
 
 void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
-  // تعبئة البيانات مسبقاً
   final numberController = TextEditingController(text: apt.apartmentNumber);
   final areaController = TextEditingController(text: apt.area.toString());
   
-  // حفظ الاتجاه الحالي
   String selectedDirection = apt.directionName ?? 'شمالي';
-  
-  // قائمة الاتجاهات المسموح بها لتجنب الأخطاء الإملائية
   final List<String> directions =['شمالي', 'جنوبي', 'شرقي', 'غربي', 'شمالي شرقي', 'شمالي غربي', 'جنوبي شرقي', 'جنوبي غربي'];
-  
-  // التأكد من أن الاتجاه الموجود في القاعدة موجود في القائمة، وإلا نختار أول عنصر
   if (!directions.contains(selectedDirection)) {
     selectedDirection = directions.first;
   }
+
+  // 🌟 حماية الواجهة: التحقق هل الوحدة متاحة أم مباعة؟
+  final bool isAvailable = apt.status == 'available';
 
   showDialog(
     context: parentContext,
@@ -26,13 +23,56 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text('تعديل الشقة ( ${apt.apartmentNumber} )', style: const TextStyle(color: Colors.indigo)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children:[
+                Text('تعديل الوحدة ( ${apt.apartmentNumber} )', style: const TextStyle(color: Colors.indigo, fontSize: 18)),
+                
+                // 🌟 عرض زر الحذف فقط إذا كانت الوحدة متاحة
+                if (isAvailable)
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    tooltip: 'حذف الوحدة',
+                    onPressed: () {
+                      showDialog(
+                        context: dialogContext,
+                        builder: (confirmCtx) => AlertDialog(
+                          title: const Row(
+                            children:[
+                              Icon(Icons.warning_amber_rounded, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('تأكيد الحذف'),
+                            ],
+                          ),
+                          content: const Text('هل أنت متأكد من رغبتك في حذف هذه الوحدة ونقلها إلى سلة المحذوفات؟'),
+                          actions:[
+                            TextButton(onPressed: () => Navigator.pop(confirmCtx), child: const Text('إلغاء')),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                              onPressed: () {
+                                parentContext.read<BuildingsCubit>().deleteApartment(apt.id);
+                                Navigator.pop(confirmCtx);
+                                Navigator.pop(dialogContext);
+                              },
+                              child: const Text('نعم، احذف'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  )
+                else
+                  const Tooltip(
+                    message: 'لا يمكن حذف وحدة مباعة أو محجوزة',
+                    child: Icon(Icons.lock, color: Colors.grey),
+                  )
+              ],
+            ),
             content: SizedBox(
               width: 400,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children:[
-                  // تنبيه هندسي
                   Container(
                     padding: const EdgeInsets.all(8),
                     color: Colors.amber.shade50,
@@ -42,7 +82,7 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'لا يمكن تعديل معاملات التميز أو الطابق حفاظاً على سلامة الحسابات. لتغييرها يجب حذف الشقة وإضافتها من جديد.',
+                            'لا يمكن تعديل معاملات التميز أو الطابق حفاظاً على سلامة الحسابات. لتغييرها يجب حذف الوحدة وإضافتها من جديد.',
                             style: TextStyle(color: Colors.brown, fontSize: 12),
                           ),
                         ),
@@ -56,7 +96,7 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
                       Expanded(
                         child: TextField(
                           controller: numberController, 
-                          decoration: const InputDecoration(labelText: 'رقم الشقة', border: OutlineInputBorder())
+                          decoration: const InputDecoration(labelText: 'الرقم/الرمز', border: OutlineInputBorder())
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -73,7 +113,7 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
                   
                   DropdownButtonFormField<String>(
                     value: selectedDirection,
-                    decoration: const InputDecoration(labelText: 'الاتجاه', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'الاتجاه/الواجهة', border: OutlineInputBorder()),
                     items: directions.map((dir) => DropdownMenuItem(value: dir, child: Text(dir))).toList(),
                     onChanged: (val) {
                       setState(() {

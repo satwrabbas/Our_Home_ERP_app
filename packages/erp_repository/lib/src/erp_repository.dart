@@ -32,6 +32,8 @@ class ErpRepository {
       _localApi.autoCleanOldDeletedClients(); 
       _localApi.autoCleanOldDeletedContracts(); 
       _localApi.autoCleanOldDeletedLedgerEntries();
+      
+      _localApi.database.autoCleanOldDeletedBuildingsAndApartments(); 
     }
   }
 
@@ -1014,5 +1016,66 @@ class ErpRepository {
     }
   }
 
+
+
+  // ==========================================
+  // 🗑️ إدارة حذف المحاضر والشقق (مع طبقة الحماية)
+  // ==========================================
+
+  // 1. حذف شقة/محل (مع التحقق من الحالة)
+  Future<void> softDeleteApartment(String apartmentId) async {
+    final db = _localApi.database;
+    
+    // التحقق المزدوج للأمان
+    final apt = await (db.select(db.apartments)..where((t) => t.id.equals(apartmentId))).getSingle();
+    if (apt.status != 'available') {
+      throw Exception('⚠️ لا يمكن حذف هذه الوحدة لأن حالتها حالياً: ${apt.status}');
+    }
+
+    await db.softDeleteApartment(apartmentId);
+    await syncPendingData(); // رفع أمر الحذف للسحابة فوراً
+  }
+
+  // 2. حذف محضر بالكامل (مع التحقق من الشقق التابعة له)
+  Future<void> softDeleteBuilding(String buildingId) async {
+    final db = _localApi.database;
+
+    // جلب جميع الشقق والمحلات التابعة لهذا المحضر الفعالة
+    final buildingApartments = await (db.select(db.apartments)..where((t) => t.buildingId.equals(buildingId) & t.isDeleted.equals(false))).get();
+    
+    // التحقق: هل توجد أي شقة أو محل حالته مباع/محجوز؟
+    final hasSoldApartments = buildingApartments.any((apt) => apt.status != 'available');
+    if (hasSoldApartments) {
+      throw Exception('⛔ لا يمكن حذف هذا المحضر لاحتوائه على وحدات مباعة. يرجى حذف الوحدات المتاحة يدوياً إن أردت.');
+    }
+
+    await db.softDeleteBuilding(buildingId);
+    await syncPendingData(); 
+  }
+
+  // 3. استعادة شقة/محل
+  Future<void> restoreApartment(String apartmentId) async {
+    await _localApi.database.restoreSoftDeletedApartment(apartmentId);
+    await syncPendingData();
+  }
+
+  // 4. استعادة محضر (سيستعيد معه شققه آلياً بفضل الدالة المحلية)
+  Future<void> restoreBuilding(String buildingId) async {
+    await _localApi.database.restoreSoftDeletedBuilding(buildingId);
+    await syncPendingData();
+  }
+
+  // 5. الحذف النهائي (Hard Delete)
+  Future<void> forceHardDeleteApartment(String apartmentId) async {
+    await _localApi.database.hardDeleteApartment(apartmentId);
+  }
+
+  Future<void> forceHardDeleteBuilding(String buildingId) async {
+    await _localApi.database.hardDeleteBuilding(buildingId);
+  }
+
+  // 6. جلب سلة المحذوفات
+  Future<List<Building>> getDeletedBuildings() => _localApi.database.getDeletedBuildings();
+  Future<List<Apartment>> getDeletedApartments() => _localApi.database.getDeletedApartments();
 
 }
