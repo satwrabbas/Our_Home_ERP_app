@@ -886,6 +886,107 @@ class AppDatabase extends _$AppDatabase {
       );
     });
   }
+
+
+
+  // ==========================================
+  // 🗑️ سلة المحذوفات (Recycle Bin) - المحاضر والشقق
+  // ==========================================
+
+  // 1. الحذف الوهمي لمحضر (يحذف معه الشقق التابعة له آلياً)
+  Future<void> softDeleteBuilding(String buildingId) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+
+      // أ. حذف المحضر
+      await (update(buildings)..where((t) => t.id.equals(buildingId))).write(
+        BuildingsCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+
+      // ب. حذف الشقق التابعة له
+      await (update(apartments)..where((t) => t.buildingId.equals(buildingId))).write(
+        ApartmentsCompanion(isDeleted: const Value(true), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+    });
+  }
+
+  // 2. استعادة محضر (يستعيد معه الشقق التابعة له آلياً)
+  Future<void> restoreSoftDeletedBuilding(String buildingId) async {
+    return transaction(() async {
+      final nowUtc = Value(DateTime.now().toUtc());
+
+      // أ. استعادة المحضر
+      await (update(buildings)..where((t) => t.id.equals(buildingId))).write(
+        BuildingsCompanion(isDeleted: const Value(false), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+
+      // ب. استعادة الشقق التابعة له
+      await (update(apartments)..where((t) => t.buildingId.equals(buildingId))).write(
+        ApartmentsCompanion(isDeleted: const Value(false), updatedAt: nowUtc, isSynced: const Value(false)),
+      );
+    });
+  }
+
+  // 3. الحذف الوهمي لشقة/محل بشكل مستقل
+  Future<int> softDeleteApartment(String apartmentId) {
+    return (update(apartments)..where((t) => t.id.equals(apartmentId))).write(
+      ApartmentsCompanion(
+        isDeleted: const Value(true),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  // 4. استعادة شقة/محل بشكل مستقل
+  Future<int> restoreSoftDeletedApartment(String apartmentId) {
+    return (update(apartments)..where((t) => t.id.equals(apartmentId))).write(
+      ApartmentsCompanion(
+        isDeleted: const Value(false),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false),
+      ),
+    );
+  }
+
+  // 5. جلب المحاضر المحذوفة (لسلة المحذوفات)
+  Future<List<Building>> getDeletedBuildings() => 
+      (select(buildings)..where((t) => t.isDeleted.equals(true))).get();
+
+  // 6. جلب الشقق المحذوفة (لسلة المحذوفات)
+  Future<List<Apartment>> getDeletedApartments() => 
+      (select(apartments)..where((t) => t.isDeleted.equals(true))).get();
+
+  // 7. الحذف النهائي لمحضر (Hard Delete) - مدمر!
+  Future<void> hardDeleteBuilding(String buildingId) async {
+    return transaction(() async {
+      // يجب حذف الأبناء (الشقق) أولاً
+      await (delete(apartments)..where((t) => t.buildingId.equals(buildingId))).go();
+      // ثم حذف الأب (المحضر)
+      await (delete(buildings)..where((t) => t.id.equals(buildingId))).go();
+    });
+  }
+
+  // 8. الحذف النهائي لشقة (Hard Delete)
+  Future<int> hardDeleteApartment(String apartmentId) {
+    return (delete(apartments)..where((t) => t.id.equals(apartmentId))).go();
+  }
+
+  // 9. التنظيف التلقائي للمحاضر والشقق القديمة (مر عليها 7 أيام)
+  Future<void> autoCleanOldDeletedBuildingsAndApartments() async {
+    final sevenDaysAgo = DateTime.now().toUtc().subtract(const Duration(days: 7));
+    
+    // الشقق أولاً (لأنها تعتمد على المحاضر)
+    await (delete(apartments)..where((t) => 
+      t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
+    )).go();
+
+    // المحاضر ثانياً
+    await (delete(buildings)..where((t) => 
+      t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
+    )).go();
+  }
+  
 }
 
 LazyDatabase _openConnection() {
