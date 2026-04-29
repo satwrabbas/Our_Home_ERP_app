@@ -1,17 +1,14 @@
 // lib/clients/view/clients_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:erp_repository/erp_repository.dart'; // 🌟 إضافة ضرورية لحقن الـ Repository
+import 'package:erp_repository/erp_repository.dart'; 
 import '../cubit/clients_cubit.dart';
-import 'deleted_clients_page.dart';
 import 'dialogs/add_client_dialog.dart';
 import 'dialogs/edit_client_dialog.dart';
-
 
 import '../../dashboard/cubit/dashboard_cubit.dart';
 import '../../payments/cubit/payments_cubit.dart';
 import '../../schedule/cubit/schedule_cubit.dart';
-// 🌟 استدعاء ملفات الملف التعريفي الجديدة
 import '../../profile/cubit/client_profile_cubit.dart';
 import '../../profile/view/client_profile_page.dart';
 
@@ -24,7 +21,6 @@ class ClientsPage extends StatelessWidget {
   }
 }
 
-// 🌟 تحويل الشاشة إلى StatefulWidget لدعم خاصية البحث
 class ClientsView extends StatefulWidget {
   const ClientsView({super.key});
 
@@ -33,7 +29,7 @@ class ClientsView extends StatefulWidget {
 }
 
 class _ClientsViewState extends State<ClientsView> {
-  String _searchQuery = ''; // 🌟 متغير لتخزين نص البحث
+  String _searchQuery = ''; 
 
   @override
   Widget build(BuildContext context) {
@@ -42,29 +38,9 @@ class _ClientsViewState extends State<ClientsView> {
       appBar: AppBar(
         title: const Text('إدارة العملاء (الفريق الثاني)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent, // 🌟 ثيم أزرق للعملاء
+        backgroundColor: Colors.blueAccent, 
         elevation: 0,
-        actions:[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.white, size: 28),
-              tooltip: 'سلة المحذوفات',
-              onPressed: () {
-                context.read<ClientsCubit>().fetchDeletedClients();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BlocProvider.value(
-                      value: context.read<ClientsCubit>(),
-                      child: const DeletedClientsPage(),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+        // 🌟 تمت إزالة actions بالكامل (زر سلة المحذوفات) لتنظيف الواجهة
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: null,
@@ -104,7 +80,6 @@ class _ClientsViewState extends State<ClientsView> {
             );
           }
 
-          // 🌟 فلترة العملاء بناءً على نص البحث
           final filteredClients = state.clients.where((client) {
             if (_searchQuery.isEmpty) return true;
             
@@ -119,9 +94,7 @@ class _ClientsViewState extends State<ClientsView> {
 
           return Column(
             children:[
-              // ==========================================
-              // 🌟 القسم العلوي: شريط البحث
-              // ==========================================
+              // شريط البحث
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                 decoration: BoxDecoration(
@@ -184,9 +157,6 @@ class _ClientsViewState extends State<ClientsView> {
                 ),
               ),
 
-              // ==========================================
-              // 🌟 القسم السفلي: جدول العملاء
-              // ==========================================
               Expanded(
                 child: filteredClients.isEmpty
                   ? Center(
@@ -235,14 +205,11 @@ class _ClientsViewState extends State<ClientsView> {
                                     }),
                                     cells:[
                                       DataCell(Text(client.id.split('-').first.toUpperCase(), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600, fontSize: 14))),
-                                      
-                                      // 🌟 السحر هنا: تحويل الاسم لزر يفتح الملف التعريفي الشامل
                                       DataCell(
                                         ConstrainedBox(
                                           constraints: const BoxConstraints(maxWidth: 200),
                                           child: InkWell(
                                             onTap: () {
-                                              // 🌟 حفظنا الكيوبتات لكي لا تضيع عندما نفتح نافذة جديدة
                                               final dashboardCubit = context.read<DashboardCubit>();
                                               final paymentsCubit = context.read<PaymentsCubit>();
                                               final scheduleCubit = context.read<ScheduleCubit>();
@@ -289,11 +256,8 @@ class _ClientsViewState extends State<ClientsView> {
                                           ),
                                         )
                                       ),
-                                      
                                       DataCell(Text(client.phone, style: const TextStyle(fontSize: 14, color: Colors.black87))),
-                                      
                                       DataCell(Text(client.nationalId ?? 'غير متوفر', style: TextStyle(fontSize: 14, color: client.nationalId != null ? Colors.black87 : Colors.grey))),
-                                      
                                       DataCell(
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -303,7 +267,6 @@ class _ClientsViewState extends State<ClientsView> {
                                           ),
                                         )
                                       ),
-                                      
                                       DataCell(
                                         IconButton(
                                           icon: const Icon(Icons.edit_note, color: Colors.blue, size: 26),

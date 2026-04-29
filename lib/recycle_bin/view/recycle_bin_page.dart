@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/recycle_bin_cubit.dart';
+import 'dialogs/verify_hard_delete_dialog.dart'; // 🌟 استدعاء الديالوج الموحد
 
 class RecycleBinPage extends StatelessWidget {
   const RecycleBinPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // حقن الـ Cubit محلياً لهذه الشاشة فقط
     return BlocProvider(
       create: (context) => RecycleBinCubit(context.read<ErpRepository>())..loadAllDeletedData(),
       child: const RecycleBinView(),
@@ -23,7 +23,7 @@ class RecycleBinView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5, // عدد التبويبات
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('سلة المحذوفات الشاملة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -36,9 +36,9 @@ class RecycleBinView extends StatelessWidget {
             indicatorColor: Colors.white,
             indicatorWeight: 3,
             tabs:[
+              Tab(icon: Icon(Icons.people), text: 'العملاء'),
               Tab(icon: Icon(Icons.domain), text: 'المحاضر'),
               Tab(icon: Icon(Icons.door_front_door), text: 'الوحدات'),
-              Tab(icon: Icon(Icons.people), text: 'العملاء'),
               Tab(icon: Icon(Icons.description), text: 'العقود'),
               Tab(icon: Icon(Icons.receipt_long), text: 'المدفوعات'),
             ],
@@ -57,30 +57,65 @@ class RecycleBinView extends StatelessWidget {
 
             return TabBarView(
               children:[
-                _buildList(context, state.deletedBuildings, 'المحاضر', 
-                  (item) => item.name, 
-                  (item) => context.read<RecycleBinCubit>().restoreBuilding(item.id),
-                  (item) => context.read<RecycleBinCubit>().hardDeleteBuilding(item.id)
+                // 1. العملاء
+                _buildList(
+                  context: context, 
+                  items: state.deletedClients, 
+                  emptyMessage: 'العملاء',
+                  icon: Icons.person_off,
+                  getTitle: (item) => item.name, 
+                  getSubtitle: (item) => 'رقم الهاتف: ${item.phone}',
+                  getUpdatedAt: (item) => item.updatedAt,
+                  onRestore: (item) => context.read<RecycleBinCubit>().restoreClient(item.id),
+                  onHardDelete: (item) => context.read<RecycleBinCubit>().hardDeleteClient(item.id)
                 ),
-                _buildList(context, state.deletedApartments, 'الوحدات (الشقق/المحلات)', 
-                  (item) => 'وحدة رقم: ${item.apartmentNumber} | المساحة: ${item.area}', 
-                  (item) => context.read<RecycleBinCubit>().restoreApartment(item.id),
-                  (item) => context.read<RecycleBinCubit>().hardDeleteApartment(item.id)
+                // 2. المحاضر
+                _buildList(
+                  context: context, 
+                  items: state.deletedBuildings, 
+                  emptyMessage: 'المحاضر', 
+                  icon: Icons.domain_disabled,
+                  getTitle: (item) => 'محضر: ${item.name}', 
+                  getSubtitle: (item) => 'الموقع: ${item.location}',
+                  getUpdatedAt: (item) => item.updatedAt,
+                  onRestore: (item) => context.read<RecycleBinCubit>().restoreBuilding(item.id),
+                  onHardDelete: (item) => context.read<RecycleBinCubit>().hardDeleteBuilding(item.id)
                 ),
-                _buildList(context, state.deletedClients, 'العملاء', 
-                  (item) => item.name, 
-                  (item) => context.read<RecycleBinCubit>().restoreClient(item.id),
-                  (item) => context.read<RecycleBinCubit>().hardDeleteClient(item.id)
+                // 3. الوحدات
+                _buildList(
+                  context: context, 
+                  items: state.deletedApartments, 
+                  emptyMessage: 'الوحدات (الشقق/المحلات)', 
+                  icon: Icons.do_not_disturb_alt,
+                  getTitle: (item) => 'وحدة رقم: ${item.apartmentNumber}', 
+                  getSubtitle: (item) => 'المساحة: ${item.area} م²',
+                  getUpdatedAt: (item) => item.updatedAt,
+                  onRestore: (item) => context.read<RecycleBinCubit>().restoreApartment(item.id),
+                  onHardDelete: (item) => context.read<RecycleBinCubit>().hardDeleteApartment(item.id)
                 ),
-                _buildList(context, state.deletedContracts, 'العقود', 
-                  (item) => 'عقد مساحة: ${item.totalArea} م²', 
-                  (item) => context.read<RecycleBinCubit>().restoreContract(item.id),
-                  (item) => context.read<RecycleBinCubit>().hardDeleteContract(item.id)
+                // 4. العقود
+                _buildList(
+                  context: context, 
+                  items: state.deletedContracts, 
+                  emptyMessage: 'العقود', 
+                  icon: Icons.file_copy_outlined,
+                  getTitle: (item) => 'عقد بيع (${item.apartmentDetails})', 
+                  getSubtitle: (item) => 'المساحة الإجمالية: ${item.totalArea} م²',
+                  getUpdatedAt: (item) => item.updatedAt,
+                  onRestore: (item) => context.read<RecycleBinCubit>().restoreContract(item.id),
+                  onHardDelete: (item) => context.read<RecycleBinCubit>().hardDeleteContract(item.id)
                 ),
-                _buildList(context, state.deletedPayments, 'المدفوعات والإيصالات', 
-                  (item) => 'مبلغ الدفعة: ${item.amountPaid}', 
-                  (item) => context.read<RecycleBinCubit>().restorePayment(item.id),
-                  (item) => context.read<RecycleBinCubit>().hardDeletePayment(item.id)
+                // 5. المدفوعات
+                _buildList(
+                  context: context, 
+                  items: state.deletedPayments, 
+                  emptyMessage: 'المدفوعات والإيصالات', 
+                  icon: Icons.money_off,
+                  getTitle: (item) => 'إيصال رقم: ${item.id.split('-').first.toUpperCase()}', 
+                  getSubtitle: (item) => 'مبلغ الدفعة: ${item.amountPaid}',
+                  getUpdatedAt: (item) => item.updatedAt,
+                  onRestore: (item) => context.read<RecycleBinCubit>().restorePayment(item.id),
+                  onHardDelete: (item) => context.read<RecycleBinCubit>().hardDeletePayment(item.id)
                 ),
               ],
             );
@@ -90,8 +125,18 @@ class RecycleBinView extends StatelessWidget {
     );
   }
 
-  // 🌟 دالة مساعدة ذكية لبناء القوائم لكل تبويب لتجنب تكرار الكود
-  Widget _buildList<T>(BuildContext context, List<T> items, String emptyMessage, String Function(T) getTitle, void Function(T) onRestore, void Function(T) onHardDelete) {
+  // 🌟 الدالة السحرية المطورة لبناء القوائم (تدعم احتساب الأيام المتبقية)
+  Widget _buildList<T>({
+    required BuildContext context, 
+    required List<T> items, 
+    required String emptyMessage, 
+    required IconData icon,
+    required String Function(T) getTitle, 
+    required String Function(T) getSubtitle, 
+    required DateTime Function(T) getUpdatedAt, 
+    required void Function(T) onRestore, 
+    required void Function(T) onHardDelete
+  }) {
     if (items.isEmpty) {
       return Center(
         child: Column(
@@ -112,43 +157,42 @@ class RecycleBinView extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
+        final title = getTitle(item);
+        final subtitle = getSubtitle(item);
+
+        // 🌟 حساب الأيام المتبقية
+        final deletionDate = getUpdatedAt(item).toLocal();
+        final daysPassed = DateTime.now().difference(deletionDate).inDays;
+        final daysLeft = (7 - daysPassed).clamp(0, 7); // لضمان عدم ظهور رقم سالب
+
         return Card(
-          elevation: 2,
+          elevation: 3,
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: const CircleAvatar(backgroundColor: Colors.red, child: Icon(Icons.delete_outline, color: Colors.white)),
-            title: Text(getTitle(item), style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('محذوف', style: TextStyle(color: Colors.red)),
+            leading: CircleAvatar(backgroundColor: Colors.redAccent, child: Icon(icon, color: Colors.white)),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.lineThrough)),
+            subtitle: Text('$subtitle\n⏳ باقي $daysLeft أيام على الحذف النهائي', style: const TextStyle(color: Colors.redAccent)),
+            isThreeLine: true,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children:[
                 IconButton(
-                  icon: const Icon(Icons.restore, color: Colors.green),
+                  icon: const Icon(Icons.restore, color: Colors.green, size: 30),
                   tooltip: 'استعادة',
-                  onPressed: () => onRestore(item),
+                  onPressed: () {
+                    onRestore(item);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الاستعادة بنجاح.'), backgroundColor: Colors.green));
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_forever, color: Colors.red),
-                  tooltip: 'حذف نهائي',
+                  tooltip: 'حذف نهائي الآن',
                   onPressed: () {
-                    // رسالة تأكيد أخيرة قبل الحذف المدمر
-                    showDialog(
+                    // 🌟 استدعاء الديالوج الأمني الموحد!
+                    showVerifyHardDeleteDialog(
                       context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('حذف نهائي', style: TextStyle(color: Colors.red)),
-                        content: const Text('هل أنت متأكد؟ سيتم مسح هذا العنصر نهائياً ولن تتمكن من استعادته أبداً.'),
-                        actions:[
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                            onPressed: () {
-                              onHardDelete(item);
-                              Navigator.pop(ctx);
-                            },
-                            child: const Text('نعم، مسح نهائي'),
-                          ),
-                        ],
-                      ),
+                      itemName: title,
+                      onConfirm: () => onHardDelete(item),
                     );
                   },
                 ),

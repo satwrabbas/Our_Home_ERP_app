@@ -1,12 +1,13 @@
-// lib/clients/view/dialogs/confirm_hard_delete_dialog.dart
+// lib/recycle_bin/view/dialogs/verify_hard_delete_dialog.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:local_storage_api/local_storage_api.dart' show Client;
-import '../../cubit/clients_cubit.dart';
 
-void showConfirmHardDeleteDialog(BuildContext context, Client client) {
+void showVerifyHardDeleteDialog({
+  required BuildContext context,
+  required String itemName,
+  required VoidCallback onConfirm,
+}) {
   final pinController = TextEditingController();
-  const String correctPin = '0938457732'; // 🌟 رمز الأمان المخصص للحذف النهائي
+  const String correctPin = '0938457732'; // رمز الأمان الموحد
 
   showDialog(
     context: context,
@@ -22,7 +23,7 @@ void showConfirmHardDeleteDialog(BuildContext context, Client client) {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children:[
-          Text('هل أنت متأكد من حذف العميل "${client.name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.\n\nيرجى إدخال رمز المدير للتأكيد:'),
+          Text('هل أنت متأكد من مسح "$itemName" نهائياً؟\nهذا الإجراء لا يمكن التراجع عنه.\n\nيرجى إدخال رمز المدير للتأكيد:'),
           const SizedBox(height: 16),
           TextField(
             controller: pinController,
@@ -46,8 +47,8 @@ void showConfirmHardDeleteDialog(BuildContext context, Client client) {
           style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
           onPressed: () {
             if (pinController.text == correctPin) {
-              context.read<ClientsCubit>().forceHardDelete(client.id);
-              Navigator.pop(ctx);
+              Navigator.pop(ctx); // إغلاق الديالوج
+              onConfirm(); // تنفيذ دالة الحذف النهائي المُمررة
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('تم الحذف النهائي بنجاح.'), backgroundColor: Colors.green)
               );
