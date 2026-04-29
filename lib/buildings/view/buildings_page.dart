@@ -15,6 +15,43 @@ import 'dialogs/edit_apartment_dialog.dart';
 // 🌟 استيراد نافذة المحلات التجارية الجديدة
 import 'dialogs/add_shop_dialog.dart';
 
+// ==========================================
+// 🌟 دالة فرز ذكية لترتيب الطوابق هندسياً 
+// (القبو أولاً، ثم الأرضي، ثم الطوابق العليا)
+// ==========================================
+int _getFloorLevel(String name) {
+  if (name.contains('الأرضي')) return 0;
+  
+  int level = 99; // قيمة افتراضية للحالات غير المعروفة
+  
+  if (name.contains('الثاني عشر')) level = 12;
+  else if (name.contains('الحادي عشر')) level = 11;
+  else if (name.contains('العاشر')) level = 10;
+  else if (name.contains('التاسع')) level = 9;
+  else if (name.contains('الثامن')) level = 8;
+  else if (name.contains('السابع')) level = 7;
+  else if (name.contains('السادس')) level = 6;
+  else if (name.contains('الخامس')) level = 5;
+  else if (name.contains('الرابع')) level = 4;
+  else if (name.contains('الثالث')) level = 3;
+  else if (name.contains('الثاني')) level = 2;
+  else if (name.contains('الأول')) level = 1;
+  else {
+    // في حال وجود طوابق بأرقام عادية مثل "الطابق 15"
+    final match = RegExp(r'\d+').firstMatch(name);
+    if (match != null) {
+      level = int.parse(match.group(0)!);
+    }
+  }
+
+  // إذا كان قبو نجعله بالسالب لكي يظهر في الأعلى عند الفرز
+  if (name.contains('القبو')) {
+    return -level; 
+  }
+  
+  return level;
+}
+
 class BuildingsPage extends StatefulWidget {
   const BuildingsPage({super.key});
 
@@ -96,7 +133,8 @@ class BuildingsView extends StatelessWidget {
                 // 🌟 القائمة التي تحتوي على المحاضر
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    // 🌟 إضافة Bottom Padding بقيمة 100 لتجنب حجب الزر العائم للمحتوى في النهاية
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
                     itemCount: state.buildings.length,
                     itemBuilder: (context, index) {
                       final building = state.buildings[index];
@@ -112,6 +150,10 @@ class BuildingsView extends StatelessWidget {
                       } catch (e) {
                         // تجاهل الأخطاء الصامتة في تحويل الـ JSON
                       }
+
+                      // 🌟 استخراج قائمة الطوابق وترتيبها بالدالة الذكية (قبو -> أرضي -> طوابق عليا)
+                      final sortedFloorNames = availableFloors.keys.toList()
+                        ..sort((a, b) => _getFloorLevel(a).compareTo(_getFloorLevel(b)));
 
                       // 🌟 بطاقة المحضر
                       return Card(
@@ -179,15 +221,16 @@ class BuildingsView extends StatelessWidget {
                                 child: Column(
                                   children:[
                                     // ==========================================
-                                    // 🚪 1. قسم الشقق السكنية (يُعرض حسب الطوابق)
+                                    // 🚪 1. قسم الشقق السكنية (يُعرض حسب الطوابق مرتبة)
                                     // ==========================================
-                                    if (availableFloors.isEmpty)
+                                    if (sortedFloorNames.isEmpty)
                                       Padding(
                                         padding: const EdgeInsets.all(24.0), 
                                         child: Text('لم يتم إعداد الطوابق لهذا المحضر. يرجى تعديل المحضر أولاً.', style: TextStyle(color: Colors.grey.shade600)),
                                       ),
                                     
-                                    ...availableFloors.keys.map((floorName) {
+                                    // 🌟 استخدام القائمة المرتبة بدلاً من المبعثرة
+                                    ...sortedFloorNames.map((floorName) {
                                       final floorApts = bldApartments.where((a) => a.floorName == floorName).toList();
                                       
                                       return Container(
