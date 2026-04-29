@@ -6,14 +6,7 @@ import '../../cubit/buildings_cubit.dart';
 
 void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
   final numberController = TextEditingController(text: apt.apartmentNumber);
-  final areaController = TextEditingController(text: apt.area.toString());
   
-  String selectedDirection = apt.directionName ?? 'شمالي';
-  final List<String> directions =['شمالي', 'جنوبي', 'شرقي', 'غربي', 'شمالي شرقي', 'شمالي غربي', 'جنوبي شرقي', 'جنوبي غربي'];
-  if (!directions.contains(selectedDirection)) {
-    selectedDirection = directions.first;
-  }
-
   // 🌟 حماية الواجهة: التحقق هل الوحدة متاحة أم مباعة؟
   final bool isAvailable = apt.status == 'available';
 
@@ -22,21 +15,62 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
     builder: (dialogContext) {
       return StatefulBuilder(
         builder: (context, setState) {
+          
+          // 🌟 دالة مساعدة لحقول القراءة فقط (Read-Only)
+          Widget buildReadOnlyField(String label, String value, IconData icon) {
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children:[
+                  Icon(icon, size: 24, color: Colors.grey.shade500),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:[
+                      Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black54)),
+                    ],
+                  )
+                ],
+              ),
+            );
+          }
+
           return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+            contentPadding: const EdgeInsets.all(24),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children:[
-                Text('تعديل الوحدة ( ${apt.apartmentNumber} )', style: const TextStyle(color: Colors.indigo, fontSize: 18)),
+                Row(
+                  children:[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+                      child: Icon(isAvailable ? Icons.edit_note : Icons.lock, color: isAvailable ? Colors.orange.shade700 : Colors.red.shade700, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Text('تعديل الوحدة ( ${apt.apartmentNumber} )', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 22)),
+                  ],
+                ),
                 
                 // 🌟 عرض زر الحذف فقط إذا كانت الوحدة متاحة
                 if (isAvailable)
                   IconButton(
-                    icon: const Icon(Icons.delete_forever, color: Colors.red),
+                    icon: const Icon(Icons.delete_forever, color: Colors.red, size: 28),
                     tooltip: 'حذف الوحدة',
                     onPressed: () {
                       showDialog(
                         context: dialogContext,
                         builder: (confirmCtx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           title: const Row(
                             children:[
                               Icon(Icons.warning_amber_rounded, color: Colors.red),
@@ -44,17 +78,18 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
                               Text('تأكيد الحذف'),
                             ],
                           ),
-                          content: const Text('هل أنت متأكد من رغبتك في حذف هذه الوحدة ونقلها إلى سلة المحذوفات؟'),
+                          content: const Text('هل أنت متأكد من رغبتك في حذف هذه الوحدة ونقلها إلى سلة المحذوفات؟', style: TextStyle(fontSize: 16)),
                           actions:[
                             TextButton(onPressed: () => Navigator.pop(confirmCtx), child: const Text('إلغاء')),
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                               onPressed: () {
                                 parentContext.read<BuildingsCubit>().deleteApartment(apt.id);
-                                Navigator.pop(confirmCtx);
-                                Navigator.pop(dialogContext);
+                                Navigator.pop(confirmCtx); // إغلاق التأكيد
+                                Navigator.pop(dialogContext); // إغلاق نافذة التعديل
+                                ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('تم نقل الوحدة لسلة المحذوفات'), backgroundColor: Colors.green));
                               },
-                              child: const Text('نعم، احذف'),
+                              child: const Text('نعم، احذف', style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
@@ -62,85 +97,118 @@ void showEditApartmentDialog(BuildContext parentContext, Apartment apt) {
                     },
                   )
                 else
-                  const Tooltip(
-                    message: 'لا يمكن حذف وحدة مباعة أو محجوزة',
-                    child: Icon(Icons.lock, color: Colors.grey),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.red.shade200)),
+                    child: Row(
+                      children:[
+                        Icon(Icons.lock, color: Colors.red.shade700, size: 16),
+                        const SizedBox(width: 6),
+                        Text('مقفلة (مباعة)', style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ],
+                    ),
                   )
               ],
             ),
             content: SizedBox(
-              width: 400,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children:[
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.amber.shade50,
-                    child: const Row(
-                      children:[
-                        Icon(Icons.warning_amber_rounded, color: Colors.brown, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'لا يمكن تعديل معاملات التميز أو الطابق حفاظاً على سلامة الحسابات. لتغييرها يجب حذف الوحدة وإضافتها من جديد.',
-                            style: TextStyle(color: Colors.brown, fontSize: 12),
+              width: 600, // 🌟 عرض احترافي يناسب الأنظمة
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    // 🌟 1. رسالة الحماية والتنبيه
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isAvailable ? Colors.amber.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isAvailable ? Colors.amber.shade200 : Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children:[
+                          Icon(isAvailable ? Icons.info_outline : Icons.gavel, color: isAvailable ? Colors.brown : Colors.red.shade700, size: 28),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              isAvailable 
+                                ? 'للحفاظ على سلامة الحسابات والمعاملات المالية، يُسمح لك بتعديل "الرقم/الرمز" فقط. لتغيير المساحة أو الاتجاه، يرجى حذف الوحدة وإضافتها من جديد.'
+                                : 'هذه الوحدة مباعة أو محجوزة بعقد. يُمنع منعاً باتاً تعديل بياناتها أو حذفها للحفاظ على استقرار العقود المالية.',
+                              style: TextStyle(color: isAvailable ? Colors.brown.shade800 : Colors.red.shade900, fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // 🌟 2. حقل التعديل (يُفعل فقط إذا كانت متاحة)
+                    TextField(
+                      controller: numberController, 
+                      enabled: isAvailable, // قفل الحقل إذا كانت مباعة
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      decoration: InputDecoration(
+                        labelText: 'رقم الوحدة / الرمز', 
+                        prefixIcon: Icon(Icons.tag, color: isAvailable ? Colors.orange.shade600 : Colors.grey),
+                        filled: true,
+                        fillColor: isAvailable ? Colors.white : Colors.grey.shade100,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.orange.shade400, width: 2)),
+                      )
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // 🌟 3. عرض المساحة والاتجاه (للقراءة فقط دائماً)
+                    Row(
+                      children:[
+                        Expanded(
+                          child: buildReadOnlyField('المساحة المعتمدة', '${apt.area} م²', Icons.architecture),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: buildReadOnlyField('الاتجاه / الواجهة', apt.directionName ?? 'غير محدد', Icons.explore),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  Row(
-                    children:[
-                      Expanded(
-                        child: TextField(
-                          controller: numberController, 
-                          decoration: const InputDecoration(labelText: 'الرقم/الرمز', border: OutlineInputBorder())
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: areaController, 
-                          decoration: const InputDecoration(labelText: 'المساحة (م²)', border: OutlineInputBorder()),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  DropdownButtonFormField<String>(
-                    value: selectedDirection,
-                    decoration: const InputDecoration(labelText: 'الاتجاه/الواجهة', border: OutlineInputBorder()),
-                    items: directions.map((dir) => DropdownMenuItem(value: dir, child: Text(dir))).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        selectedDirection = val!;
-                      });
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             actions:[
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-                onPressed: () {
-                  if (numberController.text.trim().isNotEmpty && areaController.text.trim().isNotEmpty) {
-                    parentContext.read<BuildingsCubit>().updateApartment(
-                      id: apt.id,
-                      apartmentNumber: numberController.text.trim(),
-                      area: double.tryParse(areaController.text.trim()) ?? apt.area,
-                      directionName: selectedDirection,
-                    );
-                    Navigator.pop(dialogContext);
-                  }
-                },
-                child: const Text('حفظ التعديلات'),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext), 
+                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+                child: Text(isAvailable ? 'إلغاء' : 'إغلاق', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey))
               ),
+              if (isAvailable) // إخفاء زر الحفظ إذا كانت مباعة
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange.shade600, 
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    if (numberController.text.trim().isNotEmpty) {
+                      // 🌟 نُرسل المساحة والاتجاه القديمين كما هما، ونُحدّث الرقم فقط
+                      parentContext.read<BuildingsCubit>().updateApartment(
+                        id: apt.id,
+                        apartmentNumber: numberController.text.trim(),
+                        area: apt.area, 
+                        directionName: apt.directionName ?? 'غير محدد',
+                      );
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('تم تحديث رقم الوحدة بنجاح'), backgroundColor: Colors.green));
+                    } else {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(const SnackBar(content: Text('الرقم لا يمكن أن يكون فارغاً!'), backgroundColor: Colors.red));
+                    }
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('حفظ التعديل', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
             ],
           );
         }
