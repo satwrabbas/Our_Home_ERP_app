@@ -1,13 +1,16 @@
 // lib/settings/view/settings_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 🌟 مكتبة الفواصل
+import 'package:flutter/services.dart'; 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 import '../cubit/settings_cubit.dart'; 
 
-import 'price_history_page.dart'; // 🌟 استدعاء الصفحة الجديدة بدلاً من الديالوج
+import 'price_history_page.dart'; 
 import 'dialogs/confirm_restore_dialog.dart';
 import 'dialogs/result_message_dialog.dart';
+
+// 🌟 استدعاء شاشة سلة المحذوفات الجديدة
+import '../../recycle_bin/view/recycle_bin_page.dart';
 
 // ==========================================
 // 🌟 أداة تنسيق الأرقام بالفواصل أثناء الكتابة
@@ -96,7 +99,6 @@ class _SettingsViewState extends State<SettingsView> {
             
         listener: (context, state) {
           if (state.status == SettingsStatus.success && state.currentPrices != null) {
-            // 🌟 تعبئة الحقول مع إضافة الفواصل
             ironController.text = formatNumber(state.currentPrices!.ironPrice);
             cementController.text = formatNumber(state.currentPrices!.cementPrice);
             blockController.text = formatNumber(state.currentPrices!.block15Price);
@@ -147,7 +149,6 @@ class _SettingsViewState extends State<SettingsView> {
                               final settingsCubit = context.read<SettingsCubit>();
                               settingsCubit.fetchPriceHistory();
                               
-                              // 🌟 الانتقال لصفحة كاملة بدلاً من الديالوج
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -164,7 +165,6 @@ class _SettingsViewState extends State<SettingsView> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // 🌟 إضافة الفواصل أثناء الكتابة
                         TextField(
                           controller: ironController, 
                           inputFormatters: [ThousandsFormatter()],
@@ -231,7 +231,41 @@ class _SettingsViewState extends State<SettingsView> {
                         ),
 
                         // ==========================================
-                        // 🛡️ القسم الجديد: أمان البيانات والنسخ الاحتياطي
+                        // 🗑️ القسم الجديد: سلة المحذوفات الشاملة
+                        // ==========================================
+                        const SizedBox(height: 40),
+                        const Divider(thickness: 2),
+                        const SizedBox(height: 20),
+
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children:[
+                            Icon(Icons.delete_sweep, color: Colors.red, size: 30),
+                            SizedBox(width: 10),
+                            Text('إدارة المحذوفات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red)),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade800,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () {
+                              // فتح صفحة سلة المحذوفات
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()));
+                            },
+                            icon: const Icon(Icons.recycling, size: 28),
+                            label: const Text('فتح سلة المحذوفات الشاملة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+
+                        // ==========================================
+                        // 🛡️ القسم القديم: أمان البيانات والنسخ الاحتياطي
                         // ==========================================
                         const SizedBox(height: 40),
                         const Divider(thickness: 2),
@@ -298,7 +332,6 @@ class _SettingsViewState extends State<SettingsView> {
       const SnackBar(content: Text('جاري الحفظ والمزامنة...'), backgroundColor: Colors.orange, duration: Duration(seconds: 2)),
     );
 
-    // 🌟 إزالة الفواصل قبل تحويل النصوص إلى أرقام وحفظها
     context.read<SettingsCubit>().updatePrices(
       iron: double.tryParse(ironController.text.replaceAll(',', '')) ?? 0,
       cement: double.tryParse(cementController.text.replaceAll(',', '')) ?? 0,
