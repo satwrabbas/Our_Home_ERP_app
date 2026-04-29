@@ -84,243 +84,374 @@ class _SettingsViewState extends State<SettingsView> {
     super.dispose();
   }
 
+  // 🌟 دالة مساعدة لبناء حقول إدخال الأسعار بشكل موحد واحترافي
+  Widget _buildPriceField({
+    required TextEditingController controller, 
+    required String label, 
+    required IconData icon, 
+    required TextInputAction textInputAction,
+    void Function(String)? onSubmitted,
+  }) {
+    return TextField(
+      controller: controller, 
+      inputFormatters: [ThousandsFormatter()],
+      keyboardType: TextInputType.number,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+      decoration: InputDecoration(
+        labelText: label, 
+        prefixIcon: Icon(icon, color: Colors.blueGrey.shade400, size: 22),
+        suffixText: 'ل.س',
+        suffixStyle: TextStyle(color: Colors.blueGrey.shade300, fontWeight: FontWeight.bold, fontSize: 12),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.blueGrey.shade500, width: 2)),
+      ), 
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('إعدادات النظام والأسعار', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.blueGrey,
-      ),
-      body: BlocConsumer<SettingsCubit, SettingsState>(
-        listenWhen: (previous, current) => 
-            previous.status != current.status || 
-            previous.currentPrices != current.currentPrices,
-            
-        listener: (context, state) {
-          if (state.status == SettingsStatus.success && state.currentPrices != null) {
-            ironController.text = formatNumber(state.currentPrices!.ironPrice);
-            cementController.text = formatNumber(state.currentPrices!.cementPrice);
-            blockController.text = formatNumber(state.currentPrices!.block15Price);
-            formworkController.text = formatNumber(state.currentPrices!.formworkAndPouringWages);
-            aggregatesController.text = formatNumber(state.currentPrices!.aggregateMaterialsPrice);
-            workerController.text = formatNumber(state.currentPrices!.ordinaryWorkerWage);
-          }
+      backgroundColor: Colors.grey.shade50,
+      // 🌟 تم إزالة הـ AppBar بالكامل لتوسيع الواجهة
+      body: SafeArea(
+        child: BlocConsumer<SettingsCubit, SettingsState>(
+          listenWhen: (previous, current) => 
+              previous.status != current.status || 
+              previous.currentPrices != current.currentPrices,
+              
+          listener: (context, state) {
+            if (state.status == SettingsStatus.success && state.currentPrices != null) {
+              ironController.text = formatNumber(state.currentPrices!.ironPrice);
+              cementController.text = formatNumber(state.currentPrices!.cementPrice);
+              blockController.text = formatNumber(state.currentPrices!.block15Price);
+              formworkController.text = formatNumber(state.currentPrices!.formworkAndPouringWages);
+              aggregatesController.text = formatNumber(state.currentPrices!.aggregateMaterialsPrice);
+              workerController.text = formatNumber(state.currentPrices!.ordinaryWorkerWage);
+            }
 
-          if (state.status == SettingsStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state.status == SettingsStatus.loading || state.status == SettingsStatus.initial) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            if (state.status == SettingsStatus.failure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('خطأ: ${state.errorMessage}'), backgroundColor: Colors.red, duration: const Duration(seconds: 5)),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state.status == SettingsStatus.loading || state.status == SettingsStatus.initial) {
+              return const Center(child: CircularProgressIndicator(color: Colors.blueGrey));
+            }
 
-          return Center(
-            child: SizedBox(
-              width: 600, 
-              child: Scrollbar(
-                controller: _scrollController, 
-                thumbVisibility: true, 
-                child: SingleChildScrollView(
+            return Center(
+              child: SizedBox(
+                width: 700, // 🌟 عرض 700 بكسل ليسمح بوضع الحقول جنباً إلى جنب براحة
+                child: Scrollbar(
                   controller: _scrollController, 
-                  padding: const EdgeInsets.all(24.0), 
-                  child: FocusTraversalGroup(
-                    policy: WidgetOrderTraversalPolicy(), 
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children:[
-                        const Icon(Icons.engineering, size: 50, color: Colors.blueGrey),
-                        const SizedBox(height: 16),
-                        const Text('الأسعار الافرادية للمواد', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                        const Text('النظام سيضرب هذه الأرقام بالكميات الثابتة لحساب سعر المتر', style: TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 24),
-                        
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.indigo,
-                              foregroundColor: Colors.white,
+                  thumbVisibility: true, 
+                  child: SingleChildScrollView(
+                    controller: _scrollController, 
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), 
+                    child: FocusTraversalGroup(
+                      policy: WidgetOrderTraversalPolicy(), 
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:[
+                          // ==========================================
+                          // 🌟 عنوان الصفحة المدمج والأنيق
+                          // ==========================================
+                          Row(
+                            children:[
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(color: Colors.blueGrey.shade50, borderRadius: BorderRadius.circular(12)),
+                                child: Icon(Icons.settings_suggest, color: Colors.blueGrey.shade700, size: 30),
+                              ),
+                              const SizedBox(width: 16),
+                              const Expanded(
+                                child: Text(
+                                  'إعدادات النظام والأسعار', 
+                                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+
+                          // ==========================================
+                          // 💰 بطاقة إعداد الأسعار الإفرادية
+                          // ==========================================
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.blueGrey.shade100, width: 1.5),
+                              boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
-                            onPressed: () {
-                              final settingsCubit = context.read<SettingsCubit>();
-                              settingsCubit.fetchPriceHistory();
-                              
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BlocProvider.value(
-                                    value: settingsCubit, 
-                                    child: const PriceHistoryPage(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children:[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children:[
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children:[
+                                        Text('الأسعار الافرادية للمواد', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                                        SizedBox(height: 4),
+                                        Text('النظام سيضرب هذه الأرقام بالكميات الثابتة لحساب سعر المتر', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                      ],
+                                    ),
+                                    OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.indigo,
+                                        side: BorderSide(color: Colors.indigo.shade200, width: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                                      ),
+                                      onPressed: () {
+                                        final settingsCubit = context.read<SettingsCubit>();
+                                        settingsCubit.fetchPriceHistory();
+                                        
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => BlocProvider.value(
+                                              value: settingsCubit, 
+                                              child: const PriceHistoryPage(),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.history, size: 20),
+                                      label: const Text('سجل الأسعار', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                                
+                                const SizedBox(height: 24),
+                                
+                                // 🌟 تنسيق الحقول في شبكة (عمودين) لتوفير المساحة والاحترافية
+                                Row(
+                                  children:[
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: ironController, 
+                                        label: 'سعر (1 كغ) حديد مبروم', 
+                                        icon: Icons.hardware, 
+                                        textInputAction: TextInputAction.next
+                                      )
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: cementController, 
+                                        label: 'سعر (1 كيس) اسمنت', 
+                                        icon: Icons.foundation, 
+                                        textInputAction: TextInputAction.next
+                                      )
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                
+                                Row(
+                                  children:[
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: blockController, 
+                                        label: 'سعر (1 بلوكة) سماكة 15', 
+                                        icon: Icons.view_in_ar, 
+                                        textInputAction: TextInputAction.next
+                                      )
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: formworkController, 
+                                        label: 'أجور كوفراج وبيتون (1 م³)', 
+                                        icon: Icons.architecture, 
+                                        textInputAction: TextInputAction.next
+                                      )
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                
+                                Row(
+                                  children:[
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: aggregatesController, 
+                                        label: 'سعر (1 م³) مواد حصوية', 
+                                        icon: Icons.landslide, 
+                                        textInputAction: TextInputAction.next
+                                      )
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildPriceField(
+                                        controller: workerController, 
+                                        label: 'أجرة (يوم) عامل 7 ساعات', 
+                                        icon: Icons.engineering, 
+                                        textInputAction: TextInputAction.done,
+                                        onSubmitted: (_) => _savePrices(context),
+                                      )
+                                    ),
+                                  ],
+                                ),
+                                
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 50,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blueGrey.shade800, 
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                                    ),
+                                    onPressed: () => _savePrices(context),
+                                    icon: const Icon(Icons.save),
+                                    label: const Text('اعتماد وحفظ الأسعار الإفرادية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                   ),
                                 ),
-                              );
-                            },
-                            icon: const Icon(Icons.history),
-                            label: const Text('سجل تغيير الأسعار'),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        TextField(
-                          controller: ironController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'سعر (1 كغ) حديد مبروم واصل', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next, 
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        TextField(
-                          controller: cementController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'سعر (1 كيس) اسمنت واصل', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        TextField(
-                          controller: blockController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'سعر (1 بلوكة) سماكة 15 سم واصل', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        TextField(
-                          controller: formworkController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'أجور كوفراج وصب وبيتون مسلح لـ (1 م³)', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        TextField(
-                          controller: aggregatesController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'سعر (1 م³) مواد حصوية (بحص+نحاتة) واصل', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        TextField(
-                          controller: workerController, 
-                          inputFormatters: [ThousandsFormatter()],
-                          decoration: const InputDecoration(labelText: 'أجرة (1 يوم) لعامل عادي 7 ساعات', border: OutlineInputBorder()), 
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done, 
-                          onSubmitted: (_) => _savePrices(context),
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
-                            onPressed: () => _savePrices(context),
-                            child: const Text('حفظ الأسعار الافرادية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-
-                        // ==========================================
-                        // 🗑️ القسم الجديد: سلة المحذوفات الشاملة
-                        // ==========================================
-                        const SizedBox(height: 40),
-                        const Divider(thickness: 2),
-                        const SizedBox(height: 20),
-
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:[
-                            Icon(Icons.delete_sweep, color: Colors.red, size: 30),
-                            SizedBox(width: 10),
-                            Text('إدارة المحذوفات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red)),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade800,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              ],
                             ),
-                            onPressed: () {
-                              // فتح صفحة سلة المحذوفات
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()));
-                            },
-                            icon: const Icon(Icons.recycling, size: 28),
-                            label: const Text('فتح سلة المحذوفات الشاملة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
-                        ),
 
-                        // ==========================================
-                        // 🛡️ القسم القديم: أمان البيانات والنسخ الاحتياطي
-                        // ==========================================
-                        const SizedBox(height: 40),
-                        const Divider(thickness: 2),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 24),
 
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:[
-                            Icon(Icons.security, color: Colors.blueGrey, size: 30),
-                            SizedBox(width: 10),
-                            Text('إدارة قاعدة البيانات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        Row(
-                          children:[
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                          // ==========================================
+                          // 🗑️ بطاقة إدارة المحذوفات الشاملة
+                          // ==========================================
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.red.shade100, width: 1.5),
+                              boxShadow:[BoxShadow(color: Colors.red.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children:[
+                                Row(
+                                  children:[
+                                    Icon(Icons.delete_sweep, color: Colors.red.shade600, size: 28),
+                                    const SizedBox(width: 12),
+                                    const Text('إدارة المحذوفات (سلة المهملات)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
+                                  ],
                                 ),
-                                onPressed: _isProcessingBackup ? null : () => _handleBackup(context),
-                                icon: _isProcessingBackup 
-                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                    : const Icon(Icons.save_alt),
-                                label: const Text('نسخ احتياطي يدوي', style: TextStyle(fontSize: 16)),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[700],
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                const SizedBox(height: 8),
+                                Text('استعادة العملاء، العقود، المحاضر، الشقق والإيصالات الملغاة أو حذفها نهائياً. (يتم التنظيف التلقائي بعد 7 أيام)', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                                const SizedBox(height: 20),
+
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 55,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.shade50,
+                                      foregroundColor: Colors.red.shade800,
+                                      elevation: 0,
+                                      side: BorderSide(color: Colors.red.shade200, width: 1.5),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()));
+                                    },
+                                    icon: const Icon(Icons.recycling, size: 24),
+                                    label: const Text('فتح سلة المحذوفات الشاملة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  ),
                                 ),
-                                onPressed: _isProcessingBackup ? null : () => _handleRestore(context),
-                                icon: const Icon(Icons.restore_page),
-                                label: const Text('استعادة البيانات', style: TextStyle(fontSize: 16)),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 20), 
-                      ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // ==========================================
+                          // 🛡️ بطاقة أمان البيانات والنسخ الاحتياطي
+                          // ==========================================
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.teal.shade100, width: 1.5),
+                              boxShadow:[BoxShadow(color: Colors.teal.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children:[
+                                Row(
+                                  children:[
+                                    Icon(Icons.security, color: Colors.teal.shade600, size: 28),
+                                    const SizedBox(width: 12),
+                                    const Text('أمان قاعدة البيانات المحلية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text('أخذ نسخة احتياطية يدوية لقاعدة البيانات (للحفظ على فلاشة) أو استعادة بيانات سابقة.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                                const SizedBox(height: 20),
+
+                                Row(
+                                  children:[
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 55,
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.teal.shade600,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                          onPressed: _isProcessingBackup ? null : () => _handleBackup(context),
+                                          icon: _isProcessingBackup 
+                                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                              : const Icon(Icons.save_alt),
+                                          label: const Text('نسخ احتياطي يدوي', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: SizedBox(
+                                        height: 55,
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.blueGrey.shade100,
+                                            foregroundColor: Colors.blueGrey.shade900,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                          onPressed: _isProcessingBackup ? null : () => _handleRestore(context),
+                                          icon: const Icon(Icons.restore_page),
+                                          label: const Text('استعادة البيانات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 40), 
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
