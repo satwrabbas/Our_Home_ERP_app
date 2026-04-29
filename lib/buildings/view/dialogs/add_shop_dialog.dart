@@ -36,137 +36,258 @@ void showAddShopDialog(BuildContext parentContext, Building building) {
           });
         }
 
+        // 🌟 دالة مساعدة داخلية لبناء حقول إدخال احترافية وموحدة
+        Widget buildField({
+          required TextEditingController controller, 
+          required String label, 
+          required IconData icon, 
+          Color? fillColor, 
+          TextInputType keyboardType = TextInputType.number,
+          void Function(String)? onChanged
+        }) {
+          return TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            onChanged: onChanged,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            decoration: InputDecoration(
+              labelText: label,
+              prefixIcon: Icon(icon, size: 20, color: Colors.grey.shade600),
+              filled: true,
+              fillColor: fillColor ?? Colors.grey.shade50,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.orange.shade400, width: 2)),
+            ),
+          );
+        }
+
         return AlertDialog(
-          title: const Row(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          contentPadding: const EdgeInsets.all(24),
+          title: Row(
             children:[
-              Icon(Icons.storefront, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('إضافة محل تجاري', style: TextStyle(color: Colors.orange)),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
+                child: Icon(Icons.storefront, color: Colors.orange.shade700, size: 28),
+              ),
+              const SizedBox(width: 16),
+              const Text('إضافة محل تجاري', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 22)),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:[
-                TextField(
-                  controller: numCtrl, 
-                  decoration: const InputDecoration(labelText: 'رقم المحل / الرمز', border: OutlineInputBorder())
-                ),
-                
-                const Divider(height: 30, thickness: 2),
-                const Text('📐 البيانات الهندسية (المساحات والأبعاد):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
-                const SizedBox(height: 12),
-                
-                Row(
-                  children:[
-                    Expanded(
-                      child: TextField(
-                        controller: slabAreaCtrl, 
-                        decoration: const InputDecoration(labelText: 'مساحة الأرضي م2', border: OutlineInputBorder(), filled: true, fillColor: Colors.white), 
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => updateCalculatedArea(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: facadeLengthCtrl, 
-                        decoration: const InputDecoration(labelText: 'عرض الواجهة (بالمتر)', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFFF3E5F5)), 
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children:[
-                    Expanded(
-                      child: TextField(
-                        controller: terraceAreaCtrl, 
-                        decoration: const InputDecoration(labelText: 'مساحة التراس م2', border: OutlineInputBorder()), 
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => updateCalculatedArea(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: physicalYardAreaCtrl, 
-                        decoration: const InputDecoration(labelText: 'مساحة الوجيبة م2', border: OutlineInputBorder()), 
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => updateCalculatedArea(),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
-                  child: Text(
-                    'المساحة البيعية للمحل: ${calculatedTotalArea.toStringAsFixed(2)} م2', 
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
-                    textAlign: TextAlign.center,
+          content: SizedBox(
+            width: 600, // 🌟 عرض احترافي يناسب الأنظمة المحاسبية المتطورة
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  // ==========================================
+                  // 🌟 1. المعلومات الأساسية
+                  // ==========================================
+                  buildField(
+                    controller: numCtrl, 
+                    label: 'رقم المحل / الرمز', 
+                    icon: Icons.tag,
+                    keyboardType: TextInputType.text,
+                    fillColor: Colors.white,
                   ),
-                ),
-                
-                const Divider(height: 30, thickness: 2),
-                const Text('💰 المعاملات المالية المئوية (تؤثر على السعر):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                const SizedBox(height: 12),
-                Row(
-                  children:[
-                    Expanded(
-                      child: TextField(
-                        controller: locationCoeffCtrl, 
-                        decoration: const InputDecoration(labelText: 'نسبة الموقع %', border: OutlineInputBorder()), 
-                        keyboardType: TextInputType.number
-                      ),
+                  
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // 📐 2. البيانات الهندسية والمساحات
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.indigo.shade100, width: 1.5),
+                      boxShadow:[BoxShadow(color: Colors.indigo.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: streetCoeffCtrl, 
-                        decoration: const InputDecoration(labelText: 'نسبة الشارع %', border: OutlineInputBorder()), 
-                        keyboardType: TextInputType.number
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:[
+                        Row(
+                          children:[
+                            Icon(Icons.architecture, color: Colors.indigo.shade400),
+                            const SizedBox(width: 8),
+                            const Text('البيانات الهندسية (المساحات والأبعاد)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children:[
+                            Expanded(
+                              child: buildField(
+                                controller: slabAreaCtrl, 
+                                label: 'مساحة الأرضي م²', 
+                                icon: Icons.crop_square,
+                                fillColor: Colors.white,
+                                onChanged: (_) => updateCalculatedArea(),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: buildField(
+                                controller: facadeLengthCtrl, 
+                                label: 'عرض الواجهة (متر)', 
+                                icon: Icons.straighten,
+                                fillColor: const Color(0xFFF3E5F5), // لون مميز كما طلبت
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children:[
+                            Expanded(
+                              child: buildField(
+                                controller: terraceAreaCtrl, 
+                                label: 'مساحة التراس م²', 
+                                icon: Icons.balcony,
+                                fillColor: Colors.white,
+                                onChanged: (_) => updateCalculatedArea(),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: buildField(
+                                controller: physicalYardAreaCtrl, 
+                                label: 'مساحة الوجيبة م²', 
+                                icon: Icons.grass,
+                                fillColor: Colors.white,
+                                onChanged: (_) => updateCalculatedArea(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // 🌟 لوحة إبراز النتيجة الحسابية (Dashboard Banner)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors:[Colors.orange.shade400, Colors.orange.shade600]),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow:[BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                          ),
+                          child: Column(
+                            children:[
+                              const Text('المساحة البيعية الإجمالية للمحل', style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${calculatedTotalArea.toStringAsFixed(2)} م²', 
+                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children:[
-                    Expanded(
-                      child: TextField(
-                        controller: facadeCoeffCtrl, 
-                        decoration: const InputDecoration(labelText: 'نسبة التميز للواجهة %', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFFFFF3E0)), 
-                        keyboardType: TextInputType.number
-                      ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ==========================================
+                  // 💰 3. المعاملات المالية
+                  // ==========================================
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.shade200, width: 1.5),
+                      boxShadow:[BoxShadow(color: Colors.green.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: yardCoeffCtrl, 
-                        decoration: const InputDecoration(labelText: 'معامل الوجيبة %', border: OutlineInputBorder()), 
-                        keyboardType: TextInputType.number
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:[
+                        Row(
+                          children:[
+                            Icon(Icons.percent, color: Colors.green.shade600),
+                            const SizedBox(width: 8),
+                            const Text('المعاملات المالية المئوية (تؤثر على السعر)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children:[
+                            Expanded(
+                              child: buildField(
+                                controller: locationCoeffCtrl, 
+                                label: 'نسبة الموقع %', 
+                                icon: Icons.location_on_outlined,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: buildField(
+                                controller: streetCoeffCtrl, 
+                                label: 'نسبة الشارع %', 
+                                icon: Icons.add_road,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children:[
+                            Expanded(
+                              child: buildField(
+                                controller: facadeCoeffCtrl, 
+                                label: 'نسبة التميز للواجهة %', 
+                                icon: Icons.star_border,
+                                fillColor: const Color(0xFFFFF3E0), // لون مميز كما طلبت
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: buildField(
+                                controller: yardCoeffCtrl, 
+                                label: 'معامل الوجيبة %', 
+                                icon: Icons.yard_outlined,
+                                fillColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        buildField(
+                          controller: profitCoeffCtrl, 
+                          label: 'هامش الربح %', 
+                          icon: Icons.trending_up,
+                          fillColor: const Color(0xFFE8F5E9), // لون مميز كما طلبت
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: profitCoeffCtrl, 
-                  decoration: const InputDecoration(labelText: 'هامش الربح %', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFFE8F5E9)), 
-                  keyboardType: TextInputType.number
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions:[
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('إلغاء')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx), 
+              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+              child: const Text('إلغاء', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade600, 
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 2,
+              ),
               onPressed: () {
                 if (numCtrl.text.trim().isEmpty || calculatedTotalArea <= 0) {
                   ScaffoldMessenger.of(parentContext).showSnackBar(const SnackBar(content: Text('⚠️ بيانات غير مكتملة أو مساحة غير صالحة!'), backgroundColor: Colors.red));
@@ -210,7 +331,8 @@ void showAddShopDialog(BuildContext parentContext, Building building) {
                     
                 Navigator.pop(dialogCtx);
               },
-              child: const Text('حفظ المحل'),
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('حفظ المحل', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             )
           ],
         );
