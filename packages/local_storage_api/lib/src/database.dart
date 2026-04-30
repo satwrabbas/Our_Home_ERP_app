@@ -16,7 +16,8 @@ const _uuid = Uuid();
 @TableIndex(name: 'idx_clients_sync', columns: {#isDeleted, #updatedAt})
 
 class Clients extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7 لتحسين الأداء وتسريع الفهرسة
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get name => text().withLength(min: 2, max: 100)();
   TextColumn get phone => text()(); 
   TextColumn get nationalId => text().nullable()(); 
@@ -43,7 +44,8 @@ class Clients extends Table {
 @TableIndex(name: 'idx_buildings_sync', columns: {#isDeleted, #updatedAt})
 
 class Buildings extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get name => text()(); // مثال: محضر النسيم
   TextColumn get location => text().nullable()(); // مثال: مشروع الأوقاف
   
@@ -70,7 +72,8 @@ class Buildings extends Table {
 // ==========================================
 @TableIndex(name: 'idx_apartments_sync', columns: {#isDeleted, #updatedAt, #buildingId})
 class Apartments extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get buildingId => text().references(Buildings, #id)(); // 🌟 الارتباط بالمحضر
   
     // 🌟 السطر الجديد: لتحديد هل هي شقة أم محل تجاري
@@ -109,7 +112,8 @@ class Apartments extends Table {
 // ==========================================
 @TableIndex(name: 'idx_contracts_sync', columns: {#isDeleted, #updatedAt, #clientId})
 class Contracts extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get clientId => text().references(Clients, #id)(); 
   
   // 🌟 الارتباط الجديد بالشقة
@@ -155,7 +159,8 @@ class Contracts extends Table {
 // ==========================================
 @TableIndex(name: 'idx_prices_sync', columns: {#isDeleted, #updatedAt, #effectiveDate})
 class MaterialPricesHistory extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   
   // 🌍 [تعديل التوقيت]: سريان مفعول السعر يجب أن يسجل كـ UTC
   DateTimeColumn get effectiveDate => dateTime().clientDefault(() => DateTime.now().toUtc())(); 
@@ -188,7 +193,8 @@ class MaterialPricesHistory extends Table {
 
 // 1. في جدول الأقساط، أضف السطر الخاص بالملاحظات:
 class InstallmentsSchedule extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get contractId => text().references(Contracts, #id)(); 
   IntColumn get installmentNumber => integer()(); 
   DateTimeColumn get dueDate => dateTime()(); 
@@ -215,7 +221,8 @@ class InstallmentsSchedule extends Table {
 @TableIndex(name: 'idx_payments_sync', columns: {#isDeleted, #updatedAt, #contractId})
 
 class PaymentsLedger extends Table {
-  TextColumn get id => text().clientDefault(() => _uuid.v4())();
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
   TextColumn get contractId => text().references(Contracts, #id)(); 
   TextColumn get scheduleId => text().nullable().references(InstallmentsSchedule, #id)();
   
@@ -992,8 +999,8 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
-    // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً 
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v9_clean.sqlite')); 
+    // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً للعمل مع UUID v7 الجديد
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v10_uuidv7.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }
