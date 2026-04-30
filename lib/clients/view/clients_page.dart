@@ -176,7 +176,8 @@ class _ClientsViewState extends State<ClientsView> {
                         )
                       )
                     : ListView(
-                        padding: const EdgeInsets.all(16.0), // هوامش أقل للجدول لتوسيع الرؤية
+                        // 🌟 أضفنا مسافة 100 בـالأسفل لكي لا يحجب الزر العائم آخر عميل
+                        padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 100.0), 
                         children:[
                           Card(
                             elevation: 2,
