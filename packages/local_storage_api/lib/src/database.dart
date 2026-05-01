@@ -253,6 +253,66 @@ class PaymentsLedger extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  
+}
+
+
+
+// ==========================================
+// 🛡️ 8. جدول الأدوار/القوالب (App Roles)
+// ==========================================
+@TableIndex(name: 'idx_roles_sync', columns: {#isDeleted, #updatedAt})
+class AppRoles extends Table {
+  // 🌟 تم التحويل إلى v7
+  TextColumn get id => text().clientDefault(() => _uuid.v7())();
+  
+  TextColumn get name => text()(); // اسم الدور: مدير، محاسب
+  
+  // 🌟 مصفوفة الصلاحيات (تحفظ كنص JSON)
+  TextColumn get permissionsJson => text().withDefault(const Constant('[]'))();
+  
+  BoolColumn get isSystemRole => boolean().withDefault(const Constant(false))();
+
+  // 🌍 حقول المزامنة (Offline First)
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// ==========================================
+// 🧑‍💼 9. جدول المستخدمين المحلي (Local Users)
+// ==========================================
+@TableIndex(name: 'idx_users_sync', columns: {#isDeleted, #updatedAt})
+class LocalUsers extends Table {
+  // ⚠️ ملاحظة هامة: هذا الـ ID يأتي من Supabase Auth، لذلك لا نستخدم هنا clientDefault
+  // بل سيتم إدخاله برمجياً عند المزامنة
+  TextColumn get id => text()(); 
+  
+  TextColumn get fullName => text().nullable()();
+  TextColumn get email => text()();
+  
+  // 🌟 الارتباط بالدور (قالب الصلاحيات)
+  TextColumn get roleId => text().nullable().references(AppRoles, #id)();
+  
+  // 🌟 الاستثناءات المخصصة (Extra & Revoked) تُحفظ كـ JSON
+  TextColumn get extraPermissionsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get revokedPermissionsJson => text().withDefault(const Constant('[]'))();
+  
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  // 🌍 حقول المزامنة
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  DateTimeColumn get updatedAt => dateTime().clientDefault(() => DateTime.now().toUtc())();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 // ==========================================
@@ -269,6 +329,8 @@ class PaymentsLedger extends Table {
   MaterialPricesHistory, 
   InstallmentsSchedule, 
   PaymentsLedger
+  AppRoles,       // 🌟 تمت الإضافة
+  LocalUsers      // 🌟 تمت الإضافة
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -656,6 +718,8 @@ class AppDatabase extends _$AppDatabase {
   // ==========================================
   Future<void> clearAllData() {
     return transaction(() async {
+      await delete(localUsers).go(); // 🌟 جديد
+      await delete(appRoles).go();   // 🌟 جديد
       await delete(paymentsLedger).go();
       await delete(installmentsSchedule).go();
       await delete(materialPricesHistory).go();
@@ -993,6 +1057,65 @@ class AppDatabase extends _$AppDatabase {
       t.isDeleted.equals(true) & t.updatedAt.isSmallerThanValue(sevenDaysAgo)
     )).go();
   }
+
+
+  // ==========================================
+  // 🛡️ --- استعلامات الصلاحيات والمستخدمين ---
+  // ==========================================
+
+  // 1. جلب كل الأدوار (لواجهة لوحة التحكم)
+  Future<List<AppRole>> getAllRoles() => 
+      (select(appRoles)..where((t) => t.isDeleted.equals(false))).get();
+
+  // 2. جلب كل المستخدمين (لواجهة لوحة التحكم)
+  Future<List<LocalUser>> getAllLocalUsers() => 
+      (select(localUsers)..where((t) => t.isDeleted.equals(false))).get();
+
+  // 3. إضافة دور (قالب جديد)
+  Future<String> insertRole(AppRolesCompanion role) async {
+    final row = await into(appRoles).insertReturning(role);
+    return row.id;
+  }
+
+  // 4. تحديث قالب دور (تعديل صلاحيات المحاسب مثلاً)
+  Future<int> updateRolePermissions(String roleId, String newPermissionsJson) {
+    return (update(appRoles)..where((t) => t.id.equals(roleId))).write(
+      AppRolesCompanion(
+        permissionsJson: Value(newPermissionsJson),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false)
+      )
+    );
+  }
+
+  // 5. تعيين دور لمستخدم (Assign Role) مع إضافة استثناءات إن وجدت
+  Future<int> updateUserRoleAndPermissions({
+    required String userId,
+    required String roleId,
+    String? extraPermissionsJson,
+    String? revokedPermissionsJson,
+    bool? isActive,
+  }) {
+    return (update(localUsers)..where((t) => t.id.equals(userId))).write(
+      LocalUsersCompanion(
+        roleId: Value(roleId),
+        extraPermissionsJson: extraPermissionsJson != null ? Value(extraPermissionsJson) : const Value.absent(),
+        revokedPermissionsJson: revokedPermissionsJson != null ? Value(revokedPermissionsJson) : const Value.absent(),
+        isActive: isActive != null ? Value(isActive) : const Value.absent(),
+        updatedAt: Value(DateTime.now().toUtc()),
+        isSynced: const Value(false)
+      )
+    );
+  }
+
+  // ==========================================
+  // ☁️ دوال الحقن السحابي الجديدة (Sync Upserts)
+  // ==========================================
+  Future<void> syncAppRole(AppRolesCompanion entity) => 
+      into(appRoles).insert(entity, mode: InsertMode.insertOrReplace);
+      
+  Future<void> syncLocalUser(LocalUsersCompanion entity) => 
+      into(localUsers).insert(entity, mode: InsertMode.insertOrReplace);
   
 }
 
@@ -1000,7 +1123,7 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationSupportDirectory(); 
     // 🌟 تغيير الاسم لإنشاء قاعدة جديدة نظيفة تماماً للعمل مع UUID v7 الجديد
-    final file = File(p.join(dbFolder.path, 'our_home_erp_v10_uuidv7.sqlite')); 
+    final file = File(p.join(dbFolder.path, 'our_home_erp_v11_permissions.sqlite')); 
     return NativeDatabase.createInBackground(file);
   });
 }

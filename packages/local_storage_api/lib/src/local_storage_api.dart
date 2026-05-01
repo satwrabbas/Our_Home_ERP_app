@@ -120,4 +120,34 @@ Future<void> handleRollingCheckpoint(String contractId, String scheduleId, Strin
   Future<int> restoreLedgerEntry(String id) => _db.restoreLedgerEntry(id);
   Future<int> forceHardDeleteLedgerEntry(String id) => _db.forceHardDeleteLedgerEntry(id);
   Future<void> autoCleanOldDeletedLedgerEntries() => _db.autoCleanOldDeletedLedgerEntries();
+
+
+  // ==========================================
+  // 🛡️ الصلاحيات والمستخدمين (Roles & Users)
+  // ==========================================
+  Future<List<AppRole>> getAllRoles() => _db.getAllRoles();
+  Future<List<LocalUser>> getAllLocalUsers() => _db.getAllLocalUsers();
+  
+  Future<String> addRole(AppRolesCompanion role) => _db.insertRole(role);
+  Future<int> updateRolePermissions(String roleId, String newPermissionsJson) => 
+      _db.updateRolePermissions(roleId, newPermissionsJson);
+      
+  Future<int> updateUserRoleAndPermissions({
+    required String userId,
+    required String roleId,
+    String? extraPermissionsJson,
+    String? revokedPermissionsJson,
+    bool? isActive,
+  }) => _db.updateUserRoleAndPermissions(
+    userId: userId, 
+    roleId: roleId, 
+    extraPermissionsJson: extraPermissionsJson, 
+    revokedPermissionsJson: revokedPermissionsJson, 
+    isActive: isActive
+  );
+
+  // --- دوال الحقن السحابي الخاصة بالصلاحيات ---
+  Future<void> syncAppRole(AppRolesCompanion r) => _db.syncAppRole(r);
+  Future<void> syncLocalUser(LocalUsersCompanion u) => _db.syncLocalUser(u);
+  
 }

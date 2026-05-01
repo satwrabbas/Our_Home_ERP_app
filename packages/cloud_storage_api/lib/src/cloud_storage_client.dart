@@ -86,6 +86,24 @@ class CloudStorageClient {
     }
     return await query;
   }
+
+  // 📥 جلب الأدوار/القوالب (تزايدي)
+  Future<List<Map<String, dynamic>>> getAppRoles({DateTime? lastSync}) async {
+    var query = _supabase.from('app_roles').select();
+    if (lastSync != null) {
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String());
+    }
+    return await query;
+  }
+
+  // 📥 جلب المستخدمين وصلاحياتهم (تزايدي)
+  Future<List<Map<String, dynamic>>> getAppUsers({DateTime? lastSync}) async {
+    var query = _supabase.from('app_users').select();
+    if (lastSync != null) {
+      query = query.gte('updated_at', lastSync.toUtc().toIso8601String());
+    }
+    return await query;
+  }
   
   // 📥 جلب العقود (تزايدي)
   Future<List<Map<String, dynamic>>> getContracts({DateTime? lastSync}) async {
@@ -142,6 +160,16 @@ class CloudStorageClient {
   // 📤 رفع العملاء
   Future<void> upsertClient(Map<String, dynamic> clientData) async => 
       await _supabase.from('clients').upsert(clientData);
+      
+
+      // 📤 رفع الأدوار (القوالب)
+  Future<void> upsertAppRole(Map<String, dynamic> roleData) async => 
+      await _supabase.from('app_roles').upsert(roleData);
+
+  // 📤 رفع تعديلات المستخدمين (مثل تعيين دور لمستخدم)
+  Future<void> upsertAppUser(Map<String, dynamic> userData) async => 
+      await _supabase.from('app_users').upsert(userData);
+
       
   // 📤 رفع العقود
   Future<void> upsertContract(Map<String, dynamic> contractData) async => 
