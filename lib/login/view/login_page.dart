@@ -3,10 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 
 import '../cubit/login_cubit.dart';
-
-import '../../auth/cubit/auth_cubit.dart';
 import 'package:our_home_erp_app/auth/cubit/auth_cubit.dart';
-import '../../dashboard/view/dashboard_page.dart'; 
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -42,23 +39,47 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blueGrey.shade50,
-      body: BlocListener<LoginCubit, LoginState>(
-        listener: (context, state) {
-          if (state.email.isNotEmpty && _emailController.text.isEmpty) {
-            _emailController.text = state.email;
-          }
+      
+      // 🌟 التعديل الجوهري: إضافة MultiBlocListener
+      body: MultiBlocListener(
+        listeners:[
+          // 1. مستمع تسجيل الدخول (LoginCubit)
+          BlocListener<LoginCubit, LoginState>(
+            listener: (context, state) {
+              if (state.email.isNotEmpty && _emailController.text.isEmpty) {
+                _emailController.text = state.email;
+              }
 
-          if (state.status == LoginStatus.failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ غير معروف'), backgroundColor: Colors.red),
-            );
-          } 
-          // 🌟 التعديل هنا: عند النجاح، نطلب من الحارس الشخصي فحص الصلاحيات
-          else if (state.status == LoginStatus.success) {
-            context.read<AuthCubit>().checkSession();
-            // لا حاجة لـ Navigator.push لأن BlocBuilder في app.dart سيكتشف التغيير وينقلك آلياً!
-          }
-        },
+              if (state.status == LoginStatus.failure) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ غير معروف'), backgroundColor: Colors.red),
+                );
+              } 
+              // عند النجاح، نطلب من الحارس الشخصي فحص الصلاحيات
+              else if (state.status == LoginStatus.success) {
+                context.read<AuthCubit>().checkSession();
+              }
+            },
+          ),
+          
+          // 2. مستمع الصلاحيات (AuthCubit) - لكشف أخطاء عدم وجود المستخدم
+          BlocListener<AuthCubit, AuthState>(
+            listener: (context, state) {
+              if (state.status == AuthStatus.error) {
+                // إظهار سبب الفشل الحقيقي (مثل: حسابك غير مفعل، أو غير موجود في جدول app_users)
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.errorMessage ?? 'حدث خطأ أثناء التحقق من الصلاحيات'), 
+                    backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+                // حماية إضافية: تسجيل الخروج لتنظيف الجلسة العالقة
+                context.read<AuthCubit>().logout();
+              }
+            },
+          ),
+        ],
         child: Center(
           child: Container(
             width: 450,
@@ -95,7 +116,7 @@ class _LoginViewState extends State<LoginView> {
                   const _PasswordInput(),
                   const SizedBox(height: 12),
                   
-                  // 🌟 مربع اختيار "تذكرني" الأنيق
+                  // مربع اختيار "تذكرني" الأنيق
                   const _RememberMeCheckbox(),
                   const SizedBox(height: 32),
                   
@@ -186,9 +207,16 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 التعديل الجوهري: نراقب أيضاً حالة الصلاحيات
+    final authState = context.watch<AuthCubit>().state;
+
     return BlocBuilder<LoginCubit, LoginState>(
       builder: (context, state) {
-        return state.status == LoginStatus.loading
+        // إذا كان التسجيل جاري، أو الصلاحيات قيد التحميل، نظهر دائرة التحميل
+        final isLoading = state.status == LoginStatus.loading || 
+                          authState.status == AuthStatus.loading;
+
+        return isLoading
             ? const CircularProgressIndicator()
             : SizedBox(
                 width: double.infinity,

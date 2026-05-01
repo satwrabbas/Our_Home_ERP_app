@@ -50,7 +50,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  // 🌟 محرك دمج الصلاحيات (الرياضيات الذكية)
+  // 🌟 محرك دمج الصلاحيات (الرياضيات الذكية والمحمية)
   Future<void> _processUserPermissions(dynamic localUser) async {
     // 1. التحقق من حالة الحساب
     if (localUser.isActive == false) {
@@ -72,19 +72,42 @@ class AuthCubit extends Cubit<AuthState> {
         roleName = role.name;
         isSystemAdmin = role.isSystemRole;
 
-        // فك تشفير صلاحيات الدور من JSON إلى List
-        List<dynamic> rolePerms = jsonDecode(role.permissionsJson);
-        finalPermissions.addAll(rolePerms.cast<String>());
+        // 🛡️ حماية فك تشفير صلاحيات الدور
+        final String rolePermsStr = role.permissionsJson?.trim() ?? '';
+        if (rolePermsStr.isNotEmpty && rolePermsStr != 'null') {
+          try {
+            List<dynamic> rolePerms = jsonDecode(rolePermsStr);
+            finalPermissions.addAll(rolePerms.cast<String>());
+          } catch (e) {
+            print('⚠️ خطأ في فك تشفير صلاحيات الدور: $e');
+          }
+        }
       }
     }
 
     // 3. إضافة الاستثناءات (Extra)
-    List<dynamic> extraPerms = jsonDecode(localUser.extraPermissionsJson);
-    finalPermissions.addAll(extraPerms.cast<String>());
+    // 🛡️ حماية فك تشفير الاستثناءات
+    final String extraPermsStr = localUser.extraPermissionsJson?.trim() ?? '';
+    if (extraPermsStr.isNotEmpty && extraPermsStr != 'null') {
+      try {
+        List<dynamic> extraPerms = jsonDecode(extraPermsStr);
+        finalPermissions.addAll(extraPerms.cast<String>());
+      } catch (e) {
+        print('⚠️ خطأ في فك تشفير الاستثناءات المضافة: $e');
+      }
+    }
 
     // 4. طرح الصلاحيات المسحوبة (Revoked)
-    List<dynamic> revokedPerms = jsonDecode(localUser.revokedPermissionsJson);
-    finalPermissions.removeAll(revokedPerms.cast<String>());
+    // 🛡️ حماية فك تشفير الممنوعات
+    final String revokedPermsStr = localUser.revokedPermissionsJson?.trim() ?? '';
+    if (revokedPermsStr.isNotEmpty && revokedPermsStr != 'null') {
+      try {
+        List<dynamic> revokedPerms = jsonDecode(revokedPermsStr);
+        finalPermissions.removeAll(revokedPerms.cast<String>());
+      } catch (e) {
+        print('⚠️ خطأ في فك تشفير الاستثناءات المسحوبة: $e');
+      }
+    }
 
     // 5. حفظ النتيجة النهائية النظيفة في الحالة (State)
     emit(state.copyWith(
