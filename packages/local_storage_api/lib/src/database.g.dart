@@ -16,7 +16,7 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -573,7 +573,7 @@ class $BuildingsTable extends Buildings
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -1185,7 +1185,7 @@ class $ApartmentsTable extends Apartments
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _buildingIdMeta = const VerificationMeta(
     'buildingId',
@@ -1989,7 +1989,7 @@ class $ContractsTable extends Contracts
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _clientIdMeta = const VerificationMeta(
     'clientId',
@@ -3208,7 +3208,7 @@ class $MaterialPricesHistoryTable extends MaterialPricesHistory
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _effectiveDateMeta = const VerificationMeta(
     'effectiveDate',
@@ -4015,7 +4015,7 @@ class $InstallmentsScheduleTable extends InstallmentsSchedule
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _contractIdMeta = const VerificationMeta(
     'contractId',
@@ -4677,7 +4677,7 @@ class $PaymentsLedgerTable extends PaymentsLedger
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => _uuid.v4(),
+    clientDefault: () => _uuid.v7(),
   );
   static const VerificationMeta _contractIdMeta = const VerificationMeta(
     'contractId',

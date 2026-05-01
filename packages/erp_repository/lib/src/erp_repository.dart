@@ -747,11 +747,13 @@ class ErpRepository {
   // ==========================================
   Future<MaterialPricesHistoryData?> getLatestPrices() => _localApi.getLatestPrices();
   Stream<MaterialPricesHistoryData?> watchLatestPrices() => _localApi.watchLatestPrices();
+  
   Future<void> savePrices(MaterialPricesHistoryCompanion pricesCompanion) async {
     final String? safeUserId = currentUserId;
     if (safeUserId == null) throw Exception('يجب تسجيل الدخول أولاً');
 
-    final String newId = const Uuid().v4();
+    // 🌟 الإضافة هنا: تم التغيير من v4 إلى v7 لتتناسق مع النظام الجديد وتزيد السرعة
+    final String newId = const Uuid().v7();
 
     final companionReadyToSave = pricesCompanion.copyWith(
       id: drift.Value(newId),
@@ -765,6 +767,7 @@ class ErpRepository {
     // 2. المزامنة والانتظار 🚨
     await syncPendingData(); 
   }
+  
   Future<List<MaterialPricesHistoryData>> getAllMaterialPricesHistory() => _localApi.getAllMaterialPricesHistory();
   // أضف هذه الدالة في قسم الإعدادات داخل ErpRepository
   Future<void> softDeleteMaterialPrice(String priceId) async {
@@ -919,8 +922,8 @@ class ErpRepository {
   // 🛡️ قسم النسخ الاحتياطي والاستعادة (Backup & Restore)
   // ==========================================
   
-  // اسم ملف قاعدة البيانات المعتمد في نظامنا
-  final String _dbFileName = 'our_home_erp_v9_clean.sqlite';
+  // 🌟 تحديث اسم ملف قاعدة البيانات المعتمد في نظامنا
+  final String _dbFileName = 'our_home_erp_v10_uuidv7.sqlite';
 
   /// 1. النسخ الاحتياطي التلقائي (الصامت) - يعمل مرة واحدة كل يوم
   Future<void> autoBackupSilent() async {
@@ -946,7 +949,7 @@ class ErpRepository {
 
       // 4. النسخ (إذا كان الملف موجوداً من قبل في نفس اليوم، سيتم استبداله تلقائياً)
       await dbFile.copy(backupPath);
-      print('🛡️ [Auto-Backup]: تم أخذ نسخة احتياطية بنجاح ليوم $dateOnly');
+      print('🛡️[Auto-Backup]: تم أخذ نسخة احتياطية بنجاح ليوم $dateOnly');
       
     } catch (e) {
       print('⚠️ [Auto-Backup] فشل النسخ التلقائي: $e');
