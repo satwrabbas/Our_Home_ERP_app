@@ -150,4 +150,7 @@ Future<void> handleRollingCheckpoint(String contractId, String scheduleId, Strin
   Future<void> syncAppRole(AppRolesCompanion r) => _db.syncAppRole(r);
   Future<void> syncLocalUser(LocalUsersCompanion u) => _db.syncLocalUser(u);
   
+
+  Future<LocalUser?> getLocalUserById(String id) => _db.getLocalUserById(id);
+  Future<AppRole?> getRoleById(String id) => _db.getRoleById(id);
 }

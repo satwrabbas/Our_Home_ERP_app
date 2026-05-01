@@ -1196,4 +1196,7 @@ class ErpRepository {
     await syncPendingData();
   }
 
+
+  Future<LocalUser?> getLocalUserById(String id) => _localApi.getLocalUserById(id);
+  Future<AppRole?> getRoleById(String id) => _localApi.getRoleById(id);
 }

@@ -1117,6 +1117,14 @@ class AppDatabase extends _$AppDatabase {
   Future<void> syncLocalUser(LocalUsersCompanion entity) => 
       into(localUsers).insert(entity, mode: InsertMode.insertOrReplace);
   
+
+  // جلب مستخدم محلي بناءً على الآي دي
+  Future<LocalUser?> getLocalUserById(String id) => 
+      (select(localUsers)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  // جلب قالب بناءً على الآي دي
+  Future<AppRole?> getRoleById(String id) => 
+      (select(appRoles)..where((t) => t.id.equals(id))).getSingleOrNull();
 }
 
 LazyDatabase _openConnection() {
