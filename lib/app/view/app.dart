@@ -3,10 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; 
 import 'package:erp_repository/erp_repository.dart';
 
-// 🌟 استدعاء مكتبة السحابة لكي نفحص الجلسة (Session)
-import 'package:cloud_storage_api/cloud_storage_api.dart';
-
-// استدعاء الشاشتين
+// 🌟 الاستيرادات بالمسارات النسبية الصحيحة
+import '../../auth/cubit/auth_cubit.dart'; 
 import '../../login/view/login_page.dart';
 import '../../dashboard/view/dashboard_page.dart';
 
@@ -20,8 +18,14 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: erpRepository,
+    // 🌟 السحر هنا: توفير Repository و AuthCubit لكامل التطبيق
+    return MultiBlocProvider(
+      providers:[
+        RepositoryProvider.value(value: erpRepository),
+        BlocProvider(
+          create: (context) => AuthCubit(erpRepository), // سيبدأ بالتحقق تلقائياً عند التشغيل
+        ),
+      ],
       child: const AppView(),
     );
   }
@@ -32,14 +36,6 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
-    // ==========================================
-    // 🌟 حارس البوابة التلقائي (Auto-Login Gate)
-    // ==========================================
-    // نسأل Supabase: هل يوجد مستخدم سجل دخوله سابقاً على هذا الكمبيوتر ولم يسجل خروجه؟
-    final session = Supabase.instance.client.auth.currentSession;
-    final bool isLoggedIn = session != null; // إذا لم تكن null، فهذا يعني أنه مسجل دخول!
-
     return MaterialApp(
       title: 'Our Home ERP',
       debugShowCheckedModeBanner: false,
@@ -58,10 +54,28 @@ class AppView extends StatelessWidget {
         fontFamily: 'Tahoma', 
       ),
       
-      // 🌟 التوجيه الذكي (Smart Routing):
-      // إذا كان مسجلاً للدخول، افتح لوحة التحكم مباشرة. 
-      // إذا لم يكن كذلك، افتح شاشة تسجيل الدخول.
-      home: isLoggedIn ? const DashboardPage() : const LoginPage(), 
+      // 🌟 التوجيه الذكي المربوط بـ AuthCubit
+      home: BlocBuilder<AuthCubit, AuthState>(
+        builder: (context, state) {
+          // 1. شاشة تحميل (Splash) أثناء فحص الصلاحيات
+          if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {
+            return const Scaffold(
+              backgroundColor: Colors.blueGrey,
+              body: Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            );
+          }
+          
+          // 2. تم التأكد من الجلسة والصلاحيات -> افتح لوحة التحكم
+          if (state.status == AuthStatus.authenticated) {
+            return const DashboardPage();
+          }
+
+          // 3. غير مسجل دخول أو حدث خطأ -> افتح شاشة تسجيل الدخول
+          return const LoginPage();
+        },
+      ), 
     );
   }
 }

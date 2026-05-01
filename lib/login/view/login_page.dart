@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 
 import '../cubit/login_cubit.dart';
+
+import '../../auth/cubit/auth_cubit.dart';
+import 'package:our_home_erp_app/auth/cubit/auth_cubit.dart';
 import '../../dashboard/view/dashboard_page.dart'; 
 
 class LoginPage extends StatelessWidget {
@@ -41,22 +44,19 @@ class _LoginViewState extends State<LoginView> {
       backgroundColor: Colors.blueGrey.shade50,
       body: BlocListener<LoginCubit, LoginState>(
         listener: (context, state) {
-          // 1. تعبئة حقل الإيميل آلياً إذا تم تحميله من الذاكرة وكان الحقل فارغاً
           if (state.email.isNotEmpty && _emailController.text.isEmpty) {
             _emailController.text = state.email;
           }
 
-          // 2. معالجة الفشل
           if (state.status == LoginStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ غير معروف'), backgroundColor: Colors.red),
             );
           } 
-          // 3. معالجة النجاح والانتقال للوحة التحكم
+          // 🌟 التعديل هنا: عند النجاح، نطلب من الحارس الشخصي فحص الصلاحيات
           else if (state.status == LoginStatus.success) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const DashboardPage()),
-            );
+            context.read<AuthCubit>().checkSession();
+            // لا حاجة لـ Navigator.push لأن BlocBuilder في app.dart سيكتشف التغيير وينقلك آلياً!
           }
         },
         child: Center(

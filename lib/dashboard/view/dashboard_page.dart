@@ -1,27 +1,48 @@
-//lib\dashboard\view\dashboard_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:erp_repository/erp_repository.dart';
 
+// استدعاء AuthCubit والصلاحيات
+import '../../auth/cubit/auth_cubit.dart';
+import '../../core/constants/app_permissions.dart';
+
 // استدعاء الشاشات
 import '../../home/view/home_page.dart';
 import '../../clients/view/clients_page.dart';
-import '../../buildings/view/buildings_page.dart'; // 🌟 1. استدعاء شاشة المشاريع
+import '../../buildings/view/buildings_page.dart';
 import '../../contracts/view/contracts_page.dart';
 import '../../payments/view/payments_page.dart';
 import '../../schedule/view/schedule_page.dart';
 import '../../settings/view/settings_page.dart';
-import '../../login/view/login_page.dart';
 
 // استدعاء المتحكمات
 import '../../clients/cubit/clients_cubit.dart';
-import '../../buildings/cubit/buildings_cubit.dart'; // 🌟 2. استدعاء متحكم المشاريع
+import '../../buildings/cubit/buildings_cubit.dart';
 import '../../contracts/cubit/contracts_cubit.dart';
 import '../../payments/cubit/payments_cubit.dart';
 import '../../schedule/cubit/schedule_cubit.dart';
 import '../../settings/cubit/settings_cubit.dart';
 import '../../home/cubit/home_cubit.dart';
 import '../cubit/dashboard_cubit.dart';
+
+// ==========================================
+// 🧩 كلاس مساعد لتعريف التبويبات بمرونة
+// ==========================================
+class NavTab {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final Widget page;
+  final void Function(BuildContext) onSelected; // ماذا يفعل عند الضغط عليه
+
+  NavTab({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.page,
+    required this.onSelected,
+  });
+}
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -35,7 +56,7 @@ class DashboardPage extends StatelessWidget {
         BlocProvider(create: (_) => DashboardCubit()),
         BlocProvider(create: (_) => HomeCubit(repo)..fetchDashboardData()),
         BlocProvider(create: (_) => ClientsCubit(repo)..fetchClients()),
-        BlocProvider(create: (_) => BuildingsCubit(repo)..loadData()), // 🌟 3. توفير متحكم المشاريع
+        BlocProvider(create: (_) => BuildingsCubit(repo)..loadData()),
         BlocProvider(create: (_) => ContractsCubit(repo)..fetchData()),
         BlocProvider(create: (_) => PaymentsCubit(repo)..fetchInitialData()),
         BlocProvider(create: (_) => ScheduleCubit(repo)..fetchInitialData()),
@@ -52,23 +73,104 @@ class DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = context.watch<DashboardCubit>().state;
+    final authState = context.watch<AuthCubit>().state;
+
+    // ==========================================
+    // 🌟 بناء قائمة التبويبات بناءً على الصلاحيات الحقيقية
+    // ==========================================
+    List<NavTab> availableTabs =[
+      // 1. الرئيسية (الكل يراها)
+      NavTab(
+        label: 'الرئيسية',
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+        page: const HomePage(),
+        onSelected: (ctx) => ctx.read<HomeCubit>().fetchDashboardData(),
+      ),
+    ];
+
+    // 2. العملاء
+    if (authState.hasPermission(AppPermissions.viewClients)) {
+      availableTabs.add(NavTab(
+        label: 'العملاء',
+        icon: Icons.people_alt_outlined,
+        selectedIcon: Icons.people_alt,
+        page: const ClientsPage(),
+        onSelected: (ctx) => ctx.read<ClientsCubit>().fetchClients(),
+      ));
+    }
+
+    // 3. المشاريع
+    if (authState.hasPermission(AppPermissions.manageBuildings)) {
+      availableTabs.add(NavTab(
+        label: 'المشاريع',
+        icon: Icons.domain_outlined,
+        selectedIcon: Icons.domain,
+        page: const BuildingsPage(),
+        onSelected: (ctx) => ctx.read<BuildingsCubit>().loadData(),
+      ));
+    }
+
+    // 4. العقود
+    if (authState.hasPermission(AppPermissions.viewContracts)) {
+      availableTabs.add(NavTab(
+        label: 'العقود',
+        icon: Icons.description_outlined,
+        selectedIcon: Icons.description,
+        page: const ContractsPage(),
+        onSelected: (ctx) => ctx.read<ContractsCubit>().fetchData(),
+      ));
+    }
+
+    // 5. الأقساط والدفعات
+    if (authState.hasPermission(AppPermissions.viewPayments)) {
+      availableTabs.add(NavTab(
+        label: 'الأقساط',
+        icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long,
+        page: const PaymentsPage(),
+        onSelected: (ctx) => ctx.read<PaymentsCubit>().fetchInitialData(),
+      ));
+    }
+
+    // 6. المراقبة
+    // إذا أردت صلاحية منفصلة للمراقبة، يمكنك إضافتها، حالياً سنربطها برؤية الأقساط
+    if (authState.hasPermission(AppPermissions.viewPayments)) {
+      availableTabs.add(NavTab(
+        label: 'المراقبة',
+        icon: Icons.calendar_month_outlined,
+        selectedIcon: Icons.calendar_month,
+        page: const SchedulePage(),
+        onSelected: (ctx) => ctx.read<ScheduleCubit>().fetchInitialData(),
+      ));
+    }
+
+    // 7. الإعدادات
+    if (authState.hasPermission(AppPermissions.viewPrices)) {
+      availableTabs.add(NavTab(
+        label: 'الإعدادات',
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        page: const SettingsPage(),
+        onSelected: (ctx) => ctx.read<SettingsCubit>().fetchPrices(),
+      ));
+    }
+
+    // حماية إضافية: إذا كان الـ index المحفوظ أكبر من عدد التبويبات المتاحة (بسبب مزامنة حذفت صلاحية)
+    int safeIndex = selectedIndex;
+    if (safeIndex >= availableTabs.length) {
+      safeIndex = 0; // إرجاعه للرئيسية لحمايته من الانهيار
+    }
 
     return Scaffold(
       body: Row(
         children:[
           NavigationRail(
-            selectedIndex: selectedIndex,
+            selectedIndex: safeIndex,
             onDestinationSelected: (index) {
               context.read<DashboardCubit>().changeTab(index);
-              
-              // التحديث التلقائي الذكي (تم تحديث الأرقام لتناسب التبويب الجديد)
-              if (index == 0) context.read<HomeCubit>().fetchDashboardData();
-              if (index == 1) context.read<ClientsCubit>().fetchClients();
-              if (index == 2) context.read<BuildingsCubit>().loadData(); // 🌟 4. تحديث بيانات المشاريع
-              if (index == 3) context.read<ContractsCubit>().fetchData();
-              if (index == 4) context.read<PaymentsCubit>().fetchInitialData();
-              if (index == 5) context.read<ScheduleCubit>().fetchInitialData();
-              if (index == 6) context.read<SettingsCubit>().fetchPrices();
+              // تنفيذ دالة التحديث الخاصة بالتبويب المختار ديناميكياً
+              availableTabs[index].onSelected(context);
             },
             labelType: NavigationRailLabelType.all,
             backgroundColor: Colors.blue.shade900,
@@ -77,16 +179,12 @@ class DashboardView extends StatelessWidget {
             selectedIconTheme: const IconThemeData(color: Colors.white, size: 30),
             selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             
-            // 🌟 5. إضافة زر (المشاريع) في القائمة الجانبية
-            destinations: const[
-              NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('الرئيسية')),
-              NavigationRailDestination(icon: Icon(Icons.people_alt_outlined), selectedIcon: Icon(Icons.people_alt), label: Text('العملاء')),
-              NavigationRailDestination(icon: Icon(Icons.domain_outlined), selectedIcon: Icon(Icons.domain), label: Text('المشاريع')), // 🏢 التبويب الجديد
-              NavigationRailDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: Text('العقود')),
-              NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('الأقساط')),
-              NavigationRailDestination(icon: Icon(Icons.calendar_month_outlined), selectedIcon: Icon(Icons.calendar_month), label: Text('المراقبة')),
-              NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('الإعدادات')),
-            ],
+            // توليد الأزرار ديناميكياً
+            destinations: availableTabs.map((tab) => NavigationRailDestination(
+              icon: Icon(tab.icon),
+              selectedIcon: Icon(tab.selectedIcon),
+              label: Text(tab.label),
+            )).toList(),
             
             trailing: Expanded(
               child: Align(
@@ -96,6 +194,13 @@ class DashboardView extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children:[
+                      // إظهار اسم أو دور المستخدم (لمسة جمالية للمحاسبين)
+                      Text(
+                        authState.roleName ?? '',
+                        style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
+
                       IconButton(
                         icon: const Icon(Icons.sync, color: Colors.greenAccent, size: 28),
                         tooltip: 'مزامنة يدوية مع السحابة (Pull & Push)',
@@ -113,14 +218,12 @@ class DashboardView extends StatelessWidget {
                                 backgroundColor: resultMessage.contains('بنجاح') ? Colors.green : Colors.red,
                               ),
                             );
-
-                            if (selectedIndex == 0) context.read<HomeCubit>().fetchDashboardData();
-                            if (selectedIndex == 1) context.read<ClientsCubit>().fetchClients();
-                            if (selectedIndex == 2) context.read<BuildingsCubit>().loadData(); // 🌟 تحديث المزامنة
-                            if (selectedIndex == 3) context.read<ContractsCubit>().fetchData();
-                            if (selectedIndex == 4) context.read<PaymentsCubit>().fetchInitialData();
-                            if (selectedIndex == 5) context.read<ScheduleCubit>().fetchInitialData();
-                            if (selectedIndex == 6) context.read<SettingsCubit>().fetchPrices();
+                            
+                            // تحديث صلاحيات هذا المستخدم من الداتابيز المحلية التي تم تحديثها للتو
+                            context.read<AuthCubit>().checkSession();
+                            
+                            // تحديث التبويب الحالي
+                            availableTabs[safeIndex].onSelected(context);
                           }
                         },
                       ),
@@ -141,12 +244,8 @@ class DashboardView extends StatelessWidget {
                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
                                   onPressed: () async {
                                     Navigator.pop(ctx);
-                                    await context.read<ErpRepository>().signOut();
-                                    if (context.mounted) {
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                                      );
-                                    }
+                                    // تسجيل الخروج عبر AuthCubit وهو من سيطردك للشاشة الأولى
+                                    await context.read<AuthCubit>().logout();
                                   },
                                   child: const Text('تأكيد الخروج'),
                                 ),
@@ -166,16 +265,9 @@ class DashboardView extends StatelessWidget {
           
           Expanded(
             child: IndexedStack(
-              index: selectedIndex,
-              children: const[
-                HomePage(),      // Index 0
-                ClientsPage(),   // Index 1
-                BuildingsPage(), // Index 2 🌟 إظهار شاشة المشاريع
-                ContractsPage(), // Index 3
-                PaymentsPage(),  // Index 4
-                SchedulePage(),  // Index 5
-                SettingsPage(),  // Index 6
-              ],
+              index: safeIndex,
+              // توليد الشاشات ديناميكياً
+              children: availableTabs.map((tab) => tab.page).toList(),
             ),
           ),
         ],
