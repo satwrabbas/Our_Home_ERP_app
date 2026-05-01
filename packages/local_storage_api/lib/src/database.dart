@@ -328,7 +328,7 @@ class LocalUsers extends Table {
   Apartments,     // 🌟 أضفناه
   MaterialPricesHistory, 
   InstallmentsSchedule, 
-  PaymentsLedger
+  PaymentsLedger,
   AppRoles,       // 🌟 تمت الإضافة
   LocalUsers      // 🌟 تمت الإضافة
 ])

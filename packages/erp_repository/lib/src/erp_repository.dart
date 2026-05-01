@@ -259,6 +259,39 @@ class ErpRepository {
         await _localApi.syncApartment(apartment);
       }
 
+
+      // 8. 🛡️ سحب قوالب الأدوار (Roles)
+      final cloudRoles = await _cloudApi.getAppRoles(lastSync: lastSyncTime);
+      for (var r in cloudRoles) {
+        final role = AppRolesCompanion.insert(
+          id: drift.Value(r['id'].toString()),
+          name: r['name'].toString(),
+          permissionsJson: drift.Value(r['permissions']?.toString() ?? '[]'),
+          isSystemRole: drift.Value(r['is_system_role'] == true),
+          isDeleted: drift.Value(r['is_deleted'] == true),
+          updatedAt: drift.Value(DateTime.tryParse(r['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
+          isSynced: const drift.Value(true),
+        );
+        await _localApi.syncAppRole(role);
+      }
+
+      // 9. 🧑‍💼 سحب المستخدمين وصلاحياتهم (Users)
+      final cloudUsers = await _cloudApi.getAppUsers(lastSync: lastSyncTime);
+      for (var u in cloudUsers) {
+        final user = LocalUsersCompanion.insert(
+          id: u['id'].toString(), // ID هنا إجباري لأنه قادم من السحابة ولا يولد محلياً
+          email: u['email']?.toString() ?? '',
+          fullName: drift.Value(u['full_name']?.toString()),
+          roleId: drift.Value(u['role_id']?.toString()),
+          extraPermissionsJson: drift.Value(u['extra_permissions']?.toString() ?? '[]'),
+          revokedPermissionsJson: drift.Value(u['revoked_permissions']?.toString() ?? '[]'),
+          isActive: drift.Value(u['is_active'] != false), // الافتراضي true
+          updatedAt: drift.Value(DateTime.tryParse(u['updated_at']?.toString() ?? '')?.toUtc() ?? DateTime.now().toUtc()),
+          isSynced: const drift.Value(true),
+        );
+        await _localApi.syncLocalUser(user);
+      }
+
       // 🌍 حفظ الوقت الحالي للعمليات القادمة
       await prefs.setString('last_pull_timestamp', DateTime.now().toUtc().toIso8601String());
 
@@ -459,6 +492,41 @@ class ErpRepository {
         await (db.update(db.apartments)..where((t) => t.id.equals(a.id))).write(const ApartmentsCompanion(isSynced: drift.Value(true)));
       }
     } catch (e) { print('Sync Apartments Failed: $e'); }
+
+
+    // 8. 🛡️ مزامنة قوالب الأدوار
+    try {
+      final pendingRoles = await (db.select(db.appRoles)..where((t) => t.isSynced.equals(false))).get();
+      for (var r in pendingRoles) {
+        await _cloudApi.upsertAppRole({
+          'id': r.id,
+          'name': r.name,
+          'permissions': r.permissionsJson, // يتوافق مع اسم العمود في Supabase
+          'is_system_role': r.isSystemRole,
+          'is_deleted': r.isDeleted,
+          'updated_at': r.updatedAt.toUtc().toIso8601String() // 🌍 حماية الـ UTC
+        });
+        await (db.update(db.appRoles)..where((t) => t.id.equals(r.id))).write(const AppRolesCompanion(isSynced: drift.Value(true)));
+      }
+    } catch (e) { print('Sync Roles Failed: $e'); }
+
+    // 9. 🧑‍💼 مزامنة تعديلات المستخدمين (كإعطاء دور أو إيقاف حساب)
+    try {
+      final pendingUsers = await (db.select(db.localUsers)..where((t) => t.isSynced.equals(false))).get();
+      for (var u in pendingUsers) {
+        await _cloudApi.upsertAppUser({
+          'id': u.id,
+          'full_name': u.fullName,
+          'email': u.email,
+          'role_id': u.roleId,
+          'extra_permissions': u.extraPermissionsJson,
+          'revoked_permissions': u.revokedPermissionsJson,
+          'is_active': u.isActive,
+          'updated_at': u.updatedAt.toUtc().toIso8601String() // 🌍 حماية الـ UTC
+        });
+        await (db.update(db.localUsers)..where((t) => t.id.equals(u.id))).write(const LocalUsersCompanion(isSynced: drift.Value(true)));
+      }
+    } catch (e) { print('Sync Users Failed: $e'); }
 
 
     _isSyncing = false; 
@@ -1080,5 +1148,52 @@ class ErpRepository {
   // 6. جلب سلة المحذوفات
   Future<List<Building>> getDeletedBuildings() => _localApi.database.getDeletedBuildings();
   Future<List<Apartment>> getDeletedApartments() => _localApi.database.getDeletedApartments();
+
+
+
+  // ==========================================
+  // 🛡️ إدارة الصلاحيات والمستخدمين (لوحة تحكم الأدمن)
+  // ==========================================
+  
+  /// جلب كل القوالب (الأدوار) لملء القوائم المنسدلة
+  Future<List<AppRole>> getAllRoles() => _localApi.getAllRoles();
+  
+  /// جلب كل المستخدمين المسجلين في النظام
+  Future<List<LocalUser>> getAllUsers() => _localApi.getAllLocalUsers();
+
+  /// إنشاء دور جديد (مثلاً: محاسب متدرب)
+  Future<void> createRole({required String name, required String permissionsJson}) async {
+    final companion = AppRolesCompanion.insert(
+      name: name,
+      permissionsJson: drift.Value(permissionsJson),
+      isSynced: const drift.Value(false), // ليتم رفعه للسحابة فوراً
+    );
+    await _localApi.addRole(companion);
+    await syncPendingData(); 
+  }
+
+  /// تحديث الصلاحيات لدور معين (مثال: إعطاء صلاحية الحذف لكل المدراء)
+  Future<void> updateRolePermissions({required String roleId, required String permissionsJson}) async {
+    await _localApi.updateRolePermissions(roleId, permissionsJson);
+    await syncPendingData();
+  }
+
+  /// تعيين دور لمستخدم، أو إعطائه استثناءات، أو تجميد حسابه
+  Future<void> updateUserRoleAndPermissions({
+    required String userId,
+    required String roleId,
+    String? extraPermissionsJson,
+    String? revokedPermissionsJson,
+    bool? isActive,
+  }) async {
+    await _localApi.updateUserRoleAndPermissions(
+      userId: userId,
+      roleId: roleId,
+      extraPermissionsJson: extraPermissionsJson,
+      revokedPermissionsJson: revokedPermissionsJson,
+      isActive: isActive,
+    );
+    await syncPendingData();
+  }
 
 }
