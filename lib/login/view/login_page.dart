@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../register/view/register_page.dart';
 import 'package:erp_repository/erp_repository.dart';
 
 import '../cubit/login_cubit.dart';
@@ -122,6 +123,23 @@ class _LoginViewState extends State<LoginView> {
                   
                   // زر تسجيل الدخول
                   const _LoginButton(),
+                  
+                  const SizedBox(height: 24), // مسافة
+                  
+                  // 🌟 زر إنشاء حساب موظف جديد
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterPage()),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add_alt_1, color: Colors.blueGrey),
+                    label: const Text(
+                      'إنشاء حساب موظف جديد', 
+                      style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
                 ],
               ),
             ),
