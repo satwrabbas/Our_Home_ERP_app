@@ -30,7 +30,6 @@ class AdminView extends StatefulWidget {
 class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // 🌟 معجم تحويل الأكواد البرمجية إلى أسماء واضحة للمدير
   final Map<String, String> permissionNames = {
     AppPermissions.viewClients: 'عرض العملاء',
     AppPermissions.createClients: 'إضافة عميل',
@@ -100,86 +99,172 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
   }
 
   // =====================================
-  // 👥 التبويب الأول: إدارة الموظفين (مع الحماية من قفل المدير)
+  // 👥 التبويب الأول: إدارة الموظفين (مقسم إلى قسمين)
   // =====================================
   Widget _buildUsersTab(BuildContext context, AdminState state) {
-    // 🌟 جلب الآي دي الخاص بك (المستخدم الحالي الذي يمسك الهاتف)
     final myUserId = context.watch<AuthCubit>().state.userId;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.users.length,
-      itemBuilder: (context, index) {
-        final user = state.users[index];
-        
-        // 🌟 هل هذا المستخدم في القائمة هو "أنا"؟
-        final isMe = user.id == myUserId;
-
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: user.isActive ? Colors.green : Colors.red,
-              child: Icon(user.isActive ? Icons.person : Icons.person_off, color: Colors.white),
-            ),
-            title: Row(
-              children:[
-                Text(user.fullName ?? user.email, style: const TextStyle(fontWeight: FontWeight.bold)),
-                if (isMe) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)),
-                    child: const Text('أنت', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                  )
-                ]
-              ],
-            ),
-            subtitle: Text(user.email),
-            trailing: SizedBox(
-              width: 250,
+    return CustomScrollView(
+      slivers:[
+        // --- 1. قسم الطلبات المعلقة ---
+        if (state.pendingUsers.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children:[
-                  // قائمة منسدلة لاختيار دور الموظف
-                  Expanded(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      hint: const Text('اختر الدور'),
-                      value: user.roleId,
-                      items: state.roles.map((role) {
-                        return DropdownMenuItem(value: role.id, child: Text(role.name));
-                      }).toList(),
-                      
-                      // 🛡️ الحماية: إذا كان هذا حسابي، أجعل الزر باهتاً (null) لمنع تغيير دوري
-                      onChanged: isMe ? null : (newRoleId) {
-                        context.read<AdminCubit>().updateUser(user.id, newRoleId, user.isActive);
-                      },
-                    ),
-                  ),
+                  Icon(Icons.hourglass_top, color: Colors.orange.shade700),
                   const SizedBox(width: 8),
-                  // زر إيقاف / تفعيل الحساب
-                  Switch(
-                    value: user.isActive,
-                    activeColor: Colors.green,
-                    
-                    // 🛡️ الحماية: منع المدير من إيقاف حساب نفسه
-                    onChanged: isMe ? null : (val) {
-                      context.read<AdminCubit>().updateUser(user.id, user.roleId, val);
-                    },
-                  )
+                  Text('طلبات انضمام بانتظار الموافقة (${state.pendingUsers.length})', 
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange.shade800)),
                 ],
               ),
             ),
           ),
-        );
-      },
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final user = state.pendingUsers[index];
+                return Card(
+                  elevation: 0,
+                  color: Colors.orange.shade50,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.orange.shade200)),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children:[
+                        CircleAvatar(backgroundColor: Colors.orange.shade200, child: const Icon(Icons.person_add, color: Colors.deepOrange)),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:[
+                              Text(user.fullName ?? 'بدون اسم', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text(user.email, style: TextStyle(color: Colors.grey.shade700)),
+                            ],
+                          ),
+                        ),
+                        // اختيار الدور
+                        SizedBox(
+                          width: 150,
+                          child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10), fillColor: Colors.white, filled: true),
+                            hint: const Text('حدد الدور أولاً'),
+                            value: user.roleId?.isNotEmpty == true ? user.roleId : null,
+                            items: state.roles.map((role) {
+                              return DropdownMenuItem(value: role.id, child: Text(role.name));
+                            }).toList(),
+                            onChanged: (newRoleId) {
+                              // نعطيه الدور، لكن لا نفعله بعد حتى يضغط قبول
+                              context.read<AdminCubit>().updateUser(user.id, newRoleId, false);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // زر القبول والتفعيل
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                          onPressed: user.roleId == null || user.roleId!.isEmpty 
+                            ? null // يجب تحديد الدور أولاً
+                            : () {
+                                context.read<AdminCubit>().updateUser(user.id, user.roleId, true);
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم قبول الموظف بنجاح!'), backgroundColor: Colors.green));
+                              },
+                          icon: const Icon(Icons.check),
+                          label: const Text('قبول وتفعيل'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              childCount: state.pendingUsers.length,
+            ),
+          ),
+        ],
+
+        // --- 2. قسم الموظفين النشطين ---
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 32, 16, 8),
+            child: Row(
+              children:[
+                const Icon(Icons.verified_user, color: Colors.blueGrey),
+                const SizedBox(width: 8),
+                Text('الموظفون الحاليون (${state.activeUsers.length})', 
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final user = state.activeUsers[index];
+              final isMe = user.id == myUserId;
+
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.person, color: Colors.white)),
+                  title: Row(
+                    children:[
+                      Text(user.fullName ?? user.email, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      if (isMe) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)),
+                          child: const Text('أنت', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                      ]
+                    ],
+                  ),
+                  subtitle: Text(user.email),
+                  trailing: SizedBox(
+                    width: 250,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children:[
+                        Expanded(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: user.roleId,
+                            items: state.roles.map((role) {
+                              return DropdownMenuItem(value: role.id, child: Text(role.name));
+                            }).toList(),
+                            onChanged: isMe ? null : (newRoleId) {
+                              context.read<AdminCubit>().updateUser(user.id, newRoleId, user.isActive);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Switch(
+                          value: user.isActive,
+                          activeColor: Colors.green,
+                          onChanged: isMe ? null : (val) {
+                            context.read<AdminCubit>().updateUser(user.id, user.roleId, val);
+                          },
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+            childCount: state.activeUsers.length,
+          ),
+        ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 40)),
+      ],
     );
   }
 
   // =====================================
-  // 🛡️ التبويب الثاني: إدارة القوالب (الأدوار)
+  // 🛡️ التبويب الثاني: إدارة القوالب (كما هو)
   // =====================================
   Widget _buildRolesTab(BuildContext context, AdminState state) {
     return Column(
@@ -219,11 +304,8 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
     );
   }
 
-  // 🌟 نافذة التعديل/الإضافة للصلاحيات (Checkboxes)
   void _showRoleDialog(BuildContext parentContext, AppRole? role) {
     final nameController = TextEditingController(text: role?.name ?? '');
-    
-    // جلب الصلاحيات السابقة إن وجدت
     List<String> currentPerms =[];
     if (role != null && role.permissionsJson.isNotEmpty) {
       try {
@@ -262,7 +344,7 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                             value: hasPerm,
                             activeColor: Colors.blueGrey.shade900,
                             onChanged: role?.isSystemRole == true 
-                              ? null // منع تعديل الـ Admin
+                              ? null 
                               : (bool? val) {
                                   setState(() {
                                     if (val == true) {
