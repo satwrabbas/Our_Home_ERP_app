@@ -30,7 +30,7 @@ class RegisterView extends StatelessWidget {
               SnackBar(content: Text(state.errorMessage ?? 'حدث خطأ'), backgroundColor: Colors.red),
             );
           } else if (state.status == RegisterStatus.success) {
-            // 🌟 إظهار رسالة النجاح (UX)
+            // 🌟 إظهار رسالة النجاح بتصميم الخطوتين (بدون أخطاء const)
             showDialog(
               context: context,
               barrierDismissible: false,
@@ -38,23 +38,66 @@ class RegisterView extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 title: const Row(
                   children:[
-                    Icon(Icons.check_circle, color: Colors.green, size: 28),
-                    SizedBox(width: 8),
-                    Text('تم التسجيل بنجاح!', style: TextStyle(color: Colors.green)),
+                    Icon(Icons.mark_email_unread, color: Colors.indigo, size: 30),
+                    SizedBox(width: 10),
+                    Text('تأكيد البريد الإلكتروني', style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold)),
                   ],
                 ),
-                content: const Text(
-                  'تم إنشاء حسابك في النظام.\n\nيرجى إبلاغ المدير لكي يقوم بتفعيل حسابك وإعطائك الصلاحيات اللازمة قبل محاولة تسجيل الدخول.',
-                  style: TextStyle(height: 1.5),
+                // 🌟 تمت إزالة الـ const من هنا وتوزيعها بالداخل
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:[
+                    const Text(
+                      'تم إرسال رابط التفعيل إلى بريدك الإلكتروني بنجاح.',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'الخطوات المتبقية:',
+                      style: TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '1️⃣ قم بفتح بريدك الإلكتروني واضغط على رابط التفعيل.\n'
+                      '2️⃣ أبلغ المدير ليقوم بتحديد صلاحياتك من لوحة التحكم.',
+                      style: TextStyle(height: 1.6, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200)
+                      ),
+                      child: Row(
+                        children:[
+                          Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'لن تتمكن من الدخول للنظام قبل تنفيذ هاتين الخطوتين.',
+                              style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          )
+                        ],
+                      ),
+                    )
+                  ],
                 ),
                 actions:[
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueGrey.shade900, 
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
                     onPressed: () {
                       Navigator.of(ctx).pop(); // إغلاق النافذة
                       Navigator.of(context).pop(); // العودة لشاشة تسجيل الدخول
                     },
-                    child: const Text('العودة لتسجيل الدخول'),
+                    child: const Text('فهمت، العودة لتسجيل الدخول'),
                   )
                 ],
               ),
