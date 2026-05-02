@@ -71,6 +71,12 @@ class ErpRepository {
     _startCloudListener(); 
   }
 
+  // 🌟 الدالة الجديدة المضافة هنا
+  Future<void> signUp({required String fullName, required String email, required String password}) async {
+    await _cloudApi.signUp(fullName: fullName, email: email, password: password);
+    // لن نقوم بسحب البيانات هنا لأن الموظف الجديد لا يملك صلاحيات بعد
+  }
+
   Future<void> signOut() async {
     await _cloudApi.signOut();
     // حماية قصوى: مسح قاعدة البيانات المحلية

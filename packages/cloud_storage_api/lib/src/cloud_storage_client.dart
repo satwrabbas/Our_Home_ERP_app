@@ -28,6 +28,17 @@ class CloudStorageClient {
     await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
+  // 🌟 الدالة الجديدة التي تمت إضافتها
+  /// تسجيل موظف جديد (SignUp)
+  Future<void> signUp({required String fullName, required String email, required String password}) async {
+    await _supabase.auth.signUp(
+      email: email,
+      password: password,
+      // 🌟 السحر هنا: نرسل الاسم داخل الـ metadata لكي يلتقطه الـ Trigger في قاعدة البيانات
+      data: {'full_name': fullName}, 
+    );
+  }
+
   /// تسجيل الخروج الآمن
   /// بالإضافة إلى إنهاء الجلسة، يقوم بإيقاف محرك الاستماع الحي لمنع تسريب الذاكرة (Memory Leak)
   Future<void> signOut() async {
