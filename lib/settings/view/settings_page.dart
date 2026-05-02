@@ -9,8 +9,12 @@ import 'price_history_page.dart';
 import 'dialogs/confirm_restore_dialog.dart';
 import 'dialogs/result_message_dialog.dart';
 
-// 🌟 استدعاء شاشة سلة المحذوفات الجديدة
+// 🌟 استدعاء شاشة سلة المحذوفات
 import '../../recycle_bin/view/recycle_bin_page.dart';
+
+// 🌟 استدعاء الحارس الشخصي والصلاحيات
+import '../../auth/cubit/auth_cubit.dart';
+import '../../core/constants/app_permissions.dart';
 
 // ==========================================
 // 🌟 أداة تنسيق الأرقام بالفواصل أثناء الكتابة
@@ -84,7 +88,6 @@ class _SettingsViewState extends State<SettingsView> {
     super.dispose();
   }
 
-  // 🌟 دالة مساعدة لبناء حقول إدخال الأسعار بشكل موحد واحترافي
   Widget _buildPriceField({
     required TextEditingController controller, 
     required String label, 
@@ -116,9 +119,11 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    // 🌟 جلب حالة الصلاحيات للمستخدم الحالي
+    final authState = context.watch<AuthCubit>().state;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      // 🌟 تم إزالة הـ AppBar بالكامل لتوسيع الواجهة
       body: SafeArea(
         child: BlocConsumer<SettingsCubit, SettingsState>(
           listenWhen: (previous, current) => 
@@ -148,7 +153,7 @@ class _SettingsViewState extends State<SettingsView> {
 
             return Center(
               child: SizedBox(
-                width: 700, // 🌟 عرض 700 بكسل ليسمح بوضع الحقول جنباً إلى جنب براحة
+                width: 700,
                 child: Scrollbar(
                   controller: _scrollController, 
                   thumbVisibility: true, 
@@ -236,7 +241,6 @@ class _SettingsViewState extends State<SettingsView> {
                                 
                                 const SizedBox(height: 24),
                                 
-                                // 🌟 تنسيق الحقول في شبكة (عمودين) لتوفير المساحة والاحترافية
                                 Row(
                                   children:[
                                     Expanded(
@@ -307,6 +311,9 @@ class _SettingsViewState extends State<SettingsView> {
                                 ),
                                 
                                 const SizedBox(height: 24),
+                                
+                                // 🌟 حماية زر الحفظ (الزر الباهت)
+                                // إذا لم يكن لديه صلاحية تعديل الأسعار، يصبح الزر باهتاً ولا يعمل
                                 SizedBox(
                                   width: double.infinity,
                                   height: 50,
@@ -314,9 +321,12 @@ class _SettingsViewState extends State<SettingsView> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.blueGrey.shade800, 
                                       foregroundColor: Colors.white,
+                                      disabledBackgroundColor: Colors.grey.shade300,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
                                     ),
-                                    onPressed: () => _savePrices(context),
+                                    onPressed: authState.hasPermission(AppPermissions.updatePrices) 
+                                        ? () => _savePrices(context) 
+                                        : null,
                                     icon: const Icon(Icons.save),
                                     label: const Text('اعتماد وحفظ الأسعار ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                   ),
@@ -328,53 +338,54 @@ class _SettingsViewState extends State<SettingsView> {
                           const SizedBox(height: 24),
 
                           // ==========================================
-                          // 🗑️ بطاقة إدارة المحذوفات الشاملة
+                          // 🗑️ بطاقة إدارة المحذوفات الشاملة (مخفية بالكامل إن لم يمتلك الصلاحية)
                           // ==========================================
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.red.shade100, width: 1.5),
-                              boxShadow:[BoxShadow(color: Colors.red.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children:[
-                                Row(
-                                  children:[
-                                    Icon(Icons.delete_sweep, color: Colors.red.shade600, size: 28),
-                                    const SizedBox(width: 12),
-                                    const Text('إدارة المحذوفات (سلة المهملات)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text('استعادة العملاء، العقود، المحاضر، الشقق والإيصالات الملغاة أو حذفها نهائياً. (يتم التنظيف التلقائي بعد 7 أيام)', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                                const SizedBox(height: 20),
-
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 55,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.shade50,
-                                      foregroundColor: Colors.red.shade800,
-                                      elevation: 0,
-                                      side: BorderSide(color: Colors.red.shade200, width: 1.5),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    ),
-                                    onPressed: () {
-                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()));
-                                    },
-                                    icon: const Icon(Icons.recycling, size: 24),
-                                    label: const Text('فتح سلة المحذوفات الشاملة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          if (authState.hasPermission(AppPermissions.viewRecycleBin)) ...[
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.red.shade100, width: 1.5),
+                                boxShadow:[BoxShadow(color: Colors.red.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children:[
+                                  Row(
+                                    children:[
+                                      Icon(Icons.delete_sweep, color: Colors.red.shade600, size: 28),
+                                      const SizedBox(width: 12),
+                                      const Text('إدارة المحذوفات (سلة المهملات)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red)),
+                                    ],
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
+                                  const SizedBox(height: 8),
+                                  Text('استعادة العملاء، العقود، المحاضر، الشقق والإيصالات الملغاة أو حذفها نهائياً. (يتم التنظيف التلقائي بعد 7 أيام)', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                                  const SizedBox(height: 20),
 
-                          const SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 55,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red.shade50,
+                                        foregroundColor: Colors.red.shade800,
+                                        elevation: 0,
+                                        side: BorderSide(color: Colors.red.shade200, width: 1.5),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(context, MaterialPageRoute(builder: (_) => const RecycleBinPage()));
+                                      },
+                                      icon: const Icon(Icons.recycling, size: 24),
+                                      label: const Text('فتح سلة المحذوفات الشاملة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
 
                           // ==========================================
                           // 🛡️ بطاقة أمان البيانات والنسخ الاحتياطي
@@ -421,6 +432,7 @@ class _SettingsViewState extends State<SettingsView> {
                                       ),
                                     ),
                                     const SizedBox(width: 16),
+                                    // زر الاستعادة (متاح فقط للآدمن لحمايته من التخريب)
                                     Expanded(
                                       child: SizedBox(
                                         height: 55,
@@ -431,7 +443,7 @@ class _SettingsViewState extends State<SettingsView> {
                                             elevation: 0,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                           ),
-                                          onPressed: _isProcessingBackup ? null : () => _handleRestore(context),
+                                          onPressed: (_isProcessingBackup || !authState.isSystemAdmin) ? null : () => _handleRestore(context),
                                           icon: const Icon(Icons.restore_page),
                                           label: const Text('استعادة البيانات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                         ),

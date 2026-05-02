@@ -5,6 +5,7 @@ import 'package:erp_repository/erp_repository.dart';
 import 'package:local_storage_api/local_storage_api.dart';
 
 import '../cubit/admin_cubit.dart';
+import 'package:our_home_erp_app/auth/cubit/auth_cubit.dart';
 import '../../core/constants/app_permissions.dart';
 
 class AdminPage extends StatelessWidget {
@@ -99,14 +100,21 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
   }
 
   // =====================================
-  // 👥 التبويب الأول: إدارة الموظفين
+  // 👥 التبويب الأول: إدارة الموظفين (مع الحماية من قفل المدير)
   // =====================================
   Widget _buildUsersTab(BuildContext context, AdminState state) {
+    // 🌟 جلب الآي دي الخاص بك (المستخدم الحالي الذي يمسك الهاتف)
+    final myUserId = context.watch<AuthCubit>().state.userId;
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: state.users.length,
       itemBuilder: (context, index) {
         final user = state.users[index];
+        
+        // 🌟 هل هذا المستخدم في القائمة هو "أنا"؟
+        final isMe = user.id == myUserId;
+
         return Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: 12),
@@ -115,7 +123,19 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
               backgroundColor: user.isActive ? Colors.green : Colors.red,
               child: Icon(user.isActive ? Icons.person : Icons.person_off, color: Colors.white),
             ),
-            title: Text(user.fullName ?? user.email, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Row(
+              children:[
+                Text(user.fullName ?? user.email, style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (isMe) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)),
+                    child: const Text('أنت', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  )
+                ]
+              ],
+            ),
             subtitle: Text(user.email),
             trailing: SizedBox(
               width: 250,
@@ -131,7 +151,9 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                       items: state.roles.map((role) {
                         return DropdownMenuItem(value: role.id, child: Text(role.name));
                       }).toList(),
-                      onChanged: (newRoleId) {
+                      
+                      // 🛡️ الحماية: إذا كان هذا حسابي، أجعل الزر باهتاً (null) لمنع تغيير دوري
+                      onChanged: isMe ? null : (newRoleId) {
                         context.read<AdminCubit>().updateUser(user.id, newRoleId, user.isActive);
                       },
                     ),
@@ -141,7 +163,9 @@ class _AdminViewState extends State<AdminView> with SingleTickerProviderStateMix
                   Switch(
                     value: user.isActive,
                     activeColor: Colors.green,
-                    onChanged: (val) {
+                    
+                    // 🛡️ الحماية: منع المدير من إيقاف حساب نفسه
+                    onChanged: isMe ? null : (val) {
                       context.read<AdminCubit>().updateUser(user.id, user.roleId, val);
                     },
                   )
