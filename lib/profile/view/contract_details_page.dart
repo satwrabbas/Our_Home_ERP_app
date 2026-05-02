@@ -254,7 +254,7 @@ class ContractDetailsPage extends StatelessWidget {
                         children:[
                           _buildInfoRow('تاريخ توقيع العقد:', '${contract.contractDate.year}/${contract.contractDate.month}/${contract.contractDate.day}', Icons.calendar_month),
                           const Divider(height: 24),
-                          _buildInfoRow('المدة الشكلية المسجلة:', '${contract.installmentsCount} أشهر', Icons.timer),
+                          _buildInfoRow('المدة المسجلة:', '${contract.installmentsCount} أشهر', Icons.timer),
                           const Divider(height: 24),
                           _buildInfoRow('اسم الكفيل الضامن:', contract.guarantorName, Icons.person_pin),
                           const Divider(height: 24),

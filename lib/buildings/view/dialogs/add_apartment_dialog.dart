@@ -304,7 +304,7 @@ void showAddApartmentDialog(BuildContext parentContext, Building building, {Stri
                             Expanded(
                               child: buildField(
                                 controller: yardCoeffCtrl, 
-                                label: 'معامل الوجيبة المالي %', 
+                                label: 'معامل الوجيبة  %', 
                                 icon: Icons.yard_outlined,
                                 fillColor: Colors.white,
                               ),

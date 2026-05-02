@@ -212,7 +212,7 @@ void showAddShopDialog(BuildContext parentContext, Building building) {
                           children:[
                             Icon(Icons.percent, color: Colors.green.shade600),
                             const SizedBox(width: 8),
-                            const Text('المعاملات المالية المئوية (تؤثر على السعر)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
+                            const Text('المعاملات المالية المئوية ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green)),
                           ],
                         ),
                         const SizedBox(height: 16),

@@ -75,7 +75,7 @@ class FinancialSection extends StatelessWidget {
                   )),
                   const SizedBox(width: 12),
                   // حقل المدة أصبح شكلياً، لذلك سنضيف عليه تلميح
-                  Expanded(flex: 2, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة الشكلية (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                  Expanded(flex: 2, child: TextField(controller: monthsController, decoration: const InputDecoration(labelText: 'المدة  (أشهر)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
                   const SizedBox(width: 12),
                   Expanded(flex: 2, child: TextField(controller: durationCoefficientCtrl, decoration: const InputDecoration(labelText: 'نسبة التقسيط %', border: OutlineInputBorder(), filled: true, fillColor: Colors.orangeAccent), keyboardType: TextInputType.number)),
                 ],

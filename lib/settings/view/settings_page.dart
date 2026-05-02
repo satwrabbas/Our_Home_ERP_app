@@ -318,7 +318,7 @@ class _SettingsViewState extends State<SettingsView> {
                                     ),
                                     onPressed: () => _savePrices(context),
                                     icon: const Icon(Icons.save),
-                                    label: const Text('اعتماد وحفظ الأسعار الإفرادية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    label: const Text('اعتماد وحفظ الأسعار ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                   ),
                                 ),
                               ],
