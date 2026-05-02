@@ -14,6 +14,7 @@ import '../../contracts/view/contracts_page.dart';
 import '../../payments/view/payments_page.dart';
 import '../../schedule/view/schedule_page.dart';
 import '../../settings/view/settings_page.dart';
+import '../../admin/view/admin_page.dart';
 
 // استدعاء المتحكمات
 import '../../clients/cubit/clients_cubit.dart';
@@ -153,6 +154,19 @@ class DashboardView extends StatelessWidget {
         selectedIcon: Icons.settings,
         page: const SettingsPage(),
         onSelected: (ctx) => ctx.read<SettingsCubit>().fetchPrices(),
+      ));
+    }
+
+    // 8. لوحة تحكم الإدارة (خاصة بالـ Super Admin فقط)
+    if (authState.isSystemAdmin) {
+      availableTabs.add(NavTab(
+        label: 'الإدارة',
+        icon: Icons.admin_panel_settings_outlined,
+        selectedIcon: Icons.admin_panel_settings,
+        page: const AdminPage(),
+        onSelected: (ctx) {
+          // لا يوجد Cubit نحتاج لاستدعائه هنا لأن AdminPage تبني الـ Cubit الخاص بها
+        },
       ));
     }
 
