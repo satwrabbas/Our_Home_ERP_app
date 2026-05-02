@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; 
 import 'package:erp_repository/erp_repository.dart';
 
-// 🌟 الاستيرادات بالمسارات النسبية الصحيحة
 import '../../auth/cubit/auth_cubit.dart'; 
 import '../../login/view/login_page.dart';
 import '../../dashboard/view/dashboard_page.dart';
@@ -18,12 +17,11 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 السحر هنا: توفير Repository و AuthCubit لكامل التطبيق
     return MultiBlocProvider(
       providers:[
         RepositoryProvider.value(value: erpRepository),
         BlocProvider(
-          create: (context) => AuthCubit(erpRepository), // سيبدأ بالتحقق تلقائياً عند التشغيل
+          create: (context) => AuthCubit(erpRepository), 
         ),
       ],
       child: const AppView(),
@@ -54,10 +52,17 @@ class AppView extends StatelessWidget {
         fontFamily: 'Tahoma', 
       ),
       
-      // 🌟 التوجيه الذكي المربوط بـ AuthCubit
       home: BlocBuilder<AuthCubit, AuthState>(
+        // 🌟 التعديل السحري هنا: نمنع التطبيق من تدمير شاشة الدخول أثناء التحميل
+        buildWhen: (previous, current) {
+          // إذا كان غير مسجل وبدأ بالتحميل، لا تقم بإعادة رسم كامل التطبيق
+          if ((previous.status == AuthStatus.unauthenticated || previous.status == AuthStatus.error) && 
+              current.status == AuthStatus.loading) {
+            return false; 
+          }
+          return true;
+        },
         builder: (context, state) {
-          // 1. شاشة تحميل (Splash) أثناء فحص الصلاحيات
           if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {
             return const Scaffold(
               backgroundColor: Colors.blueGrey,
@@ -67,12 +72,10 @@ class AppView extends StatelessWidget {
             );
           }
           
-          // 2. تم التأكد من الجلسة والصلاحيات -> افتح لوحة التحكم
           if (state.status == AuthStatus.authenticated) {
             return const DashboardPage();
           }
 
-          // 3. غير مسجل دخول أو حدث خطأ -> افتح شاشة تسجيل الدخول
           return const LoginPage();
         },
       ), 

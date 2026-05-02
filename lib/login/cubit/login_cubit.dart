@@ -1,9 +1,8 @@
-//lib\login\cubit\login_cubit.dart
 import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:erp_repository/erp_repository.dart';
-import 'package:path_provider/path_provider.dart'; // 🌟 للوصول لملفات النظام
+import 'package:path_provider/path_provider.dart'; 
 import 'package:path/path.dart' as p;
 
 part 'login_state.dart';
@@ -13,9 +12,6 @@ class LoginCubit extends Cubit<LoginState> {
 
   final ErpRepository _erpRepository;
 
-  // ==========================================
-  // 🌟 استرجاع الإيميل المحفوظ عند فتح الشاشة
-  // ==========================================
   Future<void> loadSavedEmail() async {
     try {
       final dir = await getApplicationSupportDirectory();
@@ -24,13 +20,10 @@ class LoginCubit extends Cubit<LoginState> {
       if (file.existsSync()) {
         final savedEmail = await file.readAsString();
         if (savedEmail.isNotEmpty) {
-          // نعرض الإيميل المحفوظ ونفعل مربع "تذكرني"
           emit(state.copyWith(email: savedEmail, rememberMe: true));
         }
       }
-    } catch (e) {
-      // نتجاهل الخطأ بصمت إذا كان التطبيق يُفتح لأول مرة
-    }
+    } catch (e) {}
   }
 
   void emailChanged(String value) {
@@ -41,7 +34,6 @@ class LoginCubit extends Cubit<LoginState> {
     emit(state.copyWith(password: value, status: LoginStatus.initial));
   }
 
-  // 🌟 تغيير حالة مربع "تذكرني"
   void rememberMeChanged(bool value) {
     emit(state.copyWith(rememberMe: value, status: LoginStatus.initial));
   }
@@ -60,23 +52,30 @@ class LoginCubit extends Cubit<LoginState> {
         password: state.password,
       );
       
-      // ==========================================
-      // 🌟 حفظ أو مسح الإيميل محلياً بناءً على خيار "تذكرني"
-      // ==========================================
       final dir = await getApplicationSupportDirectory();
       final file = File(p.join(dir.path, 'remember_me.txt'));
       
       if (state.rememberMe) {
-        await file.writeAsString(state.email.trim()); // حفظ الإيميل
+        await file.writeAsString(state.email.trim()); 
       } else {
-        if (file.existsSync()) await file.delete(); // مسح الإيميل إذا ألغى الخيار
+        if (file.existsSync()) await file.delete(); 
       }
 
       emit(state.copyWith(status: LoginStatus.success));
+      
     } catch (e) {
+      String msg = 'فشل تسجيل الدخول. تأكد من صحة البيانات أو اتصالك بالإنترنت.';
+      
+      // 🌟 اصطياد خطأ الإيميل غير المؤكد من Supabase
+      if (e.toString().contains('Email not confirmed')) {
+        msg = 'يرجى تأكيد بريدك الإلكتروني أولاً عبر الرابط الذي أرسلناه إليك.';
+      } else if (e.toString().contains('Invalid login credentials')) {
+        msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+      }
+
       emit(state.copyWith(
         status: LoginStatus.failure,
-        errorMessage: 'فشل تسجيل الدخول. تأكد من صحة البيانات أو اتصالك بالإنترنت.',
+        errorMessage: msg,
       ));
     }
   }
